@@ -13,7 +13,6 @@ import React, { useState } from 'react';
 import { Globe, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTemplates } from '../../contexts/TemplateContext';
-import { capitalizeFirst } from '../../utils';
 import PendingTemplatesModal from '../shared/PendingTemplatesModal';
 
 /**

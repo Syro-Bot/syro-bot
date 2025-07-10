@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ArrowLeft, Upload, Download, Settings } from 'lucide-react';
+import { ArrowLeft, Upload, Download } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface ImageConfigProps {
@@ -34,20 +34,8 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
     customMessage: ''
   });
 
-  const [previewImage, setPreviewImage] = useState<string>('/eyes.png');
   const [previewBg, setPreviewBg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleBgUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -333,7 +321,7 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
               {/* Imagen de fondo */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <img
-                  src={previewImage}
+                  src="/eyes.png" // Assuming a default image for preview
                   alt="Welcome"
                   className="rounded-full object-cover"
                   style={{ 

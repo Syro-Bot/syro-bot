@@ -8,15 +8,6 @@ interface BoostMessagesProps {
   onBack: () => void;
 }
 
-interface Channel {
-  id: string;
-  name: string;
-  type: number;
-  position: number;
-  parent: string | null;
-  guildName: string;
-}
-
 const BoostMessages: React.FC<BoostMessagesProps> = ({ onBack }) => {
   const { isDarkMode } = useTheme();
   const [selectedChannel, setSelectedChannel] = useState<ChannelType | null>(null);

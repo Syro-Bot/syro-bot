@@ -5,16 +5,6 @@ import { Hash, Folder, MessageSquare, Mic, CheckCircle, AlertCircle } from 'luci
 import ChannelListDisplay from '../features/channels/ChannelListDisplay';
 import type { Channel as ChannelType } from '../features/channels/ChannelListDisplay';
 
-interface Channel {
-  id: string;
-  name: string;
-  type: number;
-  position: number;
-  parent: string | null;
-  guildName: string;
-  parentId?: string | null;
-}
-
 const CreateChannel: React.FC = () => {
   const { isDarkMode } = useTheme();
   const [mode, setMode] = useState<'channel' | 'category'>('channel');

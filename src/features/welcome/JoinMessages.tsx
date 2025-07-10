@@ -8,15 +8,6 @@ interface JoinMessagesProps {
     onBack: () => void;
 }
 
-interface Channel {
-    id: string;
-    name: string;
-    type: number;
-    position: number;
-    parent: string | null;
-    guildName: string;
-}
-
 const JoinMessages: React.FC<JoinMessagesProps> = ({ onBack }) => {
     const { isDarkMode } = useTheme();
     const [selectedChannel, setSelectedChannel] = useState<ChannelType | null>(null);

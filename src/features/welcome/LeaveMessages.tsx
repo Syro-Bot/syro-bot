@@ -8,15 +8,6 @@ interface LeaveMessagesProps {
   onBack: () => void;
 }
 
-interface Channel {
-  id: string;
-  name: string;
-  type: number;
-  position: number;
-  parent: string | null;
-  guildName: string;
-}
-
 const LeaveMessages: React.FC<LeaveMessagesProps> = ({ onBack }) => {
   const { isDarkMode } = useTheme();
   const [selectedChannel, setSelectedChannel] = useState<ChannelType | null>(null);
