@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Upload, Download } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -33,6 +33,48 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
     mentionUser: true,
     customMessage: ''
   });
+
+  // Cargar configuración guardada cuando el componente se monta
+  useEffect(() => {
+    const loadSavedConfig = async () => {
+      if (!selectedChannel) return;
+      
+      console.log('🔄 Loading config for channel:', selectedChannel.id);
+      
+      try {
+        const response = await fetch(`http://localhost:3001/api/welcome-config/${selectedChannel.id}`);
+        console.log('📡 Response status:', response.status);
+        
+        if (response.ok) {
+          const savedConfig = await response.json();
+          console.log('📦 Saved config received:', savedConfig);
+          
+          if (savedConfig.config) {
+            console.log('✅ Setting config:', savedConfig.config);
+            setConfig(prev => ({
+              ...prev,
+              ...savedConfig.config.config // Acceder al config anidado
+            }));
+            // También cargar la imagen de fondo si existe
+            if (savedConfig.config.config.backgroundImage) {
+              console.log('🖼️ Setting background image');
+              setPreviewBg(savedConfig.config.config.backgroundImage);
+            }
+          } else {
+            console.log('⚠️ No config found in response');
+          }
+        } else {
+          console.log('❌ Response not ok:', response.status);
+          const errorText = await response.text();
+          console.log('❌ Error response:', errorText);
+        }
+      } catch (error) {
+        console.error('💥 Error loading saved config:', error);
+      }
+    };
+
+    loadSavedConfig();
+  }, [selectedChannel]);
 
   const [previewBg, setPreviewBg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

@@ -33,6 +33,7 @@ const logger = require('./utils/logger');
 const Join = require('./models/Join');
 const Template = require('./models/Template');
 const ServerConfig = require('./models/ServerConfig');
+const WelcomeConfig = require('./models/WelcomeConfig');
 const multer = require('multer');
 const path = require('path');
 const { validateDiscordPermissions, validateBotPresence } = require('./middleware/auth');
@@ -492,26 +493,35 @@ app.get('/api/stats/joins',
       });
     }
 
+    // Función helper para obtener la fecha local sin zona horaria
+    const getLocalDateString = (date) => {
+      const d = new Date(date);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
     // Encontrar la fecha del primer join real
     const firstJoinDate = new Date(Math.min(...recentJoins.map(j => new Date(j.timestamp).getTime())));
-    const firstDay = new Date(firstJoinDate.toISOString().split('T')[0]); // 00:00 UTC
-    const lastDay = new Date(currentDate.toISOString().split('T')[0]); // 00:00 UTC
+    const firstDay = new Date(firstJoinDate.getFullYear(), firstJoinDate.getMonth(), firstJoinDate.getDate()); // 00:00 local
+    const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate()); // 00:00 local
 
     // Generar el rango de fechas solo desde el primer join
     const dailyStats = {};
     for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-      const dayKey = d.toISOString().split('T')[0];
+      const dayKey = getLocalDateString(d);
       dailyStats[dayKey] = 0;
     }
 
-    // Contar joins por día
+    // Contar joins por día usando fecha local
+    console.log(`📊 Procesando ${recentJoins.length} joins para estadísticas`);
     recentJoins.forEach(join => {
-      const date = new Date(join.timestamp);
-      const dayKey = date.toISOString().split('T')[0];
+      const dayKey = getLocalDateString(join.timestamp);
+      console.log(`📅 Join de ${join.username} en ${dayKey} (timestamp: ${join.timestamp})`);
       if (dailyStats.hasOwnProperty(dayKey)) {
         dailyStats[dayKey]++;
       }
     });
+    
+    console.log(`📈 Estadísticas diarias:`, dailyStats);
 
     // Convertir a formato de gráfico y ordenar
     const chartData = Object.entries(dailyStats)
@@ -524,8 +534,8 @@ app.get('/api/stats/joins',
       totalJoins: recentJoins.length,
       guildId: guildId,
       dateRange: {
-        start: firstDay.toISOString().split('T')[0],
-        end: lastDay.toISOString().split('T')[0]
+        start: getLocalDateString(firstDay),
+        end: getLocalDateString(lastDay)
       }
     });
   } catch (error) {
@@ -614,7 +624,7 @@ app.get('/api/channels', (req, res) => {
 // Save welcome configuration
 app.post('/api/welcome-config', 
   // validateDiscordPermissions('admin'),
-  (req, res) => {
+  async (req, res) => {
   console.log('🔔 POST /api/welcome-config recibido');
   // Loguea el tamaño de la imagen base64 si existe
   const { channelId, config } = req.body;
@@ -646,32 +656,105 @@ app.post('/api/welcome-config',
   }
 
   try {
-    welcomeConfigs[foundGuildId] = { channelId, config };
-    fs.writeFileSync('./welcomeConfigs.json', JSON.stringify(welcomeConfigs, null, 2));
-    console.log('✅ Configuración guardada para guild:', foundGuildId);
-    res.json({ success: true });
+    // Buscar configuración existente o crear nueva
+    let welcomeConfig = await WelcomeConfig.findOne({ serverId: foundGuildId });
+    
+    if (welcomeConfig) {
+      // Actualizar configuración existente
+      welcomeConfig.channelId = channelId;
+      welcomeConfig.customMessage = config.customMessage || '';
+      welcomeConfig.mentionUser = config.mentionUser !== undefined ? config.mentionUser : true;
+      welcomeConfig.backgroundImage = {
+        url: config.backgroundImage || null,
+        color: config.backgroundColor || '#1a1a1a',
+        opacity: 1
+      };
+      welcomeConfig.textConfig = {
+        welcomeText: config.welcomeText || 'Welcome',
+        usernameText: config.userText || '{user}',
+        color: config.textColor || '#ffffff',
+        size: config.fontSize || 24,
+        usernameSize: Math.floor((config.fontSize || 24) * 0.8)
+      };
+      welcomeConfig.avatarConfig = {
+        show: true,
+        size: config.imageSize || 120,
+        border: true,
+        borderColor: '#7289da',
+        borderWidth: 4
+      };
+      welcomeConfig.enabled = true;
+    } else {
+      // Crear nueva configuración
+      welcomeConfig = new WelcomeConfig({
+        serverId: foundGuildId,
+        channelId,
+        customMessage: config.customMessage || '',
+        mentionUser: config.mentionUser !== undefined ? config.mentionUser : true,
+        backgroundImage: {
+          url: config.backgroundImage || null,
+          color: config.backgroundColor || '#1a1a1a',
+          opacity: 1
+        },
+        textConfig: {
+          welcomeText: config.welcomeText || 'Welcome',
+          usernameText: config.userText || '{user}',
+          color: config.textColor || '#ffffff',
+          size: config.fontSize || 24,
+          usernameSize: Math.floor((config.fontSize || 24) * 0.8)
+        },
+        avatarConfig: {
+          show: true,
+          size: config.imageSize || 120,
+          border: true,
+          borderColor: '#7289da',
+          borderWidth: 4
+        },
+        enabled: true
+      });
+    }
+    
+    await welcomeConfig.save();
+    console.log('✅ Configuración guardada en MongoDB para guild:', foundGuildId);
+    res.json({ success: true, config: welcomeConfig });
   } catch (e) {
-    console.error('Error guardando configuración:', e);
+    console.error('Error guardando configuración en MongoDB:', e);
     res.status(500).json({ success: false, error: 'Error guardando configuración' });
   }
 });
 
 // Get welcome configuration
-app.get('/api/welcome-config/:guildId', 
+app.get('/api/welcome-config/:channelId', 
   // validateBotPresence(),
   // validateDiscordPermissions('manage'),
-  (req, res) => {
+  async (req, res) => {
   try {
-    const { guildId } = req.params;
-    const config = welcomeConfigs[guildId];
+    const { channelId } = req.params;
+    const welcomeConfig = await WelcomeConfig.findOne({ channelId });
     
-    if (!config) {
+    if (!welcomeConfig) {
       return res.status(404).json({ success: false, error: 'No welcome configuration found' });
     }
     
+    // Convertir a formato compatible con el frontend
+    const config = {
+      channelId: welcomeConfig.channelId,
+      config: {
+        welcomeText: welcomeConfig.textConfig?.welcomeText || 'Welcome',
+        userText: welcomeConfig.textConfig?.usernameText || '{user}',
+        backgroundColor: welcomeConfig.backgroundImage?.color || '#1a1a1a',
+        textColor: welcomeConfig.textConfig?.color || '#ffffff',
+        fontSize: welcomeConfig.textConfig?.size || 24,
+        imageSize: welcomeConfig.avatarConfig?.size || 120,
+        mentionUser: welcomeConfig.mentionUser !== undefined ? welcomeConfig.mentionUser : true,
+        customMessage: welcomeConfig.customMessage || '',
+        backgroundImage: welcomeConfig.backgroundImage?.url || null
+      }
+    };
+    
     res.json({ success: true, config });
   } catch (error) {
-    console.error('Error getting welcome config:', error);
+    console.error('Error getting welcome config from MongoDB:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

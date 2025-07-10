@@ -26,6 +26,7 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 const ServerConfig = require('./models/ServerConfig');
+const WelcomeConfig = require('./models/WelcomeConfig');
 
 /**
  * Discord Client Configuration
@@ -675,24 +676,31 @@ client.on('guildMemberAdd', async (member) => {
       console.error('❌ Error saving join event to database:', dbError);
     }
     
-    // Send welcome message if configured
+    // Send welcome message if configured (using MongoDB)
     try {
-      const welcomeConfigs = JSON.parse(fs.readFileSync('./welcomeConfigs.json', 'utf8'));
-      const guildWelcomeConfig = welcomeConfigs[member.guild.id];
+      const welcomeConfig = await WelcomeConfig.findOne({ serverId: member.guild.id });
       
-      if (guildWelcomeConfig && guildWelcomeConfig.channelId && guildWelcomeConfig.config) {
-        const channel = member.guild.channels.cache.get(guildWelcomeConfig.channelId);
+      if (welcomeConfig && welcomeConfig.enabled && welcomeConfig.channelId) {
+        const channel = member.guild.channels.cache.get(welcomeConfig.channelId);
         if (channel) {
           console.log(`🎉 Sending welcome message for ${member.user.tag} in ${channel.name}`);
           
-          // Use the image configuration from ImageConfig.tsx
-          const config = guildWelcomeConfig.config;
-          
-          // Generate welcome image
+          // Generate welcome image using MongoDB config
           let userAvatarUrl = member.user.displayAvatarURL({ format: 'png', size: 512 });
-          // Force PNG format by replacing webp with png
           userAvatarUrl = userAvatarUrl.replace('.webp', '.png');
           console.log(`🖼️ Avatar URL for ${member.user.tag}: ${userAvatarUrl}`);
+          
+          // Convert MongoDB config to format expected by generateWelcomeImage
+          const config = {
+            backgroundColor: welcomeConfig.backgroundImage?.color || '#1a1a1a',
+            backgroundImage: welcomeConfig.backgroundImage?.url,
+            imageSize: welcomeConfig.avatarConfig?.size || 120,
+            fontSize: welcomeConfig.textConfig?.size || 24,
+            textColor: welcomeConfig.textConfig?.color || '#ffffff',
+            welcomeText: welcomeConfig.textConfig?.welcomeText || 'Welcome',
+            userText: welcomeConfig.textConfig?.usernameText || '{user}'
+          };
+          
           const imageBuffer = await generateWelcomeImage(config, userAvatarUrl, member.user.username);
           
           // Create attachment
@@ -702,13 +710,13 @@ client.on('guildMemberAdd', async (member) => {
           let welcomeMessage = '';
           
           // If mentionUser is enabled, send a message
-          if (config.mentionUser) {
+          if (welcomeConfig.mentionUser) {
             // Start with the mention
             welcomeMessage = `${member.user}`;
             
             // Add custom message if provided
-            if (config.customMessage && config.customMessage.trim()) {
-              welcomeMessage += ` ${config.customMessage}`;
+            if (welcomeConfig.customMessage && welcomeConfig.customMessage.trim()) {
+              welcomeMessage += ` ${welcomeConfig.customMessage}`;
             }
             
             // Send the welcome message with image
@@ -719,11 +727,17 @@ client.on('guildMemberAdd', async (member) => {
             await channel.send({ files: [attachment] });
             console.log(`✅ Welcome image sent for ${member.user.tag} (no text message)`);
           }
+          
+          // Update statistics
+          welcomeConfig.stats.totalSent += 1;
+          welcomeConfig.stats.lastSent = new Date();
+          await welcomeConfig.save();
+          
         } else {
-          console.log(`❌ Welcome channel not found: ${guildWelcomeConfig.channelId}`);
+          console.log(`❌ Welcome channel not found: ${welcomeConfig.channelId}`);
         }
       } else {
-        console.log(`ℹ️ No welcome configuration found for guild: ${member.guild.name}`);
+        console.log(`ℹ️ No welcome configuration found or disabled for guild: ${member.guild.name}`);
       }
     } catch (welcomeError) {
       console.error('❌ Error sending welcome message:', welcomeError);

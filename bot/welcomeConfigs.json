@@ -4,9 +4,9 @@
     "config": {
       "welcomeText": "Welcome - Syro Bot",
       "userText": "{user}",
-      "backgroundColor": "#000000",
+      "backgroundColor": "#1a1a1a",
       "textColor": "#ffffff",
-      "fontSize": 37,
+      "fontSize": 35,
       "imageSize": 158,
       "mentionUser": true,
       "customMessage": "",
