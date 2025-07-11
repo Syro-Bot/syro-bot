@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import axios from 'axios';
-import { Hash, Folder, MessageSquare, Mic, CheckCircle, AlertCircle } from 'lucide-react';
 import ChannelListDisplay from '../features/channels/ChannelListDisplay';
-import type { Channel as ChannelType } from '../features/channels/ChannelListDisplay';
+import ChannelForm from '../features/channels/ChannelForm';
+import CategoryForm from '../features/channels/CategoryForm';
+import type { Channel, Role } from '../features/channels/types';
+import { Hash } from 'lucide-react';
 
 interface CreateChannelProps {
   guildId?: string;
@@ -19,15 +21,24 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [channels, setChannels] = useState<ChannelType[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]); // Placeholder for future
+
+  // Advanced
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [isNSFW, setIsNSFW] = useState(false);
+  const [slowmode, setSlowmode] = useState(0);
+  const [userLimit, setUserLimit] = useState(0);
+  const [topic, setTopic] = useState('');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Fetch channels
-  const fetchChannels = async () => {
+  const fetchData = async () => {
     if (!guildId) {
       setError('No guild selected');
       return;
     }
-    
     try {
       const response = await axios.get(`http://localhost:3001/api/channels/${guildId}`);
       if (response.data.success) {
@@ -41,20 +52,31 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
   };
 
   useEffect(() => {
-    fetchChannels();
+    fetchData();
   }, [guildId]);
 
-  // Obtener categorías ordenadas
+  // Get sorted categories
   const categories = channels.filter(c => c.type === 4).sort((a, b) => a.position - b.position);
 
-  // Create channel
+  // Reset form
+  const resetForm = () => { setName(''); setCatName(''); setType('text'); setCategoryId(''); setIsPrivate(false); setIsNSFW(false); setSlowmode(0); setUserLimit(0); setTopic(''); setSelectedRoles([]); setShowAdvanced(false); };
+
+  // Toggle role
+  const toggleRole = (roleId: string) => {
+    setSelectedRoles(prev =>
+      prev.includes(roleId)
+        ? prev.filter(id => id !== roleId)
+        : [...prev, roleId]
+    );
+  };
+
+  // Submit handlers
   const handleChannelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!guildId) {
       setError('No guild selected');
       return;
     }
-    
     setLoading(true);
     setSuccess(null);
     setError(null);
@@ -67,10 +89,8 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
       });
       if (response.data.success) {
         setSuccess('Channel created successfully');
-        setName('');
-        setType('text');
-        setCategoryId('');
-        fetchChannels();
+        resetForm();
+        fetchData();
       } else {
         setError(response.data.error || 'Error creating channel');
       }
@@ -81,14 +101,12 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
     }
   };
 
-  // Create category
   const handleCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!guildId) {
       setError('No guild selected');
       return;
     }
-    
     setLoading(true);
     setSuccess(null);
     setError(null);
@@ -100,8 +118,8 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
       });
       if (response.data.success) {
         setSuccess('Category created successfully');
-        setCatName('');
-        fetchChannels();
+        resetForm();
+        fetchData();
       } else {
         setError(response.data.error || 'Error creating category');
       }
@@ -113,218 +131,110 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
   };
 
   return (
-    <div className="flex h-full w-full items-center justify-center gap-8 p-6">
-      {/* Channel list left */}
-      <div className="flex-1 max-w-2xl">
-        <div className="rounded-3xl p-6">
-          <h2 className={`text-xl font-bold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
-            <Hash className="w-5 h-5 text-blue-500" />
-            Server Channels
-          </h2>
-          <ChannelListDisplay channels={channels} height={480} />
-        </div>
+    <div className="w-full max-w-[90rem] mx-auto py-12 transition-colors duration-300">
+      {/* Banner Header */}
+      <div className="bg-gradient-to-r from-blue-400 via-blue-600 to-blue-900 rounded-3xl p-24 mb-10 max-w-[80rem] mx-auto">
+        <h1 className="text-6xl font-extrabold text-white uppercase leading-none text-center">
+          Create New Channel
+        </h1>
+        <p className="text-blue-100 text-center text-xl mt-4 font-medium">
+          Build your server's communication structure
+        </p>
       </div>
-
-      {/* Form right */}
-      <div className="flex-1 max-w-md">
-        <div className={`rounded-3xl shadow-2xl ${isDarkMode ? 'bg-[#181c24]' : 'bg-white'}`} style={{ height: '650px' }}>
-          {/* Banner Header */}
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-3xl p-8 text-white">
-            <h1 className="text-2xl font-bold text-center mb-2">
-              Create New {mode === 'channel' ? 'Channel' : 'Category'}
-            </h1>
-            <p className="text-blue-100 text-center text-sm">
-              Add a new {mode === 'channel' ? 'channel' : 'category'} to your server
-            </p>
-          </div>
-
-          {/* Content */}
-          <div className="p-8 flex flex-col" style={{ height: 'calc(650px - 120px)' }}>
-            {/* Toggle buttons */}
-            <div className="flex gap-3 mb-8">
-              <button
-                type="button"
-                onClick={() => setMode('channel')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all duration-200 ${
-                  mode === 'channel'
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                    : isDarkMode
-                      ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4" />
-                Channel
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('category')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold transition-all duration-200 ${
-                  mode === 'category'
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                    : isDarkMode
-                      ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <Folder className="w-4 h-4" />
-                Category
-              </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-[80rem] mx-auto">
+        {/* Channel list left */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-500/10 rounded-xl">
+                <Hash className="w-6 h-6 text-blue-500" />
+              </div>
+              <div>
+                <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Server Channels</h2>
+                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{channels.length} channels total</p>
+              </div>
             </div>
-
-            {/* Success/Error Messages */}
-            {success && (
-              <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-green-500 font-medium">{success}</span>
-              </div>
-            )}
-            {error && (
-              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-red-500" />
-                <span className="text-red-500 font-medium">{error}</span>
-              </div>
-            )}
-
-            {/* Formulario según modo */}
-            {mode === 'channel' ? (
-              <form onSubmit={handleChannelSubmit} className="flex-1 flex flex-col">
-                <div className="space-y-6 flex-1">
-                  <div>
-                    <label className={`block mb-3 font-semibold text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Channel Name
-                    </label>
-                    <div className="relative">
-                      <Hash className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        required
-                        className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-all duration-200 ${
-                          isDarkMode 
-                            ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20' 
-                            : 'bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
-                        }`}
-                        placeholder="e.g. 🛷╏welcome"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className={`block mb-3 font-semibold text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Channel Type
-                    </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setType('text')}
-                        className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
-                          type === 'text'
-                            ? 'bg-blue-500 text-white shadow-lg'
-                            : isDarkMode
-                              ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                        Text
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setType('voice')}
-                        className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
-                          type === 'voice'
-                            ? 'bg-blue-500 text-white shadow-lg'
-                            : isDarkMode
-                              ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                      >
-                        <Mic className="w-4 h-4" />
-                        Voice
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className={`block mb-3 font-semibold text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Category (Optional)
-                    </label>
-                    <select
-                      value={categoryId}
-                      onChange={e => setCategoryId(e.target.value)}
-                      className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 ${
-                        isDarkMode 
-                          ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20' 
-                          : 'bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
-                      }`}
-                    >
-                      <option value="">No Category</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 px-6 rounded-xl font-semibold text-lg shadow-lg disabled:opacity-60 disabled:cursor-not-allowed mt-6"
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Creating...
-                    </div>
-                  ) : (
-                    'Create Channel'
-                  )}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleCategorySubmit} className="flex-1 flex flex-col">
-                <div className="space-y-6 flex-1">
-                  <div>
-                    <label className={`block mb-3 font-semibold text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Category Name
-                    </label>
-                    <div className="relative">
-                      <Folder className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
-                      <input
-                        type="text"
-                        value={catName}
-                        onChange={e => setCatName(e.target.value)}
-                        required
-                        className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-all duration-200 ${
-                          isDarkMode 
-                            ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20' 
-                            : 'bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
-                        }`}
-                        placeholder="e.g. Important"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-3 px-6 rounded-xl font-semibold text-lg shadow-lg disabled:opacity-60 disabled:cursor-not-allowed mt-6"
-                >
-                  {loading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Creating...
-                    </div>
-                  ) : (
-                    'Create Category'
-                  )}
-                </button>
-              </form>
-            )}
+            <ChannelListDisplay channels={channels} height={600} />
           </div>
+        </div>
+        {/* Form right */}
+        <div className="lg:col-span-2">
+          {/* Header: Botones de modo */}
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-8 text-white rounded-3xl mb-8">
+            <div className="flex items-center justify-center h-20">
+              <div className="flex gap-6 w-full max-w-2xl">
+                <button
+                  type="button"
+                  onClick={() => setMode('channel')}
+                  className={`flex-1 flex items-center justify-center gap-3 py-5 px-8 rounded-xl font-semibold text-lg transition-all duration-200 ${mode === 'channel'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-white/10 text-blue-100 hover:bg-white/15'
+                  }`}
+                >
+                  Channel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('category')}
+                  className={`flex-1 flex items-center justify-center gap-3 py-5 px-8 rounded-xl font-semibold text-lg transition-all duration-200 ${mode === 'category'
+                    ? 'bg-white/20 text-white'
+                    : 'bg-white/10 text-blue-100 hover:bg-white/15'
+                  }`}
+                >
+                  Category
+                </button>
+              </div>
+            </div>
+          </div>
+          {/* Formulario dinámico */}
+          {mode === 'channel' ? (
+            <ChannelForm
+              isDarkMode={isDarkMode}
+              name={name}
+              setName={setName}
+              type={type}
+              setType={setType}
+              categoryId={categoryId}
+              setCategoryId={setCategoryId}
+              topic={topic}
+              setTopic={setTopic}
+              userLimit={userLimit}
+              setUserLimit={setUserLimit}
+              categories={categories}
+              loading={loading}
+              success={success}
+              error={error}
+              onSubmit={handleChannelSubmit}
+              roles={roles}
+              selectedRoles={selectedRoles}
+              isPrivate={isPrivate}
+              isNSFW={isNSFW}
+              slowmode={slowmode}
+              showAdvanced={showAdvanced}
+              setShowAdvanced={setShowAdvanced}
+              setIsPrivate={setIsPrivate}
+              setIsNSFW={setIsNSFW}
+              setSlowmode={setSlowmode}
+              toggleRole={toggleRole}
+            />
+          ) : (
+            <CategoryForm
+              isDarkMode={isDarkMode}
+              catName={catName}
+              setCatName={setCatName}
+              loading={loading}
+              success={success}
+              error={error}
+              onSubmit={handleCategorySubmit}
+              roles={roles}
+              selectedRoles={selectedRoles}
+              isPrivate={isPrivate}
+              showAdvanced={showAdvanced}
+              setShowAdvanced={setShowAdvanced}
+              setIsPrivate={setIsPrivate}
+              toggleRole={toggleRole}
+            />
+          )}
         </div>
       </div>
     </div>
