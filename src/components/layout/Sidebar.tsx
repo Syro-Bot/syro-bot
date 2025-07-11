@@ -40,8 +40,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, activeComponent }) => {
   ];
 
   return (
-    <div className={"w-64 h-screen flex flex-col items-start justify-start space-y-6 px-[1rem] pt-[1.5rem] bg-transparent"}>
-      <div className="w-full mb-[0.5rem] ">
+    <div className={"w-64 h-screen flex flex-col items-start justify-start space-y-3 px-[1rem] pt-[1.5rem] bg-transparent"}>
+      <div className="w-full mb-[0.5rem] flex items-center gap-3">
+        <img
+          src={isDarkMode ? "/syro-web-oct.png" : "/syro-icon-dark.png"}
+          alt="Syro Bot Logo"
+          className="h-10 w-auto select-none"
+          draggable={false}
+        />
         <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-300 via-blue-400 to-blue-500 bg-clip-text text-transparent uppercase">
           Syro Bot
         </h1>

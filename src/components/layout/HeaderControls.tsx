@@ -10,7 +10,7 @@
  */
 
 import React, { useState } from 'react';
-import { Globe, Sun, Moon } from 'lucide-react';
+import { Globe, Sun, Moon, LogOut, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTemplates } from '../../contexts/TemplateContext';
 import PendingTemplatesModal from '../shared/PendingTemplatesModal';
@@ -56,7 +56,7 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
     tags: '',
     link: '',
     icon: null as File | null,
-    iconUrl: '/eyes.png' 
+    iconUrl: '/eyes.png'
   });
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showBotMissingModal, setShowBotMissingModal] = useState(false);
@@ -166,9 +166,9 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
       const permissions = '8'; // Administrator permissions
       const scope = 'bot%20applications.commands';
       const guildId = selectedGuildWithoutBot.id;
-      
+
       const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=${permissions}&scope=${scope}&guild_id=${guildId}`;
-      
+
       window.open(inviteUrl, '_blank');
     }
     setShowBotMissingModal(false);
@@ -208,11 +208,10 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
               <select
                 value={guildId || ''}
                 onChange={(e) => handleGuildChange(e.target.value)}
-                className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-                  isDarkMode
-                    ? 'bg-gray-800 text-white focus:ring-2 focus:ring-blue-500'
-                    : 'bg-[#ecf0f9] text-gray-800 focus:ring-2 focus:ring-blue-500'
-                }`}
+                className={`px-4 py-2 rounded-lg text-sm transition-colors ${isDarkMode
+                  ? 'bg-gray-800 text-white focus:ring-2 focus:ring-blue-500'
+                  : 'bg-[#ecf0f9] text-gray-800 focus:ring-2 focus:ring-blue-500'
+                  }`}
               >
                 {availableGuilds.map((guild: any) => (
                   <option key={guild.id} value={guild.id}>
@@ -223,7 +222,7 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
             </div>
           )}
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
           {activeSection === 'templates' && (
             <>
               {/* Contador de pendientes */}
@@ -246,19 +245,6 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
               </button>
             </>
           )}
-          <button
-            className={`relative w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-colors ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
-            title="Language"
-          >
-            <Globe size={24} strokeWidth={2.75} />
-          </button>
-          <button
-            onClick={toggleTheme}
-            className={`relative w-10 h-10 rounded-xl flex items-center justify-center cursor-pointer transition-colors ${isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
-            title={isDarkMode ? "Light Mode" : "Dark Mode"}
-          >
-            {isDarkMode ? <Sun size={24} strokeWidth={2.75} /> : <Moon size={24} strokeWidth={2.75} />}
-          </button>
           {user ? (
             <div className="relative flex items-center gap-2 group">
               <button
@@ -266,6 +252,12 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
                 onClick={() => setShowUserMenu((prev) => !prev)}
                 style={{ background: 'none', border: 'none', padding: 0 }}
               >
+                {/* Arrow */}
+                {showUserMenu ? (
+                  <ChevronDown size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                ) : (
+                  <ChevronUp size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                )}
                 <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{user.username}</span>
                 <img
                   src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`}
@@ -275,14 +267,32 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
               </button>
               {/* Menú desplegable */}
               {showUserMenu && (
-                <div className={`absolute right-0 mt-10 w-40 bg-white dark:bg-[#181c24] rounded-lg shadow-lg z-50 border border-gray-200 dark:border-gray-700 animate-fadeIn`}>
+                <div className={`absolute top-full right-0 mt-2 w-48 rounded-lg shadow-lg z-50 border animate-fadeIn ${isDarkMode ? 'bg-[#181c24] border-gray-700' : 'bg-white border-gray-200'}`}>
+                  {/* Cambiar idioma */}
+                  <button
+                    onClick={() => {/* lógica de cambio de idioma aquí */ }}
+                    className={`w-full flex items-center gap-2 text-left px-4 py-2 text-sm rounded-lg transition-colors hover:bg-blue-100 hover:text-white dark:hover:bg-blue-900 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}
+                  >
+                    <Globe size={18} />
+                    Cambiar idioma
+                  </button>
+                  {/* Cambiar tema */}
+                  <button
+                    onClick={toggleTheme}
+                    className={`w-full flex items-center gap-2 text-left px-4 py-2 text-sm rounded-lg transition-colors hover:bg-blue-100 hover:text-white dark:hover:bg-blue-900 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}
+                  >
+                    {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                    {isDarkMode ? 'Light mode' : 'Dark mode'}
+                  </button>
+                  {/* Logout */}
                   <button
                     onClick={async () => {
                       await fetch('http://localhost:3002/logout', { method: 'POST', credentials: 'include' });
                       window.location.reload();
                     }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg transition-colors"
+                    className={`w-full flex items-center gap-2 text-left px-4 py-2 text-sm rounded-lg transition-colors hover:bg-blue-100 hover:text-white dark:hover:bg-blue-900 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}
                   >
+                    <LogOut size={18} />
                     Cerrar sesión
                   </button>
                 </div>
@@ -402,65 +412,64 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
         onClose={() => setShowPendingModal(false)}
       />
 
-             {/* Modal para invitar bot o cambiar servidor */}
-       {showBotMissingModal && selectedGuildWithoutBot && (
-         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-           <div className={`relative rounded-3xl shadow-2xl w-full max-w-md overflow-hidden ${isDarkMode ? 'bg-[#181c24]' : 'bg-white'}`}>
-             {/* Header con gradiente */}
-             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
-               <div className="flex items-center gap-3">
-                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                   </svg>
-                 </div>
-                 <div>
-                   <h3 className="text-xl font-bold">Bot no encontrado</h3>
-                   <p className="text-blue-100 text-sm">Servidor: {selectedGuildWithoutBot.name}</p>
-                 </div>
-               </div>
-             </div>
+      {/* Modal para invitar bot o cambiar servidor */}
+      {showBotMissingModal && selectedGuildWithoutBot && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`relative rounded-3xl shadow-2xl w-full max-w-md overflow-hidden ${isDarkMode ? 'bg-[#181c24]' : 'bg-white'}`}>
+            {/* Header con gradiente */}
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">Bot no encontrado</h3>
+                  <p className="text-blue-100 text-sm">Servidor: {selectedGuildWithoutBot.name}</p>
+                </div>
+              </div>
+            </div>
 
-             {/* Contenido */}
-             <div className="p-6">
-               <p className={`text-sm leading-relaxed mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                 El bot de Syro no está presente en este servidor. Para acceder a todas las funciones del dashboard, necesitas invitar el bot primero.
-               </p>
+            {/* Contenido */}
+            <div className="p-6">
+              <p className={`text-sm leading-relaxed mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                El bot de Syro no está presente en este servidor. Para acceder a todas las funciones del dashboard, necesitas invitar el bot primero.
+              </p>
 
-               {/* Botones */}
-               <div className="space-y-3">
-                 <button
-                   onClick={handleInviteBot}
-                   className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 px-4 rounded-xl font-semibold"
-                 >
-                   <div className="flex items-center justify-center gap-2">
-                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                     </svg>
-                     Invitar Bot al Servidor
-                   </div>
-                 </button>
+              {/* Botones */}
+              <div className="space-y-3">
+                <button
+                  onClick={handleInviteBot}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 px-4 rounded-xl font-semibold"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Invitar Bot al Servidor
+                  </div>
+                </button>
 
-                 <button
-                   onClick={handleSwitchToGuildWithBot}
-                   className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 border-2 ${
-                     isDarkMode
-                       ? 'border-gray-600 text-gray-300 hover:border-blue-500 hover:text-blue-400'
-                       : 'border-gray-300 text-gray-600 hover:border-blue-500 hover:text-blue-600'
-                   }`}
-                 >
-                   <div className="flex items-center justify-center gap-2">
-                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                     </svg>
-                     Cambiar a otro Servidor
-                   </div>
-                 </button>
-               </div>
-             </div>
-           </div>
-         </div>
-       )}
+                <button
+                  onClick={handleSwitchToGuildWithBot}
+                  className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 border-2 ${isDarkMode
+                    ? 'border-gray-600 text-gray-300 hover:border-blue-500 hover:text-blue-400'
+                    : 'border-gray-300 text-gray-600 hover:border-blue-500 hover:text-blue-600'
+                    }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    Cambiar a otro Servidor
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
