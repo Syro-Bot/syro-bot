@@ -25,7 +25,11 @@ const cards = [
   },
 ];
 
-const WelcomeMessages: React.FC = () => {
+interface WelcomeMessagesProps {
+  guildId?: string;
+}
+
+const WelcomeMessages: React.FC<WelcomeMessagesProps> = ({ guildId }) => {
   const { isDarkMode } = useTheme();
   const [currentView, setCurrentView] = useState<WelcomeView>("main");
 
@@ -39,15 +43,15 @@ const WelcomeMessages: React.FC = () => {
 
   // Render different views based on currentView
   if (currentView === "join") {
-    return <JoinMessages onBack={handleBack} />;
+    return <JoinMessages onBack={handleBack} guildId={guildId} />;
   }
 
   if (currentView === "leave") {
-    return <LeaveMessages onBack={handleBack} />;
+    return <LeaveMessages onBack={handleBack} guildId={guildId} />;
   }
 
   if (currentView === "boost") {
-    return <BoostMessages onBack={handleBack} />;
+    return <BoostMessages onBack={handleBack} guildId={guildId} />;
   }
 
   // Main view with cards

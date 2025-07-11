@@ -11,12 +11,14 @@ interface ChannelSelectorProps {
   onChannelSelect?: (channel: ChannelType) => void;
   selectedChannelId?: string;
   title?: string;
+  guildId?: string;
 }
 
 const ChannelSelector: React.FC<ChannelSelectorProps> = ({
   onChannelSelect,
   selectedChannelId,
-  title = "Select Channel"
+  title = "Select Channel",
+  guildId
 }) => {
   const { isDarkMode } = useTheme();
   const [channels, setChannels] = useState<ChannelType[]>([]);
@@ -33,9 +35,15 @@ const ChannelSelector: React.FC<ChannelSelectorProps> = ({
 
   useEffect(() => {
     const fetchChannels = async () => {
+      if (!guildId) {
+        setError('No guild selected');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:3001/api/channels');
+        const response = await axios.get(`http://localhost:3001/api/channels/${guildId}`);
 
         if (response.data.success) {
           setChannels(response.data.channels);
@@ -51,7 +59,7 @@ const ChannelSelector: React.FC<ChannelSelectorProps> = ({
     };
 
     fetchChannels();
-  }, []);
+  }, [guildId]);
 
   useEffect(() => {
     if (selectedChannel && !showConfigOptions) {

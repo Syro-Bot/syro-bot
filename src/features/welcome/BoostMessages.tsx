@@ -6,9 +6,10 @@ import type { Channel as ChannelType } from '../channels/ChannelListDisplay';
 
 interface BoostMessagesProps {
   onBack: () => void;
+  guildId?: string;
 }
 
-const BoostMessages: React.FC<BoostMessagesProps> = ({ onBack }) => {
+const BoostMessages: React.FC<BoostMessagesProps> = ({ onBack, guildId }) => {
   const { isDarkMode } = useTheme();
   const [selectedChannel, setSelectedChannel] = useState<ChannelType | null>(null);
 
@@ -43,6 +44,7 @@ const BoostMessages: React.FC<BoostMessagesProps> = ({ onBack }) => {
           onChannelSelect={handleChannelSelect}
           selectedChannelId={selectedChannel?.id}
           title="Available Channels"
+          guildId={guildId}
         />
       </div>
     </div>

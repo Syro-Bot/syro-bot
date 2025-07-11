@@ -1,5 +1,5 @@
 import React from 'react';
-import { Hash, Folder } from 'lucide-react';
+import { Hash, Folder, Mic } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 export interface Channel {
@@ -55,11 +55,15 @@ const ChannelListDisplay: React.FC<ChannelListDisplayProps> = ({
                         : 'bg-white border-gray-200 hover:bg-gray-50'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2">
+                    {channel.type === 2 ? (
+                      <Mic size={14} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                    ) : (
                       <Hash size={14} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
-                      <span className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{channel.name}</span>
-                      <span className="text-xs text-gray-500 ml-auto">#{channel.position}</span>
-                    </div>
+                    )}
+                    <span className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{channel.name}</span>
+                    <span className="text-xs text-gray-500 ml-auto">#{channel.position}</span>
+                  </div>
                   </div>
                 ))}
             </div>
@@ -85,7 +89,11 @@ const ChannelListDisplay: React.FC<ChannelListDisplayProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <Hash size={14} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                    {channel.type === 2 ? (
+                      <Mic size={14} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                    ) : (
+                      <Hash size={14} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                    )}
                     <span className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{channel.name}</span>
                     <span className="text-xs text-gray-500 ml-auto">#{channel.position}</span>
                   </div>

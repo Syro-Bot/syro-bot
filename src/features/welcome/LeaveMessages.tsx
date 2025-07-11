@@ -6,9 +6,10 @@ import type { Channel as ChannelType } from '../channels/ChannelListDisplay';
 
 interface LeaveMessagesProps {
   onBack: () => void;
+  guildId?: string;
 }
 
-const LeaveMessages: React.FC<LeaveMessagesProps> = ({ onBack }) => {
+const LeaveMessages: React.FC<LeaveMessagesProps> = ({ onBack, guildId }) => {
   const { isDarkMode } = useTheme();
   const [selectedChannel, setSelectedChannel] = useState<ChannelType | null>(null);
 
@@ -41,6 +42,7 @@ const LeaveMessages: React.FC<LeaveMessagesProps> = ({ onBack }) => {
           onChannelSelect={handleChannelSelect}
           selectedChannelId={selectedChannel?.id}
           title="Available Channels"
+          guildId={guildId}
         />
       </div>
     </div>

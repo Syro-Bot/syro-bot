@@ -124,9 +124,9 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
       case "templates":
         return <Templates />;
       case "createChannel":
-        return <CreateChannel />;
+        return <CreateChannel guildId={guildId} />;
       case "welcomeMessages":
-        return <WelcomeMessages />;
+        return <WelcomeMessages guildId={guildId} />;
       case "socialNotifications":
         return <SocialNotifications />;
       default:

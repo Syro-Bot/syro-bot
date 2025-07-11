@@ -5,7 +5,11 @@ import { Hash, Folder, MessageSquare, Mic, CheckCircle, AlertCircle } from 'luci
 import ChannelListDisplay from '../features/channels/ChannelListDisplay';
 import type { Channel as ChannelType } from '../features/channels/ChannelListDisplay';
 
-const CreateChannel: React.FC = () => {
+interface CreateChannelProps {
+  guildId?: string;
+}
+
+const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
   const { isDarkMode } = useTheme();
   const [mode, setMode] = useState<'channel' | 'category'>('channel');
   const [name, setName] = useState('');
@@ -19,8 +23,13 @@ const CreateChannel: React.FC = () => {
 
   // Fetch channels
   const fetchChannels = async () => {
+    if (!guildId) {
+      setError('No guild selected');
+      return;
+    }
+    
     try {
-      const response = await axios.get('http://localhost:3001/api/channels');
+      const response = await axios.get(`http://localhost:3001/api/channels/${guildId}`);
       if (response.data.success) {
         setChannels(response.data.channels);
       } else {
@@ -33,7 +42,7 @@ const CreateChannel: React.FC = () => {
 
   useEffect(() => {
     fetchChannels();
-  }, []);
+  }, [guildId]);
 
   // Obtener categorías ordenadas
   const categories = channels.filter(c => c.type === 4).sort((a, b) => a.position - b.position);
@@ -41,6 +50,11 @@ const CreateChannel: React.FC = () => {
   // Create channel
   const handleChannelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!guildId) {
+      setError('No guild selected');
+      return;
+    }
+    
     setLoading(true);
     setSuccess(null);
     setError(null);
@@ -49,6 +63,7 @@ const CreateChannel: React.FC = () => {
         name,
         type,
         parentId: categoryId || null,
+        guildId: guildId
       });
       if (response.data.success) {
         setSuccess('Channel created successfully');
@@ -69,6 +84,11 @@ const CreateChannel: React.FC = () => {
   // Create category
   const handleCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!guildId) {
+      setError('No guild selected');
+      return;
+    }
+    
     setLoading(true);
     setSuccess(null);
     setError(null);
@@ -76,6 +96,7 @@ const CreateChannel: React.FC = () => {
       const response = await axios.post('http://localhost:3001/api/channels', {
         name: catName,
         type: 'category',
+        guildId: guildId
       });
       if (response.data.success) {
         setSuccess('Category created successfully');

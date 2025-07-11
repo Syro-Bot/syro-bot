@@ -161,7 +161,15 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
 
   const handleInviteBot = () => {
     if (selectedGuildWithoutBot) {
-      window.open(`http://localhost:3002/invite/${selectedGuildWithoutBot.id}`, '_blank');
+      // Generar URL de Discord OAuth2 para invitar el bot
+      const clientId = '1391677410046644274'; // Tu client ID del bot
+      const permissions = '8'; // Administrator permissions
+      const scope = 'bot%20applications.commands';
+      const guildId = selectedGuildWithoutBot.id;
+      
+      const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=${permissions}&scope=${scope}&guild_id=${guildId}`;
+      
+      window.open(inviteUrl, '_blank');
     }
     setShowBotMissingModal(false);
   };

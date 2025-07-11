@@ -573,13 +573,14 @@ app.get('/api/channels/:guildId',
     }
     
     const channels = guild.channels.cache
-      .filter(channel => channel.type === 0) // Text channels only
+      .filter(channel => channel.type === 0 || channel.type === 2 || channel.type === 4) // Text, voice, and category channels
       .map(channel => ({
         id: channel.id,
         name: channel.name,
         type: channel.type,
         position: channel.position,
-        parent: channel.parent?.name || null
+        parent: channel.parent?.name || null,
+        parentId: channel.parentId || null
       }))
       .sort((a, b) => a.position - b.position);
     
@@ -763,11 +764,15 @@ app.get('/api/welcome-config/:channelId',
 app.post('/api/channels', 
   // validateDiscordPermissions('admin'),
   async (req, res) => {
-  const { name, type, parentId } = req.body;
+  const { name, type, parentId, guildId } = req.body;
   // type: 'text', 'voice', o 'category'
   try {
-    const guild = client.guilds.cache.first(); // O busca el guild correcto si tienes multi-servidor
-    if (!guild) return res.status(404).json({ success: false, error: 'No guild found' });
+    if (!guildId) {
+      return res.status(400).json({ success: false, error: 'guildId is required' });
+    }
+    
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) return res.status(404).json({ success: false, error: 'Guild not found' });
 
     let channelType = 0; // 0 = text, 2 = voice, 4 = category
     if (type === 'voice') channelType = 2;

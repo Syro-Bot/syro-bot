@@ -6,9 +6,10 @@ import type { Channel as ChannelType } from '../channels/ChannelListDisplay';
 
 interface JoinMessagesProps {
     onBack: () => void;
+    guildId?: string;
 }
 
-const JoinMessages: React.FC<JoinMessagesProps> = ({ onBack }) => {
+const JoinMessages: React.FC<JoinMessagesProps> = ({ onBack, guildId }) => {
     const { isDarkMode } = useTheme();
     const [selectedChannel, setSelectedChannel] = useState<ChannelType | null>(null);
 
@@ -41,6 +42,7 @@ const JoinMessages: React.FC<JoinMessagesProps> = ({ onBack }) => {
           onChannelSelect={handleChannelSelect}
           selectedChannelId={selectedChannel?.id}
           title="Available Channels"
+          guildId={guildId}
         />
       </div>
         </div>

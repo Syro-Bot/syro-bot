@@ -34,11 +34,13 @@ router.get('/servers/:guildId/automod/rules',
   async (req, res) => {
   try {
     const { guildId } = req.params;
+    console.log(`🔍 Buscando configuración de automod para guild: ${guildId}`);
     
     // Find existing server configuration
     let serverConfig = await ServerConfig.findOne({ serverId: guildId });
     
     if (!serverConfig) {
+      console.log(`📝 Creando configuración por defecto para guild: ${guildId}`);
       // Create default configuration if none exists
       serverConfig = new ServerConfig({
         serverId: guildId,
@@ -58,6 +60,9 @@ router.get('/servers/:guildId/automod/rules',
         }
       });
       await serverConfig.save();
+      console.log(`✅ Configuración creada exitosamente para guild: ${guildId}`);
+    } else {
+      console.log(`✅ Configuración encontrada para guild: ${guildId}`);
     }
     
     res.json({
@@ -65,7 +70,7 @@ router.get('/servers/:guildId/automod/rules',
       automodRules: serverConfig.automodRules
     });
   } catch (error) {
-    console.error('Error getting automod rules:', error);
+    console.error('❌ Error getting automod rules:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'
