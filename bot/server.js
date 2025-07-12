@@ -1031,6 +1031,68 @@ app.put('/api/join-roles/:guildId', async (req, res) => {
   }
 });
 
+/**
+ * Real-time Logs Endpoints
+ * Handles retrieving logs for the dashboard
+ */
+
+const LogManager = require('./utils/logManager');
+
+// Get recent logs for a guild
+app.get('/api/logs/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const { limit = 30, type } = req.query;
+    
+    console.log(`🔍 Getting logs for guild: ${guildId}, limit: ${limit}, type: ${type || 'all'}`);
+    
+    let logs;
+    if (type) {
+      logs = await LogManager.getLogsByType(guildId, type, parseInt(limit));
+    } else {
+      logs = await LogManager.getRecentLogs(guildId, parseInt(limit));
+    }
+    
+    console.log(`✅ Retrieved ${logs.length} logs for guild: ${guildId}`);
+    
+    res.json({
+      success: true,
+      logs: logs
+    });
+  } catch (error) {
+    console.error('❌ Error getting logs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+// Get logs by type for a guild
+app.get('/api/logs/:guildId/:type', async (req, res) => {
+  try {
+    const { guildId, type } = req.params;
+    const { limit = 30 } = req.query;
+    
+    console.log(`🔍 Getting logs for guild: ${guildId}, type: ${type}, limit: ${limit}`);
+    
+    const logs = await LogManager.getLogsByType(guildId, type, parseInt(limit));
+    
+    console.log(`✅ Retrieved ${logs.length} ${type} logs for guild: ${guildId}`);
+    
+    res.json({
+      success: true,
+      logs: logs
+    });
+  } catch (error) {
+    console.error('❌ Error getting logs by type:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
 // Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);

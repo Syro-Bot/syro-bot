@@ -27,6 +27,7 @@ const fs = require('fs');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 const ServerConfig = require('./models/ServerConfig');
 const WelcomeConfig = require('./models/WelcomeConfig');
+const LogManager = require('./utils/logManager');
 
 /**
  * Discord Client Configuration
@@ -218,6 +219,9 @@ async function applyLockdown(guild, duration, raidType = 'general') {
   console.log(`🔒 Aplicando lockdown a ${guild.name}`);
   serverLockdowns.set(guild.id, true);
   
+  // Log lockdown started
+  await LogManager.logLockdownStarted(guild.id, `Raid detection: ${raidType}`, duration);
+  
   try {
     console.log(`🔧 Verificando permisos del bot en ${guild.name}`);
     console.log(`🔧 Permisos del bot:`, guild.members.me.permissions.toArray());
@@ -335,6 +339,9 @@ async function applyLockdown(guild, duration, raidType = 'general') {
         
         serverLockdowns.delete(guild.id);
         
+        // Log lockdown ended
+        await LogManager.logLockdownEnded(guild.id);
+        
         if (alertChannel) {
           const embed = new EmbedBuilder()
             .setTitle('✅ LOCKDOWN TERMINADO')
@@ -408,6 +415,9 @@ client.on('messageCreate', async (message) => {
         if (userRecentMessages.size > 0) {
           await message.channel.bulkDelete(userRecentMessages);
         }
+        
+        // Log spam detection
+        await LogManager.logSpamDetected(message.guild.id, message.member, `Sent ${userMessages.length} messages in ${rule.timeWindow} seconds`);
         
         // Enviar advertencia
         const embed = new EmbedBuilder()
@@ -659,6 +669,9 @@ client.on('guildMemberAdd', async (member) => {
     console.log(`👋 Member joined: ${member.user.tag} in ${member.guild.name}`);
     console.log(`🎭 JOIN ROLES DEBUG: Event triggered for ${member.user.tag}`);
     
+    // Log user join event
+    await LogManager.logUserJoin(member.guild.id, member);
+    
     // Import the Join model for analytics
     const Join = require('./models/Join');
     
@@ -723,10 +736,16 @@ client.on('guildMemberAdd', async (member) => {
             // Send the welcome message with image
             await channel.send({ content: welcomeMessage, files: [attachment] });
             console.log(`✅ Welcome message with image sent for ${member.user.tag}: "${welcomeMessage}"`);
+            
+            // Log welcome message sent
+            await LogManager.logWelcomeSent(member.guild.id, member, channel.name);
           } else {
             // If mentionUser is disabled, send only the image
             await channel.send({ files: [attachment] });
             console.log(`✅ Welcome image sent for ${member.user.tag} (no text message)`);
+            
+            // Log welcome message sent
+            await LogManager.logWelcomeSent(member.guild.id, member, channel.name);
           }
           
           // Update statistics
@@ -792,6 +811,11 @@ client.on('guildMemberAdd', async (member) => {
           try {
             await member.roles.add(roleIds, 'Auto-assigned join roles');
             console.log(`✅ Successfully assigned ${rolesToAssign.length} roles to ${member.user.tag}`);
+            
+            // Log role assignments
+            for (const role of rolesToAssign) {
+              await LogManager.logRoleAssignment(member.guild.id, member, role, 'Auto-assigned join role');
+            }
           } catch (roleError) {
             console.error(`❌ Error assigning roles to ${member.user.tag}:`, roleError.message);
             console.error(`❌ Full error:`, roleError);
@@ -843,6 +867,15 @@ client.on('guildMemberAdd', async (member) => {
     // Check if limit is exceeded
     if (guildJoins.length >= rule.joinCount) {
       console.log(`🚨 JOIN RAID DETECTED! Applying lockdown for ${rule.lockdownDuration} minutes`);
+      
+      // Log raid detection
+      await LogManager.logRaidDetected(member.guild.id, 'join', {
+        count: guildJoins.length,
+        threshold: rule.joinCount,
+        timeWindow: rule.timeWindow,
+        lockdownDuration: rule.lockdownDuration
+      });
+      
       await applyLockdown(member.guild, rule.lockdownDuration, 'join');
       
       // Clear server cache
@@ -851,6 +884,69 @@ client.on('guildMemberAdd', async (member) => {
     
   } catch (error) {
     console.error('❌ Error in join raid detection:', error);
+  }
+});
+
+
+
+/**
+ * Role Create Event - Role Raid Detection
+ * 
+ * Monitors role creation for potential role spam raids.
+ * Detects when many roles are created in a short time and applies
+ * server lockdown to prevent further role spam.
+ * 
+ * Features:
+ * - Tracks role creation frequency in time windows
+ * - Applies server lockdown on role raid detection
+ * - Configurable thresholds per server
+ */
+client.on('roleCreate', async (role) => {
+  try {
+    const config = await ServerConfig.findOne({ serverId: role.guild.id });
+    if (!config || !config.automodRules?.Raids) return;
+    
+    const raidRules = config.automodRules.Raids.filter(rule => rule.raidType === 'role');
+    if (raidRules.length === 0) return;
+    
+    const rule = raidRules[0]; // Usar la primera regla de role raid
+    const key = role.guild.id;
+    
+    if (!recentRoles.has(key)) {
+      recentRoles.set(key, []);
+    }
+    
+    const guildRoles = recentRoles.get(key);
+    guildRoles.push({ timestamp: Date.now() });
+    
+    // Limpiar roles antiguos
+    cleanupCache(recentRoles, rule.timeWindow);
+    
+    // Verificar si excede el límite
+    if (guildRoles.length >= rule.roleCount) {
+      await applyLockdown(role.guild, rule.lockdownDuration);
+      
+      // Limpiar cache del servidor
+      recentRoles.delete(key);
+    }
+    
+  } catch (error) {
+    console.error('Error en role raid detection:', error);
+  }
+});
+
+/**
+ * Guild Member Remove Event
+ * Logs when a user leaves the server
+ */
+client.on('guildMemberRemove', async (member) => {
+  try {
+    console.log(`👋 Member left: ${member.user.tag} from ${member.guild.name}`);
+    
+    // Log user leave event
+    await LogManager.logUserLeave(member.guild.id, member);
+  } catch (error) {
+    console.error('❌ Error logging user leave:', error);
   }
 });
 
@@ -870,6 +966,9 @@ client.on('guildMemberAdd', async (member) => {
 client.on('channelCreate', async (channel) => {
   try {
     console.log(`📝 Canal creado: ${channel.name} en ${channel.guild.name}`);
+    
+    // Log channel creation
+    await LogManager.logChannelCreated(channel.guild.id, channel, 'Unknown');
     
     // Trackear canal para posible eliminación
     const guildId = channel.guild.id;
@@ -912,6 +1011,14 @@ client.on('channelCreate', async (channel) => {
       console.log(`🚨 RAID DE CANALES DETECTADO! Aplicando lockdown por ${rule.lockdownDuration} minutos`);
       console.log(`🔧 Llamando applyLockdown con raidType: 'channel'`);
       console.log(`🔧 Parámetros: guild=${channel.guild.name}, duration=${rule.lockdownDuration}, raidType=channel`);
+      
+      // Log raid detection
+      await LogManager.logRaidDetected(channel.guild.id, 'channel', {
+        count: guildChannels.length,
+        threshold: rule.channelCount,
+        timeWindow: rule.timeWindow,
+        lockdownDuration: rule.lockdownDuration
+      });
       
       await applyLockdown(channel.guild, rule.lockdownDuration, 'channel');
       console.log(`✅ applyLockdown completado exitosamente`);
@@ -960,7 +1067,15 @@ client.on('roleCreate', async (role) => {
     
     // Verificar si excede el límite
     if (guildRoles.length >= rule.roleCount) {
-      await applyLockdown(role.guild, rule.lockdownDuration);
+      // Log raid detection
+      await LogManager.logRaidDetected(role.guild.id, 'role', {
+        count: guildRoles.length,
+        threshold: rule.roleCount,
+        timeWindow: rule.timeWindow,
+        lockdownDuration: rule.lockdownDuration
+      });
+      
+      await applyLockdown(role.guild, rule.lockdownDuration, 'role');
       
       // Limpiar cache del servidor
       recentRoles.delete(key);
@@ -971,7 +1086,24 @@ client.on('roleCreate', async (role) => {
   }
 });
 
-
+/**
+ * Guild Member Update Event - Boost Detection
+ * 
+ * Detects when a user boosts the server and logs the event
+ */
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+  try {
+    // Check if user started boosting
+    if (!oldMember.premiumSince && newMember.premiumSince) {
+      console.log(`🚀 User ${newMember.user.tag} boosted ${newMember.guild.name}!`);
+      
+      // Log boost detection
+      await LogManager.logBoostDetected(newMember.guild.id, newMember);
+    }
+  } catch (error) {
+    console.error('❌ Error detecting boost:', error);
+  }
+});
 
 /**
  * Database Connection
