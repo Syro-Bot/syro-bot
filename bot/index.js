@@ -392,6 +392,14 @@ client.on('messageCreate', async (message) => {
     if (config && config.automodRules?.Spam && config.automodRules.Spam.length > 0) {
       const rule = config.automodRules.Spam[0];
       const key = `${message.guild.id}-${message.author.id}`;
+      const cooldownKey = `cooldown-${message.guild.id}-${message.author.id}`;
+      
+      // Verificar si el usuario está en cooldown
+      if (recentMessages.has(cooldownKey)) {
+        console.log(`⏰ Usuario ${message.author.tag} en cooldown, eliminando mensaje`);
+        await message.delete().catch(err => console.log('No se pudo eliminar mensaje en cooldown:', err.message));
+        return;
+      }
       
       if (!recentMessages.has(key)) {
         recentMessages.set(key, []);
@@ -405,31 +413,155 @@ client.on('messageCreate', async (message) => {
       
       // Verificar si excede el límite
       if (userMessages.length >= rule.messageCount) {
-        // Eliminar mensajes del usuario
-        const messagesToDelete = await message.channel.messages.fetch({ limit: 50 });
-        const userRecentMessages = messagesToDelete.filter(msg => 
-          msg.author.id === message.author.id && 
-          Date.now() - msg.createdTimestamp < rule.timeWindow * 1000
-        );
+        console.log(`🚨 SPAM DETECTADO: ${message.author.tag} envió ${userMessages.length} mensajes en ${rule.timeWindow}s`);
         
-        if (userRecentMessages.size > 0) {
-          await message.channel.bulkDelete(userRecentMessages);
+        let totalDeleted = 0;
+        
+        try {
+          // Eliminar el mensaje actual primero
+          await message.delete().catch(err => console.log('No se pudo eliminar mensaje actual:', err.message));
+          totalDeleted++;
+          
+          // Buscar más mensajes del usuario de forma más agresiva
+          const now = Date.now();
+          const timeWindowMs = rule.timeWindow * 1000;
+          
+          // Buscar mensajes en múltiples lotes para asegurar que encontramos todos
+          let allMessages = [];
+          let lastMessageId = null;
+          
+          // Hacer múltiples fetch para obtener más mensajes
+          for (let i = 0; i < 3; i++) {
+            const fetchOptions = lastMessageId 
+              ? { limit: 100, before: lastMessageId }
+              : { limit: 100 };
+              
+            const messagesBatch = await message.channel.messages.fetch(fetchOptions);
+            allMessages = allMessages.concat(Array.from(messagesBatch.values()));
+            
+            if (messagesBatch.size < 100) break; // No hay más mensajes
+            
+            lastMessageId = messagesBatch.last().id;
+          }
+          
+          console.log(`🔍 Total de mensajes obtenidos del canal: ${allMessages.length}`);
+          
+          // Filtrar mensajes del usuario - ser más permisivo con el tiempo
+          const userRecentMessages = allMessages.filter(msg => {
+            const isFromUser = msg.author.id === message.author.id;
+            const age = Math.round((now - msg.createdTimestamp) / 1000);
+            
+            // Ser más permisivo: considerar recientes mensajes de hasta 60 segundos
+            const isRecent = age <= 60;
+            const isNotTooOld = (now - msg.createdTimestamp) < (14 * 24 * 60 * 60 * 1000); // Máximo 14 días
+            
+            if (isFromUser) {
+              console.log(`🔍 Mensaje del usuario encontrado: ${msg.id} (hace ${age}s) - Reciente: ${isRecent}, No muy viejo: ${isNotTooOld}`);
+            }
+            
+            return isFromUser && isRecent && isNotTooOld;
+          });
+          
+          console.log(`🔍 Buscando mensajes de ${message.author.tag} en los últimos 60 segundos`);
+          console.log(`🗑️ Encontrados ${userRecentMessages.size} mensajes de spam para eliminar`);
+          
+          // Log detallado de los mensajes encontrados
+          userRecentMessages.forEach((msg, index) => {
+            const age = Math.round((now - msg.createdTimestamp) / 1000);
+            console.log(`  ${index + 1}. Mensaje ${msg.id}: "${msg.content.substring(0, 50)}..." (hace ${age}s)`);
+          });
+          
+          if (userRecentMessages.length > 0) {
+            console.log(`🗑️ Intentando eliminar ${userRecentMessages.length} mensajes...`);
+            
+            // Verificar permisos del bot
+            const botPermissions = message.channel.permissionsFor(message.guild.members.me);
+            console.log(`🔧 Permisos del bot en el canal:`, botPermissions.toArray());
+            
+            if (!botPermissions.has(PermissionsBitField.Flags.ManageMessages)) {
+              console.error('❌ El bot no tiene permisos para eliminar mensajes en este canal');
+              return;
+            }
+            
+            // Ordenar mensajes por timestamp (más recientes primero)
+            userRecentMessages.sort((a, b) => b.createdTimestamp - a.createdTimestamp);
+            
+            // Eliminar en lotes de 10 para evitar límites de Discord
+            const batches = [];
+            for (let i = 0; i < userRecentMessages.length; i += 10) {
+              batches.push(userRecentMessages.slice(i, i + 10));
+            }
+            
+            console.log(`📦 Dividido en ${batches.length} lotes para eliminación`);
+            
+            for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+              const batch = batches[batchIndex];
+              console.log(`🔄 Procesando lote ${batchIndex + 1}/${batches.length} con ${batch.length} mensajes`);
+              
+              try {
+                console.log(`🔄 Intentando bulkDelete para lote ${batchIndex + 1} con ${batch.length} mensajes`);
+                console.log(`📋 IDs de mensajes en el lote:`, batch.map(msg => msg.id));
+                
+                await message.channel.bulkDelete(batch);
+                totalDeleted += batch.length;
+                console.log(`✅ Lote ${batchIndex + 1} eliminado exitosamente: ${batch.length} mensajes`);
+              } catch (error) {
+                console.error(`❌ Error eliminando lote ${batchIndex + 1}:`, error.message);
+                console.error(`❌ Error completo:`, error);
+                
+                // Si falla bulkDelete, intentar eliminar uno por uno
+                console.log(`🔄 Intentando eliminación individual para lote ${batchIndex + 1}`);
+                for (const msg of batch) {
+                  try {
+                    await msg.delete();
+                    totalDeleted++;
+                    console.log(`✅ Mensaje individual eliminado: ${msg.id}`);
+                  } catch (err) {
+                    console.log(`❌ No se pudo eliminar mensaje ${msg.id}:`, err.message);
+                  }
+                }
+              }
+              
+              // Pequeña pausa entre lotes para evitar rate limits
+              if (batchIndex < batches.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+              }
+            }
+            
+            console.log(`✅ Total de mensajes eliminados: ${totalDeleted}/${userRecentMessages.length}`);
+          } else {
+            console.log(`ℹ️ No se encontraron mensajes para eliminar`);
+          }
+        } catch (error) {
+          console.error('Error en eliminación de spam:', error);
         }
         
         // Log spam detection
         await LogManager.logSpamDetected(message.guild.id, message.member, `Sent ${userMessages.length} messages in ${rule.timeWindow} seconds`);
         
-        // Enviar advertencia
-        const embed = new EmbedBuilder()
-          .setTitle('⚠️ SPAM DETECTADO')
-          .setDescription(`${message.author}, has enviado demasiados mensajes rápidamente. Tus mensajes han sido eliminados.`)
-          .setColor(0xFFA500)
-          .setTimestamp();
-        
-        await message.channel.send({ embeds: [embed] });
-        
-        // Limpiar cache del usuario
+        // Limpiar cache del usuario y agregar cooldown
         recentMessages.delete(key);
+        
+        // Agregar cooldown temporal para evitar spam continuo
+        const cooldownKey = `cooldown-${message.guild.id}-${message.author.id}`;
+        recentMessages.set(cooldownKey, [{ timestamp: Date.now() }]);
+        
+        // Limpiar cooldown después de 30 segundos
+        setTimeout(() => {
+          recentMessages.delete(cooldownKey);
+        }, 30000);
+        
+        // Enviar advertencia con el total de mensajes eliminados
+        const trashEmoji = getCustomEmoji(message.guild, 'trash', '🗑️');
+        const currentDate = new Date();
+        const formattedDate = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear().toString().slice(-2)}`;
+        
+        const spamEmbed = new EmbedBuilder()
+          .setTitle('⚠️ SPAM DETECTADO')
+          .setDescription(`${message.author}, has enviado demasiados mensajes rápidamente.\n\n${trashEmoji} **Mensajes eliminados:** ${totalDeleted} mensajes\n\n*hoy a las ${currentDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - ${formattedDate}*`)
+          .setColor(0xFFA500);
+        
+        await message.channel.send({ embeds: [spamEmbed] });
       }
     }
     
