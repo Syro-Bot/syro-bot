@@ -16,6 +16,7 @@ import { useAnimation } from '../contexts/AnimationContext';
 import JoinsChart from '../components/dashboard/JoinsChart';
 import LiveLogs from '../components/dashboard/LiveLogs';
 import GeneralOptions from '../components/dashboard/GeneralOptions';
+import AnnouncementWarning from '../components/dashboard/AnnouncementWarning';
 
 /**
  * Componente Dashboard
@@ -107,6 +108,9 @@ const Dashboard: React.FC<{ user: any; guildId?: string }> = ({ user, guildId })
           <GeneralOptions guildId={guildId} />
         </div>
       )}
+
+      {/* Announcement Warning */}
+      <AnnouncementWarning guildId={guildId} user={user} />
     </div>
   );
 };

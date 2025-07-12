@@ -391,6 +391,14 @@ app.use('/api/nuke', nukeRoutes);
 const announcementRoutes = require('./routes/announcement');
 app.use('/api/announcement', announcementRoutes);
 
+// Rutas de global announcement
+const globalAnnouncementRoutes = require('./routes/global-announcement');
+app.use('/api/global-announcement', globalAnnouncementRoutes);
+
+// Rutas de announcement config
+const announcementConfigRoutes = require('./routes/announcement-config');
+app.use('/api/announcement-config', announcementConfigRoutes);
+
 /**
  * Permission Check Endpoint
  * Verifies if the current user has specific permissions in a guild

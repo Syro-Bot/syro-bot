@@ -10,10 +10,12 @@
  */
 
 import React, { useState } from 'react';
-import { Globe, Sun, Moon, LogOut, ChevronUp, ChevronDown } from 'lucide-react';
+import { Globe, Sun, Moon, LogOut, ChevronUp, ChevronDown, Megaphone } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTemplates } from '../../contexts/TemplateContext';
 import PendingTemplatesModal from '../shared/PendingTemplatesModal';
+import GlobalAnnouncementModal from '../dashboard/GlobalAnnouncementModal';
+import { BOT_OWNER_ID, BOT_CLIENT_ID } from '../../config/constants';
 
 /**
  * Props para HeaderControls
@@ -61,6 +63,7 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showBotMissingModal, setShowBotMissingModal] = useState(false);
   const [selectedGuildWithoutBot, setSelectedGuildWithoutBot] = useState<any>(null);
+  const [showGlobalAnnouncementModal, setShowGlobalAnnouncementModal] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -162,12 +165,8 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
   const handleInviteBot = () => {
     if (selectedGuildWithoutBot) {
       // Generar URL de Discord OAuth2 para invitar el bot
-      const clientId = '1391677410046644274'; // Tu client ID del bot
-      const permissions = '8'; // Administrator permissions
-      const scope = 'bot%20applications.commands';
       const guildId = selectedGuildWithoutBot.id;
-
-      const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&permissions=${permissions}&scope=${scope}&guild_id=${guildId}`;
+      const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${BOT_CLIENT_ID}&permissions=8&scope=bot%20applications.commands&guild_id=${guildId}`;
 
       window.open(inviteUrl, '_blank');
     }
@@ -223,6 +222,17 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
           )}
         </div>
         <div className="flex items-center space-x-2">
+          {/* Global Announcement Button - Only for bot owner */}
+          {user?.id === BOT_OWNER_ID && (
+            <button
+              onClick={() => setShowGlobalAnnouncementModal(true)}
+              className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow hover:from-blue-600 hover:to-blue-800 transition-all duration-200 flex items-center gap-2"
+            >
+              <Megaphone className="w-4 h-4" />
+              Announcement
+            </button>
+          )}
+          
           {activeSection === 'templates' && (
             <>
               {/* Contador de pendientes */}
@@ -410,6 +420,12 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
       <PendingTemplatesModal
         isOpen={showPendingModal}
         onClose={() => setShowPendingModal(false)}
+      />
+
+      {/* Global Announcement Modal */}
+      <GlobalAnnouncementModal
+        isOpen={showGlobalAnnouncementModal}
+        onClose={() => setShowGlobalAnnouncementModal(false)}
       />
 
       {/* Modal para invitar bot o cambiar servidor */}
