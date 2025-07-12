@@ -376,6 +376,17 @@ app.get('/api/bot-invite/:guildId', (req, res) => {
 const automodRoutes = require('./routes/automod');
 app.use('/api', automodRoutes);
 
+// Hacer el cliente de Discord disponible para las rutas
+app.locals.client = client;
+
+// Rutas de canales
+const channelsRoutes = require('./routes/channels');
+app.use('/api/channels', channelsRoutes);
+
+// Rutas de nuke
+const nukeRoutes = require('./routes/nuke');
+app.use('/api/nuke', nukeRoutes);
+
 /**
  * Permission Check Endpoint
  * Verifies if the current user has specific permissions in a guild
@@ -560,35 +571,7 @@ app.get('/api/guilds', (req, res) => {
   }
 });
 
-app.get('/api/channels/:guildId', 
-  // validateBotPresence(),
-  // validateDiscordPermissions('manage'),
-  (req, res) => {
-  try {
-    const { guildId } = req.params;
-    const guild = client.guilds.cache.get(guildId);
-    
-    if (!guild) {
-      return res.status(404).json({ success: false, error: 'Guild not found' });
-    }
-    
-    const channels = guild.channels.cache
-      .filter(channel => channel.type === 0 || channel.type === 2 || channel.type === 4) // Text, voice, and category channels
-      .map(channel => ({
-        id: channel.id,
-        name: channel.name,
-        type: channel.type,
-        position: channel.position,
-        parent: channel.parent?.name || null,
-        parentId: channel.parentId || null
-      }))
-      .sort((a, b) => a.position - b.position);
-    
-    res.json({ success: true, channels });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+
 
 app.get('/api/channels', (req, res) => {
   try {

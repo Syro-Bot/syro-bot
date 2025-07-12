@@ -10,7 +10,7 @@
  */
 
 import React, { useEffect, useRef, useState } from "react";
-import { Activity, Users, Shield, Hash, AlertTriangle } from 'lucide-react';
+import { Activity, Users, Shield, Hash, AlertTriangle, Bomb } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface LogEntry {
@@ -63,6 +63,7 @@ const LiveLogs: React.FC<LiveLogsProps> = ({ guildId }) => {
       case 'welcome_sent': return <Users size={14} />;
       case 'boost_detected': return <Activity size={14} />;
       case 'automod_action': return <AlertTriangle size={14} />;
+      case 'channel_nuke': return <Bomb size={14} />;
       default: return <Activity size={14} />;
     }
   };
@@ -84,6 +85,7 @@ const LiveLogs: React.FC<LiveLogsProps> = ({ guildId }) => {
       case 'welcome_sent': return 'text-blue-500';
       case 'boost_detected': return 'text-purple-500';
       case 'automod_action': return 'text-orange-500';
+      case 'channel_nuke': return 'text-red-500';
       default: return 'text-gray-500';
     }
   };

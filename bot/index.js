@@ -716,6 +716,132 @@ client.on('messageCreate', async (message) => {
       }
     }
     
+    // Comando xnuke
+    if (message.content === 'xnuke') {
+      try {
+        const guild = message.guild;
+        const channel = message.channel;
+        const user = message.author;
+        
+        console.log(`💥 Nuke command executed by ${user.tag} in ${channel.name} (${guild.name})`);
+        
+        // Verify it's a text channel
+        if (channel.type !== 0) {
+          await message.channel.send('❌ Only text channels can be nuked.');
+          return;
+        }
+        
+        // Verify bot permissions
+        if (!channel.permissionsFor(guild.members.me).has(PermissionsBitField.Flags.ManageChannels)) {
+          await message.channel.send('❌ I don\'t have permissions to manage this channel.');
+          return;
+        }
+        
+        // Send confirmation message
+        const confirmEmbed = new EmbedBuilder()
+          .setTitle('💥 NUKE CONFIRMATION')
+          .setDescription(`Are you sure you want to nuke the channel **#${channel.name}**?\n\n⚠️ **This action will completely delete the channel and create a new one with the same name.**\n\nAll messages will be permanently lost.\n\nType \`xconfirmnuke\` within the next 30 seconds to confirm.`)
+          .setColor(0xFF0000)
+          .setTimestamp();
+        
+        await message.channel.send({ embeds: [confirmEmbed] });
+        
+        // Crear un filtro para esperar la confirmación
+        const filter = m => m.author.id === user.id && m.content === 'xconfirmnuke';
+        const collector = message.channel.createMessageCollector({ filter, time: 30000, max: 1 });
+        
+        collector.on('collect', async (confirmMessage) => {
+          try {
+            // Guardar información del canal antes de eliminarlo
+            const channelInfo = {
+              name: channel.name,
+              topic: channel.topic,
+              nsfw: channel.nsfw,
+              parentId: channel.parentId,
+              position: channel.position,
+              rateLimitPerUser: channel.rateLimitPerUser,
+              permissionOverwrites: channel.permissionOverwrites.cache.map(perm => ({
+                id: perm.id,
+                type: perm.type,
+                allow: perm.allow.toArray(),
+                deny: perm.deny.toArray()
+              }))
+            };
+            
+            // Eliminar el canal
+            await channel.delete('Nuke command executed by ' + user.tag);
+            
+            // Crear el nuevo canal con la misma configuración
+            const newChannel = await guild.channels.create({
+              name: channelInfo.name,
+              type: 0, // Text channel
+              topic: channelInfo.topic,
+              nsfw: channelInfo.nsfw,
+              parent: channelInfo.parentId,
+              position: channelInfo.position,
+              rateLimitPerUser: channelInfo.rateLimitPerUser,
+              reason: 'Canal recreado después de nuke'
+            });
+            
+            // Restaurar permisos
+            for (const perm of channelInfo.permissionOverwrites) {
+              await newChannel.permissionOverwrites.create(perm.id, {
+                allow: perm.allow,
+                deny: perm.deny
+              });
+            }
+            
+            // Send confirmation message to the new channel
+            const successEmbed = new EmbedBuilder()
+              .setTitle('💥 Channel Nuked')
+              .setDescription('This channel has been completely deleted and recreated.')
+              .addFields(
+                { name: '🕐 Timestamp', value: new Date().toLocaleString('en-US', {
+                  timeZone: 'America/New_York',
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                }), inline: true },
+                { name: '👤 Executed by', value: user.tag, inline: true }
+              )
+              .setColor(0x00FF00)
+              .setTimestamp();
+            
+            await newChannel.send({ embeds: [successEmbed] });
+            
+            // Log the nuke action
+            await LogManager.logChannelNuke(guild.id, channelInfo.name, newChannel.id, user.tag);
+            
+          } catch (error) {
+            console.error('Error executing nuke command:', error);
+            // Cannot send message to original channel because it was deleted
+            // Try to send to first available channel
+            try {
+              const firstChannel = guild.channels.cache.find(ch => ch.type === 0);
+              if (firstChannel) {
+                await firstChannel.send('❌ Error nuking the channel. Check permissions and try again.');
+              }
+            } catch (sendError) {
+              console.error('Error sending error message:', sendError);
+            }
+          }
+        });
+        
+        collector.on('end', (collected) => {
+          if (collected.size === 0) {
+            message.channel.send('⏰ Confirmation time expired. The nuke has been cancelled.');
+          }
+        });
+        
+      } catch (error) {
+        console.error('Error in nuke command:', error);
+        await message.channel.send('❌ Error processing the nuke command.');
+      }
+    }
+    
     // Comando xpurge
     if (message.content.startsWith('xpurge')) {
       try {

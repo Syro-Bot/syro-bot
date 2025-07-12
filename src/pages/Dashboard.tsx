@@ -14,6 +14,7 @@ import gsap from "gsap";
 import { useTheme } from '../contexts/ThemeContext';
 import JoinsChart from '../components/dashboard/JoinsChart';
 import LiveLogs from '../components/dashboard/LiveLogs';
+import GeneralOptions from '../components/dashboard/GeneralOptions';
 
 /**
  * Componente Dashboard
@@ -77,6 +78,13 @@ const Dashboard: React.FC<{ user: any; guildId?: string }> = ({ user, guildId })
       {showChart && (
         <div className="absolute top-16 right-6 z-0">
           <LiveLogs guildId={guildId} />
+        </div>
+      )}
+
+      {/* Opciones generales */}
+      {showChart && (
+        <div className="absolute bottom-6 left-6 z-0" style={{ marginTop: '2rem' }}>
+          <GeneralOptions guildId={guildId} />
         </div>
       )}
     </div>

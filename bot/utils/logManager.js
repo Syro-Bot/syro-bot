@@ -410,6 +410,38 @@ class LogManager {
       });
     }
   }
+
+  /**
+   * Log channel nuke
+   * @param {string} guildId - Discord guild ID
+   * @param {string} channelName - Name of the nuked channel
+   * @param {string} channelId - ID of the nuked channel
+   * @param {string} executedBy - Who executed the nuke
+   */
+  static async logChannelNuke(guildId, channelName, channelId, executedBy = 'Dashboard Web') {
+    try {
+      await this.createLog({
+        guildId,
+        type: 'channel_nuke',
+        title: 'Channel Nuked',
+        description: `Channel #${channelName} has been nuked and recreated`,
+        metadata: { 
+          channelName, 
+          channelId, 
+          executedBy,
+          action: 'nuke'
+        },
+        severity: 'warning'
+      });
+    } catch (error) {
+      logger.errorWithContext(error, {
+        context: 'LogManager.logChannelNuke',
+        guildId,
+        channelId,
+        channelName
+      });
+    }
+  }
 }
 
 module.exports = LogManager; 
