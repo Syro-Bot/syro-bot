@@ -124,6 +124,81 @@ const serverConfigSchema = new mongoose.Schema({
         required: true
       }
     }]
+  },
+
+  /**
+   * Join Roles Configuration
+   * Contains roles that will be automatically assigned to users when they join
+   */
+  joinRoles: {
+    /**
+     * General roles assigned to all users when they join
+     */
+    general: [{
+      id: {
+        type: String,
+        required: true
+      },
+      name: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      color: {
+        type: String,
+        required: true
+      },
+      position: {
+        type: Number,
+        required: true
+      }
+    }],
+    
+    /**
+     * User-specific roles (for future use)
+     */
+    user: [{
+      id: {
+        type: String,
+        required: true
+      },
+      name: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      color: {
+        type: String,
+        required: true
+      },
+      position: {
+        type: Number,
+        required: true
+      }
+    }],
+    
+    /**
+     * Bot roles assigned to bots when they join
+     */
+    bot: [{
+      id: {
+        type: String,
+        required: true
+      },
+      name: {
+        type: String,
+        required: true,
+        trim: true
+      },
+      color: {
+        type: String,
+        required: true
+      },
+      position: {
+        type: Number,
+        required: true
+      }
+    }]
   }
 }, { 
   timestamps: true, // Adds createdAt and updatedAt fields

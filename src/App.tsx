@@ -118,7 +118,7 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
       case "autoModeration":
         return <AutoModeration />;
       case "joinRoles":
-        return <JoinRoles />;
+        return <JoinRoles guildId={guildId} />;
       case "reactionRoles":
         return <ReactionRoles />;
       case "templates":

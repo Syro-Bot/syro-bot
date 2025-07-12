@@ -657,6 +657,7 @@ client.on('messageCreate', async (message) => {
 client.on('guildMemberAdd', async (member) => {
   try {
     console.log(`👋 Member joined: ${member.user.tag} in ${member.guild.name}`);
+    console.log(`🎭 JOIN ROLES DEBUG: Event triggered for ${member.user.tag}`);
     
     // Import the Join model for analytics
     const Join = require('./models/Join');
@@ -741,6 +742,82 @@ client.on('guildMemberAdd', async (member) => {
       }
     } catch (welcomeError) {
       console.error('❌ Error sending welcome message:', welcomeError);
+    }
+    
+    // Assign join roles automatically
+    try {
+      console.log(`🎭 Starting join roles assignment for ${member.user.tag} in ${member.guild.name}`);
+      
+      const serverConfig = await ServerConfig.findOne({ serverId: member.guild.id });
+      console.log(`🔍 Server config found:`, serverConfig ? 'Yes' : 'No');
+      
+      if (serverConfig && serverConfig.joinRoles) {
+        console.log(`🎭 Join roles config:`, JSON.stringify(serverConfig.joinRoles, null, 2));
+        
+        const rolesToAssign = [];
+        
+        // Check if user is a bot
+        const isBot = member.user.bot;
+        console.log(`🤖 User ${member.user.tag} is bot:`, isBot);
+        
+        if (isBot) {
+          // Assign bot roles
+          if (serverConfig.joinRoles.bot && serverConfig.joinRoles.bot.length > 0) {
+            rolesToAssign.push(...serverConfig.joinRoles.bot);
+            console.log(`🤖 User is a bot, will assign ${serverConfig.joinRoles.bot.length} bot roles:`, serverConfig.joinRoles.bot.map(r => r.name));
+          } else {
+            console.log(`🤖 User is a bot but no bot roles configured`);
+          }
+        } else {
+          // Assign general roles to regular users
+          if (serverConfig.joinRoles.general && serverConfig.joinRoles.general.length > 0) {
+            rolesToAssign.push(...serverConfig.joinRoles.general);
+            console.log(`👤 User is regular, will assign ${serverConfig.joinRoles.general.length} general roles:`, serverConfig.joinRoles.general.map(r => r.name));
+          } else {
+            console.log(`👤 User is regular but no general roles configured`);
+          }
+        }
+        
+        // Assign the roles
+        if (rolesToAssign.length > 0) {
+          const roleIds = rolesToAssign.map(role => role.id);
+          console.log(`🎭 Attempting to assign roles to ${member.user.tag}:`, roleIds);
+          console.log(`🎭 Role names:`, rolesToAssign.map(r => r.name));
+          
+          // Check bot permissions
+          const botMember = member.guild.members.me;
+          console.log(`🔧 Bot permissions:`, botMember.permissions.toArray());
+          console.log(`🔧 Bot can manage roles:`, botMember.permissions.has(PermissionsBitField.Flags.ManageRoles));
+          
+          try {
+            await member.roles.add(roleIds, 'Auto-assigned join roles');
+            console.log(`✅ Successfully assigned ${rolesToAssign.length} roles to ${member.user.tag}`);
+          } catch (roleError) {
+            console.error(`❌ Error assigning roles to ${member.user.tag}:`, roleError.message);
+            console.error(`❌ Full error:`, roleError);
+            
+            // Log which roles failed
+            for (const roleId of roleIds) {
+              try {
+                await member.roles.add(roleId, 'Auto-assigned join role');
+                console.log(`✅ Successfully assigned role ${roleId} to ${member.user.tag}`);
+              } catch (singleRoleError) {
+                console.error(`❌ Failed to assign role ${roleId} to ${member.user.tag}:`, singleRoleError.message);
+              }
+            }
+          }
+        } else {
+          console.log(`ℹ️ No join roles to assign for ${member.user.tag} (${isBot ? 'bot' : 'user'})`);
+        }
+      } else {
+        console.log(`ℹ️ No join roles configuration found for guild: ${member.guild.name}`);
+        if (serverConfig) {
+          console.log(`🔍 Server config exists but no joinRoles:`, Object.keys(serverConfig));
+        }
+      }
+    } catch (joinRolesError) {
+      console.error('❌ Error assigning join roles:', joinRolesError);
+      console.error('❌ Full error stack:', joinRolesError.stack);
     }
     
     // Check for raid detection

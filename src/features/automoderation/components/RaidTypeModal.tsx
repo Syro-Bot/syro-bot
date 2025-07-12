@@ -58,7 +58,7 @@ const RaidTypeModal: React.FC<RaidTypeModalProps> = ({ isOpen, onClose, onSelect
               }`}
             >
               <div className="flex items-center space-x-3">
-                <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${raidType.gradient} flex items-center justify-center`}>
+                <div className={`w-12 h-12 aspect-square flex-shrink-0 flex-grow-0 overflow-hidden rounded-xl bg-gradient-to-r ${raidType.gradient} flex items-center justify-center`}>
                   <raidType.icon className="w-6 h-6 text-white" />
                 </div>
                 <div className="text-left">

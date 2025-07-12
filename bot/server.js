@@ -617,6 +617,28 @@ app.get('/api/channels', (req, res) => {
   }
 });
 
+app.get('/api/roles/:guildId', (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const guild = client.guilds.cache.get(guildId);
+    if (!guild) {
+      return res.status(404).json({ success: false, error: 'Guild not found' });
+    }
+    const roles = guild.roles.cache
+      .filter(role => role.name !== '@everyone')
+      .map(role => ({
+        id: role.id,
+        name: role.name,
+        color: role.hexColor,
+        position: role.position
+      }))
+      .sort((a, b) => b.position - a.position);
+    res.json({ success: true, roles });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 /**
  * Welcome Configuration Endpoints
  * Handles saving and retrieving welcome message configurations
@@ -925,6 +947,87 @@ app.post('/api/templates/:id/reject', sanitizeAll(), async (req, res) => {
   } catch (error) {
     console.error('Error al rechazar template:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+/**
+ * Join Roles Configuration Endpoints
+ * Handles saving and retrieving join roles configuration
+ */
+
+// Get join roles configuration
+app.get('/api/join-roles/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    console.log(`🔍 Getting join roles config for guild: ${guildId}`);
+    
+    // Find existing server configuration
+    let serverConfig = await ServerConfig.findOne({ serverId: guildId });
+    
+    if (!serverConfig) {
+      console.log(`📝 Creating default join roles config for guild: ${guildId}`);
+      // Create default configuration if none exists
+      serverConfig = new ServerConfig({
+        serverId: guildId,
+        joinRoles: {
+          general: [],
+          user: [],
+          bot: []
+        }
+      });
+      await serverConfig.save();
+      console.log(`✅ Join roles config created for guild: ${guildId}`);
+    } else {
+      console.log(`✅ Join roles config found for guild: ${guildId}`);
+    }
+    
+    res.json({
+      success: true,
+      joinRoles: serverConfig.joinRoles || { general: [], user: [], bot: [] }
+    });
+  } catch (error) {
+    console.error('❌ Error getting join roles config:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+// Save join roles configuration
+app.put('/api/join-roles/:guildId', async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    const { joinRoles } = req.body;
+
+    console.log('🔍 Saving join roles config for guild:', guildId);
+    console.log('📋 Join roles data:', JSON.stringify(joinRoles, null, 2));
+
+    // Find or create server configuration
+    let serverConfig = await ServerConfig.findOne({ serverId: guildId });
+
+    if (!serverConfig) {
+      serverConfig = new ServerConfig({ serverId: guildId });
+    }
+
+    // Update join roles configuration
+    serverConfig.joinRoles = joinRoles;
+    serverConfig.updatedAt = new Date();
+
+    await serverConfig.save();
+
+    console.log('✅ Join roles config saved successfully');
+
+    res.json({
+      success: true,
+      message: 'Join roles configuration updated successfully'
+    });
+  } catch (error) {
+    console.error('❌ Error saving join roles config:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
   }
 });
 

@@ -1,7 +1,8 @@
 import React from "react";
+import JoinRolesSetup from "../features/joinroles/JoinRolesSetup";
+import { useLocation } from "react-router-dom";
 
-const JoinRoles: React.FC = () => (
-  <div className="text-xl font-semibold text-gray-700 dark:text-white">Join Roles page</div>
-);
- 
+// Recibe guildId como prop desde el layout principal
+const JoinRoles: React.FC<{ guildId?: string }> = ({ guildId }) => <JoinRolesSetup guildId={guildId} />;
+
 export default JoinRoles; 
