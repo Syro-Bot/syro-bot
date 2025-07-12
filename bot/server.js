@@ -387,6 +387,10 @@ app.use('/api/channels', channelsRoutes);
 const nukeRoutes = require('./routes/nuke');
 app.use('/api/nuke', nukeRoutes);
 
+// Rutas de announcement
+const announcementRoutes = require('./routes/announcement');
+app.use('/api/announcement', announcementRoutes);
+
 /**
  * Permission Check Endpoint
  * Verifies if the current user has specific permissions in a guild

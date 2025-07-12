@@ -442,6 +442,40 @@ class LogManager {
       });
     }
   }
+
+  /**
+   * Log announcement sent
+   * @param {string} guildId - Discord guild ID
+   * @param {string} content - Announcement content
+   * @param {Array} channels - Array of channel IDs
+   * @param {number} successCount - Number of successful sends
+   * @param {string} executedBy - Who sent the announcement
+   */
+  static async logAnnouncement(guildId, content, channels, successCount, executedBy = 'Dashboard Web') {
+    try {
+      await this.createLog({
+        guildId,
+        type: 'announcement_sent',
+        title: 'Announcement Sent',
+        description: `Announcement sent to ${successCount} channels`,
+        metadata: { 
+          content: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+          channels,
+          successCount,
+          executedBy,
+          action: 'announcement'
+        },
+        severity: 'info'
+      });
+    } catch (error) {
+      logger.errorWithContext(error, {
+        context: 'LogManager.logAnnouncement',
+        guildId,
+        channels,
+        successCount
+      });
+    }
+  }
 }
 
 module.exports = LogManager; 

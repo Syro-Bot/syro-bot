@@ -61,7 +61,7 @@ const Dashboard: React.FC<{ user: any; guildId?: string }> = ({ user, guildId })
 
   return (
     <div className="relative h-screen w-full">
-      <div ref={textRef} className="z-10">
+      <div ref={textRef} className="">
         <h1 className="text-7xl font-extrabold bg-gradient-to-r from-blue-400 via-blue-600 to-blue-900 bg-clip-text text-transparent uppercase leading-none text-center">
           Welcome {user?.username?.toUpperCase()}
         </h1>
@@ -83,7 +83,7 @@ const Dashboard: React.FC<{ user: any; guildId?: string }> = ({ user, guildId })
 
       {/* Opciones generales */}
       {showChart && (
-        <div className="absolute bottom-6 left-6 z-0" style={{ marginTop: '2rem' }}>
+        <div className="absolute bottom-0 left-6 z-0">
           <GeneralOptions guildId={guildId} />
         </div>
       )}
