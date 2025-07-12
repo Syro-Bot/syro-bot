@@ -16,6 +16,7 @@ import { useTheme } from "./contexts/ThemeContext";
 import { TemplateProvider, useTemplates } from "./contexts/TemplateContext";
 import { AutoModProvider } from "./contexts/AutoModContext";
 import { ModalProvider, useModal } from "./contexts/ModalContext";
+import { AnimationProvider } from "./contexts/AnimationContext";
 import RaidTypeModal from "./features/automoderation/components/RaidTypeModal";
 import Dashboard from "./pages/Dashboard";
 import AutoModeration from "./pages/AutoModeration";
@@ -266,21 +267,23 @@ const App: React.FC = () => {
   return (
     <div className={(isDarkMode ? "bg-black" : "bg-white") + " transition-colors duration-500"} style={{ minHeight: "100vh" }}>
       <Router>
-        <TemplateProvider>
-          <ModalProvider>
-            <Routes>
-              <Route path="/" element={<Login />} />
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  {(user) => (
-                    <MainLayout activeComponent={activeComponent} setActiveComponent={setActiveComponent} user={user} />
-                  )}
-                </ProtectedRoute>
-              } />
-            </Routes>
-            <GlobalModals />
-          </ModalProvider>
-        </TemplateProvider>
+        <AnimationProvider>
+          <TemplateProvider>
+            <ModalProvider>
+              <Routes>
+                <Route path="/" element={<Login />} />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    {(user) => (
+                      <MainLayout activeComponent={activeComponent} setActiveComponent={setActiveComponent} user={user} />
+                    )}
+                  </ProtectedRoute>
+                } />
+              </Routes>
+              <GlobalModals />
+            </ModalProvider>
+          </TemplateProvider>
+        </AnimationProvider>
       </Router>
     </div>
   );

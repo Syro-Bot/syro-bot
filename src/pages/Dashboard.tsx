@@ -12,6 +12,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { useTheme } from '../contexts/ThemeContext';
+import { useAnimation } from '../contexts/AnimationContext';
 import JoinsChart from '../components/dashboard/JoinsChart';
 import LiveLogs from '../components/dashboard/LiveLogs';
 import GeneralOptions from '../components/dashboard/GeneralOptions';
@@ -26,38 +27,57 @@ import GeneralOptions from '../components/dashboard/GeneralOptions';
  */
 const Dashboard: React.FC<{ user: any; guildId?: string }> = ({ user, guildId }) => {
   const { isDarkMode } = useTheme();
+  const { dashboardAnimationComplete, markDashboardAnimationComplete } = useAnimation();
   const textRef = useRef<HTMLDivElement>(null);
   const [showChart, setShowChart] = useState(false);
 
   useEffect(() => {
     document.title = "Syro - Dashboard";
+    
     if (textRef.current) {
-      // Estado inicial: perfectamente centrado en pantalla
-      gsap.set(textRef.current, { opacity: 0, scale: 0.8, xPercent: -50, yPercent: -50, left: '55%', top: '50%', position: 'fixed' });
-      // Fade in y scale up centrado
-      gsap.to(textRef.current, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" });
-      // Luego de 0.8s, desplazar solo un poco hacia arriba y a la izquierda y achicar
-      gsap.to(textRef.current, {
-        delay: 0.8,
-        duration: 0.7,
-        left: '6rem',
-        top: '6rem',
-        xPercent: 0,
-        yPercent: 0,
-        scale: 0.4,
-        ease: "power3.inOut"
-      });
+      if (!dashboardAnimationComplete) {
+        // Solo ejecutar la animación si no se ha completado antes
+        // Estado inicial: perfectamente centrado en pantalla
+        gsap.set(textRef.current, { opacity: 0, scale: 0.8, xPercent: -50, yPercent: -50, left: '55%', top: '50%', position: 'fixed' });
+        // Fade in y scale up centrado
+        gsap.to(textRef.current, { opacity: 1, scale: 1, duration: 0.5, ease: "power2.out" });
+        // Luego de 0.8s, desplazar solo un poco hacia arriba y a la izquierda y achicar
+        gsap.to(textRef.current, {
+          delay: 0.8,
+          duration: 0.7,
+          left: '6rem',
+          top: '6rem',
+          xPercent: 0,
+          yPercent: 0,
+          scale: 0.4,
+          ease: "power3.inOut",
+          onComplete: () => {
+            markDashboardAnimationComplete();
+          }
+        });
+      } else {
+        // Si la animación ya se completó, establecer directamente el estado final
+        gsap.set(textRef.current, { 
+          opacity: 1, 
+          scale: 0.4, 
+          left: '6rem', 
+          top: '6rem', 
+          xPercent: 0, 
+          yPercent: 0, 
+          position: 'fixed' 
+        });
+      }
     }
-  }, [user]);
+  }, [user, dashboardAnimationComplete, markDashboardAnimationComplete]);
 
   // Mostrar gráfico después de la animación
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowChart(true);
-    }, 2000); // 2 segundos después de que termine la animación
+    }, dashboardAnimationComplete ? 100 : 2000); // Si ya se completó, mostrar inmediatamente
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [dashboardAnimationComplete]);
 
   return (
     <div className="relative h-screen w-full">
