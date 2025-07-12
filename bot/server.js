@@ -399,6 +399,10 @@ app.use('/api/global-announcement', globalAnnouncementRoutes);
 const announcementConfigRoutes = require('./routes/announcement-config');
 app.use('/api/announcement-config', announcementConfigRoutes);
 
+// Rutas de member count channels
+const memberCountRoutes = require('./routes/member-count');
+app.use('/api/member-count', memberCountRoutes);
+
 /**
  * Permission Check Endpoint
  * Verifies if the current user has specific permissions in a guild

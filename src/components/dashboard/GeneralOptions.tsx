@@ -10,10 +10,11 @@
  */
 
 import React, { useState } from "react";
-import { Bomb, Settings, Megaphone } from 'lucide-react';
+import { Bomb, Settings, Megaphone, Users } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import NukeModal from './NukeModal';
 import AnnouncementModal from './AnnouncementModal';
+import MemberCountModal from './MemberCountModal';
 
 interface GeneralOptionsProps {
   guildId?: string;
@@ -30,6 +31,7 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
   const { isDarkMode } = useTheme();
   const [isNukeModalOpen, setIsNukeModalOpen] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
+  const [isMemberCountModalOpen, setIsMemberCountModalOpen] = useState(false);
 
   const handleNukeClick = () => {
     if (!guildId) {
@@ -45,6 +47,14 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
       return;
     }
     setIsAnnouncementModalOpen(true);
+  };
+
+  const handleMemberCountClick = () => {
+    if (!guildId) {
+      alert('Please select a server first');
+      return;
+    }
+    setIsMemberCountModalOpen(true);
   };
 
   return (
@@ -123,6 +133,38 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
             }`}></div>
           </button>
 
+          {/* Opción Member Count */}
+          <button
+            onClick={handleMemberCountClick}
+            className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${
+              isDarkMode 
+                ? 'bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-500/30 hover:to-green-600/30 border border-green-500/30' 
+                : 'bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 border border-green-200'
+            }`}
+          >
+            {/* Icono */}
+            <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center ${
+              isDarkMode ? 'bg-green-500/20' : 'bg-green-100'
+            }`}>
+              <Users className={`w-6 h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+            </div>
+            
+            {/* Contenido */}
+            <div className="flex-1 text-left">
+              <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Member Count
+              </h3>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Create a voice channel that shows real-time member count. Users can see but cannot join.
+              </p>
+            </div>
+            
+            {/* Indicador */}
+            <div className={`flex-shrink-0 w-2 h-2 rounded-full ${
+              isDarkMode ? 'bg-green-400' : 'bg-green-500'
+            }`}></div>
+          </button>
+
           {/* Espacio para futuras opciones */}
           <div className={`flex items-center justify-center h-20 rounded-xl border-2 border-dashed ${
             isDarkMode ? 'border-gray-600 text-gray-400' : 'border-gray-300 text-gray-500'
@@ -150,6 +192,15 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
           guildId={guildId}
           isOpen={isAnnouncementModalOpen}
           onClose={() => setIsAnnouncementModalOpen(false)}
+        />
+      )}
+
+      {/* Modal de Member Count */}
+      {isMemberCountModalOpen && (
+        <MemberCountModal
+          guildId={guildId}
+          isOpen={isMemberCountModalOpen}
+          onClose={() => setIsMemberCountModalOpen(false)}
         />
       )}
     </>

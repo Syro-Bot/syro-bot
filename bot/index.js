@@ -28,6 +28,7 @@ const { createCanvas, loadImage, registerFont } = require('canvas');
 const ServerConfig = require('./models/ServerConfig');
 const WelcomeConfig = require('./models/WelcomeConfig');
 const LogManager = require('./utils/logManager');
+const { setupMemberCountListeners, updateAllMemberCountChannels } = require('./utils/memberCountUpdater');
 
 /**
  * Discord Client Configuration
@@ -369,6 +370,12 @@ async function applyLockdown(guild, duration, raidType = 'general') {
  */
 client.once('ready', () => {
   console.log(`Bot logged in as ${client.user.tag}`);
+  
+  // Setup member count listeners
+  setupMemberCountListeners(client);
+  
+  // Update all member count channels on startup
+  updateAllMemberCountChannels(client);
 });
 
 /**
