@@ -1,65 +1,114 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Users, User, Bot } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Users, User, Bot } from "lucide-react";
 import RoleSelectorButton from "./RoleSelectorButton";
+import { useTheme } from "../../contexts/ThemeContext";
 
 interface JoinRolesSetupProps {
   guildId?: string;
 }
 
-const ROLE_TYPES = [
+interface Role {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface RoleType {
+  type: string;
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  gradient: string;
+}
+
+const ROLE_TYPES: RoleType[] = [
   {
     type: "general",
-    title: "General Roles",
-    description: "The following roles will be assigned to users joining the server.",
+    title: "General",
+    description: "Roles for all users",
     icon: Users,
-    gradient: "from-blue-400 to-blue-600",
+    gradient: "from-blue-500 to-blue-600"
   },
   {
     type: "user",
-    title: "User Specific Roles",
-    description: "Assign roles to specific users when they join. (Coming soon)",
+    title: "User",
+    description: "Roles for human users",
     icon: User,
-    gradient: "from-green-400 to-green-600",
+    gradient: "from-green-500 to-green-600"
   },
   {
     type: "bot",
-    title: "Bot Roles",
-    description: "Assign roles to bots joining the server. (Coming soon)",
+    title: "Bot",
+    description: "Roles for bot accounts",
     icon: Bot,
-    gradient: "from-purple-400 to-purple-600",
-  },
+    gradient: "from-purple-500 to-purple-600"
+  }
 ];
 
+// Cache para almacenar configuraciones de join roles
+const joinRolesCache = new Map<string, any>();
+
 const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
+  const { isDarkMode } = useTheme();
+  const [selectedRoles, setSelectedRoles] = useState<RoleType[]>([]);
+  const [assignedGeneralRoles, setAssignedGeneralRoles] = useState<Role[]>([]);
+  const [assignedUserRoles, setAssignedUserRoles] = useState<Role[]>([]);
+  const [assignedBotRoles, setAssignedBotRoles] = useState<Role[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRoles, setSelectedRoles] = useState<any[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState(
-    document.documentElement.classList.contains("dark")
-  );
-  const [assignedGeneralRoles, setAssignedGeneralRoles] = useState<any[]>([]);
-  const [assignedUserRoles, setAssignedUserRoles] = useState<any[]>([]);
-  const [assignedBotRoles, setAssignedBotRoles] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [hasUserChanges, setHasUserChanges] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-    observer.observe(document.documentElement, { attributes: true });
-    return () => observer.disconnect();
-  }, []);
+  // Cargar datos desde caché si están disponibles
+  const loadFromCache = useMemo(() => {
+    if (guildId && joinRolesCache.has(guildId)) {
+      const cachedData = joinRolesCache.get(guildId);
+      return cachedData;
+    }
+    return null;
+  }, [guildId]);
 
-  // Load join roles configuration
   useEffect(() => {
     if (guildId) {
-      loadJoinRolesConfig();
+      // Si tenemos datos en caché, usarlos inmediatamente
+      if (loadFromCache) {
+        const cachedData = loadFromCache;
+        setAssignedGeneralRoles(cachedData.general || []);
+        setAssignedUserRoles(cachedData.user || []);
+        setAssignedBotRoles(cachedData.bot || []);
+        
+        // Auto-load role type cards if there are saved roles
+        const hasGeneralRoles = (cachedData.general || []).length > 0;
+        const hasUserRoles = (cachedData.user || []).length > 0;
+        const hasBotRoles = (cachedData.bot || []).length > 0;
+        
+        const typesToLoad: string[] = [];
+        if (hasGeneralRoles) typesToLoad.push('general');
+        if (hasUserRoles) typesToLoad.push('user');
+        if (hasBotRoles) typesToLoad.push('bot');
+        
+        const roleTypesToAdd = ROLE_TYPES.filter(role => typesToLoad.includes(role.type));
+        setSelectedRoles(roleTypesToAdd);
+        
+        setIsInitialLoad(false);
+        setLoadError(null);
+        console.log('✅ Loaded from cache:', cachedData);
+      } else {
+        // Si no hay caché, cargar desde el servidor
+        loadJoinRolesConfig();
+      }
     }
-  }, [guildId]);
+  }, [guildId, loadFromCache]);
 
   const loadJoinRolesConfig = async () => {
     try {
       setIsLoading(true);
+      setIsInitialLoad(true);
+      setHasUserChanges(false);
+      setLoadError(null);
+      
       const response = await fetch(`/api/join-roles/${guildId}`, {
         credentials: 'include',
         headers: {
@@ -67,7 +116,10 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
         }
       });
       
-      // Log the raw response for debugging
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const responseText = await response.text();
       console.log('🔍 Raw response:', responseText);
       
@@ -77,37 +129,48 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
       } catch (parseError) {
         console.error('❌ JSON parse error:', parseError);
         console.error('❌ Response was not valid JSON:', responseText);
+        setLoadError('Invalid response from server');
         return;
       }
       
       if (data.success) {
-        setAssignedGeneralRoles(data.joinRoles.general || []);
-        setAssignedUserRoles(data.joinRoles.user || []);
-        setAssignedBotRoles(data.joinRoles.bot || []);
+        const joinRoles = data.joinRoles || { general: [], user: [], bot: [] };
+        
+        // Guardar en caché
+        if (guildId) {
+          joinRolesCache.set(guildId, joinRoles);
+        }
+        
+        setAssignedGeneralRoles(joinRoles.general || []);
+        setAssignedUserRoles(joinRoles.user || []);
+        setAssignedBotRoles(joinRoles.bot || []);
         
         // Auto-load role type cards if there are saved roles
-        const hasGeneralRoles = (data.joinRoles.general || []).length > 0;
-        const hasUserRoles = (data.joinRoles.user || []).length > 0;
-        const hasBotRoles = (data.joinRoles.bot || []).length > 0;
+        const hasGeneralRoles = (joinRoles.general || []).length > 0;
+        const hasUserRoles = (joinRoles.user || []).length > 0;
+        const hasBotRoles = (joinRoles.bot || []).length > 0;
         
         const typesToLoad: string[] = [];
         if (hasGeneralRoles) typesToLoad.push('general');
         if (hasUserRoles) typesToLoad.push('user');
         if (hasBotRoles) typesToLoad.push('bot');
         
-        // Load the corresponding role type cards
         const roleTypesToAdd = ROLE_TYPES.filter(role => typesToLoad.includes(role.type));
         setSelectedRoles(roleTypesToAdd);
         
-        console.log('✅ Join roles config loaded:', data.joinRoles);
+        console.log('✅ Join roles config loaded:', joinRoles);
         console.log('📋 Auto-loaded role type cards:', roleTypesToAdd.map(r => r.type));
       } else {
         console.error('❌ Error loading join roles config:', data.error);
+        setLoadError(data.error || 'Failed to load configuration');
       }
     } catch (error) {
       console.error('❌ Error loading join roles config:', error);
+      setLoadError(error instanceof Error ? error.message : 'Network error');
     } finally {
       setIsLoading(false);
+      // Marcar como no carga inicial después de un pequeño delay
+      setTimeout(() => setIsInitialLoad(false), 300);
     }
   };
 
@@ -128,7 +191,10 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
         body: JSON.stringify({ joinRoles })
       });
 
-      // Log the raw response for debugging
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const responseText = await response.text();
       console.log('🔍 Save response:', responseText);
       
@@ -142,6 +208,10 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
       }
       
       if (data.success) {
+        // Actualizar caché
+        if (guildId) {
+          joinRolesCache.set(guildId, joinRoles);
+        }
         console.log('✅ Join roles config saved successfully');
       } else {
         console.error('❌ Error saving join roles config:', data.error);
@@ -153,24 +223,26 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
     }
   };
 
-  // Auto-save when roles change
+  // Auto-save when roles change (but only if user made changes)
   useEffect(() => {
-    if (!isLoading && guildId) {
+    if (!isLoading && !isInitialLoad && hasUserChanges && guildId) {
       const timeoutId = setTimeout(() => {
+        console.log('💾 Auto-saving due to user changes...');
         saveJoinRolesConfig();
-      }, 1000); // Debounce for 1 second
+        setHasUserChanges(false); // Reset after saving
+      }, 1000);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [assignedGeneralRoles, assignedUserRoles, assignedBotRoles, guildId, isLoading]);
+  }, [assignedGeneralRoles, assignedUserRoles, assignedBotRoles, guildId, isLoading, isInitialLoad, hasUserChanges]);
 
   const handleAdd = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
   const handleSelectType = (type: string) => {
-    setSelectedRoles((prev) => [
-      ...prev,
-      ROLE_TYPES.find((r) => r.type === type),
-    ]);
+    const roleType = ROLE_TYPES.find((r) => r.type === type);
+    if (roleType) {
+      setSelectedRoles((prev) => [...prev, roleType]);
+    }
     setIsModalOpen(false);
   };
 
@@ -191,6 +263,35 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
       default: return "blue";
     }
   };
+
+  // Mostrar error si hay problema de carga
+  if (loadError && !isLoading) {
+    return (
+      <div className="w-full">
+        <div className="bg-gradient-to-r from-blue-400 via-blue-600 to-blue-900 rounded-3xl p-24 mb-10 max-w-[80rem] mx-auto relative">
+          <h1 className="text-6xl font-extrabold text-white uppercase leading-none text-center">
+            Join Roles
+          </h1>
+          <p className="text-blue-100 text-center text-xl mt-4 font-medium">
+            Assign roles automatically to users when they join your server
+          </p>
+        </div>
+        
+        <div className="max-w-[80rem] mx-auto flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-500 text-xl mb-4">⚠️ Error loading configuration</div>
+            <div className="text-gray-600 mb-4">{loadError}</div>
+            <button
+              onClick={loadJoinRolesConfig}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -219,6 +320,7 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
         <div className="max-w-[80rem] mx-auto flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="text-gray-600">Loading configuration...</div>
           </div>
         </div>
       ) : (
@@ -257,6 +359,7 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
                           setAssignedBotRoles(roles);
                           break;
                       }
+                      setHasUserChanges(true); // Mark user changes
                     }}
                     isDarkMode={isDarkMode}
                     color={getRoleColor(role.type)}

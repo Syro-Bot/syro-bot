@@ -9,6 +9,9 @@ interface RoleSelectorButtonProps {
   color?: "blue" | "green" | "purple";
 }
 
+// Cache global para roles por servidor
+const rolesCache = new Map<string, any[]>();
+
 const RoleSelectorButton: React.FC<RoleSelectorButtonProps> = ({ 
   guildId, 
   assignedRoles, 
@@ -19,6 +22,7 @@ const RoleSelectorButton: React.FC<RoleSelectorButtonProps> = ({
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [roleSearch, setRoleSearch] = useState("");
   const [allRoles, setAllRoles] = useState<any[]>([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(false);
   const roleModalRef = useRef<HTMLDivElement>(null);
 
   const getColorClasses = () => {
@@ -49,23 +53,49 @@ const RoleSelectorButton: React.FC<RoleSelectorButtonProps> = ({
     }
   };
 
+  const loadRoles = async () => {
+    if (!guildId) return;
+
+    // Verificar si ya tenemos roles en caché
+    if (rolesCache.has(guildId)) {
+      setAllRoles(rolesCache.get(guildId) || []);
+      return;
+    }
+
+    try {
+      setIsLoadingRoles(true);
+      console.log('🔍 Fetching roles for guildId:', guildId);
+      
+      const response = await fetch(`/api/roles/${guildId}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('📋 Roles response:', data);
+      
+      if (data.success) {
+        const roles = data.roles || [];
+        // Guardar en caché
+        rolesCache.set(guildId, roles);
+        setAllRoles(roles);
+        console.log('✅ Roles loaded and cached:', roles.length);
+      } else {
+        console.error('❌ Error loading roles:', data.error);
+      }
+    } catch (error) {
+      console.error('❌ Fetch error:', error);
+    } finally {
+      setIsLoadingRoles(false);
+    }
+  };
+
   useEffect(() => {
     if (showRoleModal && guildId) {
-      console.log('🔍 Fetching roles for guildId:', guildId);
-      fetch(`/api/roles/${guildId}`)
-        .then(res => res.json())
-        .then(data => {
-          console.log('📋 Roles response:', data);
-          if (data.success) {
-            setAllRoles(data.roles);
-            console.log('✅ Roles loaded:', data.roles.length);
-          } else {
-            console.error('❌ Error loading roles:', data.error);
-          }
-        })
-        .catch(error => {
-          console.error('❌ Fetch error:', error);
-        });
+      loadRoles();
     }
   }, [showRoleModal, guildId]);
 
@@ -73,6 +103,7 @@ const RoleSelectorButton: React.FC<RoleSelectorButtonProps> = ({
     function handleClickOutside(event: MouseEvent) {
       if (roleModalRef.current && !roleModalRef.current.contains(event.target as Node)) {
         setShowRoleModal(false);
+        setRoleSearch(""); // Limpiar búsqueda al cerrar
       }
     }
     if (showRoleModal) {
@@ -82,6 +113,10 @@ const RoleSelectorButton: React.FC<RoleSelectorButtonProps> = ({
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showRoleModal]);
+
+  const filteredRoles = allRoles.filter(r => 
+    r.name.toLowerCase().includes(roleSearch.toLowerCase())
+  );
 
   return (
     <div className="relative flex items-center justify-start h-10">
@@ -140,9 +175,13 @@ const RoleSelectorButton: React.FC<RoleSelectorButtonProps> = ({
             />
           </div>
           <div className="max-h-64 overflow-y-auto p-2">
-            {allRoles
-              .filter(r => r.name.toLowerCase().includes(roleSearch.toLowerCase()))
-              .map(r => (
+            {isLoadingRoles ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span className={`ml-2 text-sm ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>Loading roles...</span>
+              </div>
+            ) : filteredRoles.length > 0 ? (
+              filteredRoles.map(r => (
                 <button
                   key={r.id}
                   onClick={() => {
@@ -152,15 +191,20 @@ const RoleSelectorButton: React.FC<RoleSelectorButtonProps> = ({
                       return prev.some((ar: any) => ar.id === r.id) ? prev : [...prev, r];
                     });
                     setShowRoleModal(false);
+                    setRoleSearch(""); // Limpiar búsqueda
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${getHoverColor()}`}
                 >
                   <span className="w-3 h-3 rounded-full" style={{ backgroundColor: r.color }} />
                   <span className={`font-medium ${isDarkMode ? "text-white" : "text-gray-800"}`}>{r.name}</span>
                 </button>
-              ))}
-            {allRoles.length === 0 && (
-              <div className="text-center text-gray-400 py-4">No roles found</div>
+              ))
+            ) : (
+              <div className="text-center py-4">
+                <div className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                  {roleSearch ? 'No roles found matching your search' : 'No roles available'}
+                </div>
+              </div>
             )}
           </div>
         </div>

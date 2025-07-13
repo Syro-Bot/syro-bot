@@ -28,7 +28,7 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [saveTimeout, setSaveTimeout] = useState<number | null>(null);
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Cargar reglas al montar el componente o cuando cambie guildId
   useEffect(() => {
@@ -49,8 +49,15 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
   // Guardar reglas automáticamente cuando cambien (con debouncing)
   useEffect(() => {
     if (guildId && !isInitialLoad && Object.keys(rules).length > 0) {
-      console.log('🔄 Reglas cambiaron, programando guardado...');
-      debouncedSave(guildId);
+      // Solo guardar si las reglas han cambiado por el usuario, no por carga inicial
+      const hasUserChanges = Object.values(rules).some(rulesArray => 
+        rulesArray.some(rule => rule.id && rule.id > Date.now() - 10000) 
+      );
+      
+      if (hasUserChanges) {
+        console.log('🔄 Reglas cambiaron por el usuario, programando guardado...');
+        debouncedSave(guildId);
+      }
     }
   }, [rules, guildId, isInitialLoad]);
 
