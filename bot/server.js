@@ -67,6 +67,7 @@ async function startServer() {
     const globalAnnouncementRoutes = require('./routes/global-announcement');
     const announcementConfigRoutes = require('./routes/announcement-config');
     const memberCountRoutes = require('./routes/member-count');
+    const dataRetentionRoutes = require('./routes/data-retention');
     
     // Register API routes
     app.use('/api', healthRoutes);
@@ -78,6 +79,7 @@ async function startServer() {
     app.use('/api/global-announcement', globalAnnouncementRoutes);
     app.use('/api/announcement-config', announcementConfigRoutes);
     app.use('/api/member-count', memberCountRoutes);
+    app.use('/api/guild', dataRetentionRoutes);
     
     // Legacy routes (to be migrated to modules)
     registerLegacyRoutes(app);
@@ -108,32 +110,9 @@ async function startServer() {
  */
 async function startDiscordBot() {
   try {
-    // Bot ready event
-    client.once('ready', () => {
-      logger.bot(`🤖 Bot logged in as ${client.user.tag}`);
-      logger.bot(`📊 Serving ${client.guilds.cache.size} servers`);
-      logger.bot(`👥 Total users: ${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)}`);
-      
-      // Log each server
-      client.guilds.cache.forEach(guild => {
-        logger.bot(`  - ${guild.name}: ${guild.memberCount} members`);
-      });
-    });
-    
-    // Bot error handling
-    client.on('error', (error) => {
-      logger.errorWithContext(error, { context: 'Discord client error' });
-    });
-    
-    // Bot disconnect handling
-    client.on('disconnect', () => {
-      logger.warn('Discord bot disconnected');
-    });
-    
-    // Bot reconnect handling
-    client.on('reconnecting', () => {
-      logger.info('Discord bot reconnecting...');
-    });
+    // Initialize bot event handlers
+    const { initializeBotHandlers } = require('./handlers/botHandler');
+    initializeBotHandlers(client);
     
     // Login to Discord
     await client.login(process.env.DISCORD_TOKEN);
