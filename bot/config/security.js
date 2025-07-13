@@ -10,6 +10,7 @@
 
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const logger = require('../utils/logger');
 
 /**
@@ -42,6 +43,23 @@ const SECURITY_HEADERS = {
   hidePoweredBy: true,
   ieNoOpen: true,
   permittedCrossDomainPolicies: { permittedPolicies: 'none' }
+};
+
+/**
+ * Compression Configuration
+ * Optimize response sizes for better performance
+ */
+const COMPRESSION_CONFIG = {
+  level: 6, // Balance between compression and CPU usage
+  threshold: 1024, // Only compress responses larger than 1KB
+  filter: (req, res) => {
+    // Don't compress if client doesn't support it
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Use compression for all other requests
+    return compression.filter(req, res);
+  }
 };
 
 /**
@@ -116,6 +134,24 @@ const RATE_LIMITS = {
       res.status(429).json({
         success: false,
         error: 'Too many API requests from this IP, please try again later.'
+      });
+    }
+  }),
+
+  // User-specific rate limit (for authenticated users)
+  user: rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 200, // limit each user to 200 requests per 15 minutes
+    keyGenerator: (req) => req.session?.userId || req.ip,
+    message: {
+      success: false,
+      error: 'Too many requests from this user, please try again later.'
+    },
+    handler: (req, res) => {
+      logger.rateLimit(req.session?.userId || req.ip, 'user');
+      res.status(429).json({
+        success: false,
+        error: 'Too many requests from this user, please try again later.'
       });
     }
   })
@@ -224,6 +260,7 @@ function validateEnvironment() {
 function getSecurityMiddleware() {
   return [
     helmet(SECURITY_HEADERS),
+    compression(COMPRESSION_CONFIG),
     RATE_LIMITS.general,
     // Additional security middleware can be added here
   ];
@@ -231,6 +268,7 @@ function getSecurityMiddleware() {
 
 module.exports = {
   SECURITY_HEADERS,
+  COMPRESSION_CONFIG,
   RATE_LIMITS,
   FILE_UPLOAD_SECURITY,
   SESSION_SECURITY,

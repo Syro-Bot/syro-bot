@@ -60,7 +60,12 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
   const loadJoinRolesConfig = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/join-roles/${guildId}`);
+      const response = await fetch(`/api/join-roles/${guildId}`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
       // Log the raw response for debugging
       const responseText = await response.text();

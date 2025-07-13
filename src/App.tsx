@@ -3,6 +3,7 @@
  *
  * Main entry point for the Syro web dashboard. Defines the global layout, routing, and context providers.
  * Handles authentication, protected routes, and main navigation structure.
+ * Optimized with lazy loading for better performance.
  *
  * @author Syro Frontend Team
  * @version 1.0.0
@@ -17,16 +18,19 @@ import { TemplateProvider, useTemplates } from "./contexts/TemplateContext";
 import { AutoModProvider } from "./contexts/AutoModContext";
 import { ModalProvider, useModal } from "./contexts/ModalContext";
 import { AnimationProvider } from "./contexts/AnimationContext";
-import RaidTypeModal from "./features/automoderation/components/RaidTypeModal";
-import Dashboard from "./pages/Dashboard";
-import AutoModeration from "./pages/AutoModeration";
-import JoinRoles from "./pages/JoinRoles";
-import ReactionRoles from "./pages/ReactionRoles";
-import WelcomeMessages from "./pages/WelcomeMessages";
-import SocialNotifications from "./pages/SocialNotifications";
-import Login from "./pages/Login";
-import CreateChannel from "./pages/CreateChannel";
-import Templates from "./pages/Templates";
+import { createLazyComponent } from "./components/shared/LazyComponent";
+
+// Lazy load components for better performance
+const RaidTypeModal = createLazyComponent(() => import("./features/automoderation/components/RaidTypeModal"));
+const Dashboard = createLazyComponent(() => import("./pages/Dashboard"));
+const AutoModeration = createLazyComponent(() => import("./pages/AutoModeration"));
+const JoinRoles = createLazyComponent(() => import("./pages/JoinRoles"));
+const ReactionRoles = createLazyComponent(() => import("./pages/ReactionRoles"));
+const WelcomeMessages = createLazyComponent(() => import("./pages/WelcomeMessages"));
+const SocialNotifications = createLazyComponent(() => import("./pages/SocialNotifications"));
+const Login = createLazyComponent(() => import("./pages/Login"));
+const CreateChannel = createLazyComponent(() => import("./pages/CreateChannel"));
+const Templates = createLazyComponent(() => import("./pages/Templates"));
 
 // Componente wrapper para pasar el usuario al TemplateContext
 const UserTemplateProvider: React.FC<{ children: React.ReactNode; user: any }> = ({ children, user }) => {

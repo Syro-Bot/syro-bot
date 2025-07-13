@@ -11,6 +11,8 @@
  * - Better error handling and logging
  * - Graceful shutdown handling
  * - Comprehensive health checks and monitoring
+ * - Redis caching for improved performance
+ * - Advanced rate limiting with Redis
  * 
  * @author Syro Development Team
  * @version 2.0.0 - REFACTORED
@@ -22,6 +24,7 @@ const logger = require('./utils/logger');
 
 // Import modular configuration
 const { initializeApp, setupGracefulShutdown } = require('./config/app');
+const { cacheManager, rateLimiter } = require('./config/redis');
 
 /**
  * Discord Client Configuration
@@ -45,6 +48,14 @@ async function startServer() {
     
     // Initialize Express application with database connection
     const app = await initializeApp(client);
+    
+    // Add cache and rate limiting middleware
+    app.use(async (req, res, next) => {
+      // Add cache manager to request object
+      req.cache = cacheManager;
+      req.rateLimiter = rateLimiter;
+      next();
+    });
     
     // Import and register route modules
     const healthRoutes = require('./routes/health');
@@ -76,6 +87,8 @@ async function startServer() {
     const server = app.listen(PORT, () => {
       logger.info(`🚀 API Server running on port ${PORT}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`⚡ Redis caching enabled`);
+      logger.info(`🛡️ Advanced rate limiting enabled`);
     });
     
     // Setup graceful shutdown

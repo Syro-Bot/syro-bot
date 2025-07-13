@@ -60,7 +60,12 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
     setError(null);
     
     try {
-      const response = await fetch(`/api/servers/${guildId}/automod/rules`);
+      const response = await fetch(`/api/servers/${guildId}/automod/rules`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
       if (response.ok) {
         const data = await response.json();
