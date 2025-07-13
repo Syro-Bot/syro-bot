@@ -72,6 +72,11 @@ async function handleMessageCreate(message) {
       await adminCommands.handlePermissionsCommand(message);
     }
     
+    // Handle purge command
+    if (message.content.startsWith('xpurge')) {
+      await adminCommands.handlePurgeCommand(message);
+    }
+    
     // Handle avatar command (for everyone)
     if (message.content.startsWith('xavatar')) {
       await adminCommands.handleAvatarCommand(message);

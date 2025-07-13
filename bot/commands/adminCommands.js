@@ -295,10 +295,80 @@ async function handleAvatarCommand(message) {
   }
 }
 
+/**
+ * Handle purge command
+ * @param {Message} message - Discord message object
+ */
+async function handlePurgeCommand(message) {
+  try {
+    const args = message.content.split(' ');
+    let amount = 10; // Default 10 messages
+    
+    // Check if a specific amount was provided
+    if (args.length > 1) {
+      const specifiedAmount = parseInt(args[1]);
+      if (!isNaN(specifiedAmount) && specifiedAmount > 0) {
+        amount = Math.min(specifiedAmount, 50); // Maximum 50 messages
+      }
+    }
+    
+    console.log(`🧹 Purge command executed by ${message.author.tag} in ${message.guild.name} - Amount: ${amount}`);
+    
+    // Verify bot permissions
+    if (!message.channel.permissionsFor(message.guild.members.me).has(PermissionsBitField.Flags.ManageMessages)) {
+      await message.channel.send('❌ No tengo permisos para eliminar mensajes en este canal.');
+      return;
+    }
+    
+    // Get messages and filter deletable ones (excluding the command message)
+    const messagesToDelete = await message.channel.messages.fetch({ limit: amount + 1 }); // +1 to include the command
+    const deletableMessages = messagesToDelete.filter(msg => 
+      msg.id !== message.id && // Don't delete the command message
+      msg.createdTimestamp > Date.now() - 14 * 24 * 60 * 60 * 1000 && // Only messages from last 14 days
+      !msg.pinned // Don't delete pinned messages
+    );
+    
+    if (deletableMessages.size === 0) {
+      await message.channel.send('❌ No hay mensajes que se puedan eliminar.');
+      return;
+    }
+    
+    // Delete messages
+    await message.channel.bulkDelete(deletableMessages);
+    
+    // Add reaction to the command message
+    try {
+      // Try to find the custom emoji in the guild
+      const customEmoji = message.guild.emojis.cache.find(emoji => emoji.name === 'check_yes2');
+      if (customEmoji) {
+        await message.react(customEmoji);
+        console.log(`✅ Reacción agregada con emoji personalizado: ${customEmoji.name}`);
+      } else {
+        // Fallback to default check emoji
+        await message.react('✅');
+        console.log('⚠️ Emoji personalizado check_yes2 no encontrado, usando emoji estándar');
+      }
+    } catch (reactionError) {
+      console.log('❌ Error agregando reacción:', reactionError.message);
+      // Final fallback to default check emoji
+      try {
+        await message.react('✅');
+      } catch (fallbackError) {
+        console.log('❌ No se pudo agregar ninguna reacción:', fallbackError.message);
+      }
+    }
+    
+  } catch (error) {
+    handleError(error, 'purge command');
+    await message.channel.send('❌ Error al eliminar mensajes. Asegúrate de que los mensajes no sean más antiguos de 14 días.');
+  }
+}
+
 module.exports = {
   handleUnlockCommand,
   handleCleanRaidCommand,
   handleRaidStatusCommand,
   handleNukeCommand,
-  handleAvatarCommand
+  handleAvatarCommand,
+  handlePurgeCommand
 }; 
