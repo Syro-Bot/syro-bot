@@ -9,9 +9,10 @@
  * @since 2024
  */
 
-import React, { useEffect, useRef, useState } from "react";
-import { Activity, Users, Shield, Hash, AlertTriangle, Bomb, Megaphone } from 'lucide-react';
+import React, { useRef } from "react";
+import { Activity, Users, Shield, Hash, AlertTriangle, Bomb, Megaphone, RefreshCw } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useMinimalRealtimeAPI } from '../../hooks/useSmartAPI';
 
 interface LogEntry {
   _id: string;
@@ -44,9 +45,17 @@ interface LiveLogsProps {
 const LiveLogs: React.FC<LiveLogsProps> = ({ guildId }) => {
   const { isDarkMode } = useTheme();
   const logsContainerRef = useRef<HTMLDivElement>(null);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  
+  // Use smart API hook for real-time logs
+  const { data: logsData, loading, error, refetch, lastUpdated } = useMinimalRealtimeAPI<{ success: boolean; logs: LogEntry[] }>({
+    url: guildId ? `/api/logs/${guildId}?limit=30` : '',
+    enabled: !!guildId,
+    onError: (error: Error) => {
+      console.warn('⚠️ Error fetching logs:', error.message);
+    }
+  });
 
-  // Función para obtener el ícono según el tipo de log
+  const logs = logsData?.logs || [];
   const getLogIcon = (type: string) => {
     switch (type) {
       case 'user_join': return <Users size={14} />;
@@ -102,53 +111,94 @@ const LiveLogs: React.FC<LiveLogsProps> = ({ guildId }) => {
     });
   };
 
-  // Auto-scroll al último log
-  useEffect(() => {
-    if (logsContainerRef.current) {
+  // Auto-scroll al último log when new logs arrive
+  React.useEffect(() => {
+    if (logsContainerRef.current && logs.length > 0) {
       logsContainerRef.current.scrollTop = logsContainerRef.current.scrollHeight;
     }
   }, [logs]);
-
-  // Obtener logs reales del backend
-  useEffect(() => {
-    const fetchLogs = async () => {
-      if (!guildId) return;
-      
-      try {
-        const response = await fetch(`http://localhost:3001/api/logs/${guildId}?limit=30`);
-        const data = await response.json();
-        
-        if (data.success) {
-          setLogs(data.logs);
-        }
-      } catch (error) {
-        console.error('Error fetching logs:', error);
-      }
-    };
-
-    fetchLogs();
-    
-    // Actualizar logs cada 5 segundos
-    const interval = setInterval(fetchLogs, 5000);
-    
-    return () => clearInterval(interval);
-  }, [guildId]);
 
   return (
     <div className={`w-[48rem] h-[23rem] backdrop-blur-sm rounded-2xl p-6 transition-colors duration-300 ${
       isDarkMode ? 'bg-[#181c24]' : 'bg-white'
     }`}>
-      <h2 className="text-md font-bold mb-4 bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent uppercase flex items-center gap-2">
-        <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-        <span className="text-left">LOGS EN TIEMPO REAL</span>
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-md font-bold bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent uppercase flex items-center gap-2">
+          <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+          <span className="text-left">LOGS EN TIEMPO REAL</span>
+        </h2>
+        <div className="flex items-center gap-2">
+          {lastUpdated && (
+            <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Última actualización: {lastUpdated.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}
+            </span>
+          )}
+          <button
+            onClick={() => refetch()}
+            disabled={loading}
+            className={`p-2 rounded-lg ${
+              loading 
+                ? 'opacity-50 cursor-not-allowed bg-gray-200 dark:bg-gray-700' 
+                : 'bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 shadow-md hover:shadow-lg'
+            }`}
+            title="Actualizar logs"
+          >
+            <RefreshCw 
+              size={14} 
+              className={`${loading ? 'animate-spin' : ''} text-white`} 
+            />
+          </button>
+        </div>
+      </div>
       
       {/* Contenedor de logs con scroll */}
       <div 
         ref={logsContainerRef}
         className="h-[calc(100%-3rem)] overflow-y-auto space-y-2 pr-2"
       >
-        {logs.length === 0 ? (
+        {loading && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500 mx-auto mb-2"></div>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Cargando logs...
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {error && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <AlertTriangle className={`w-8 h-8 mx-auto mb-2 text-red-500`} />
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                {error.message.includes('Rate limited') 
+                  ? 'Rate limit alcanzado. Reanudando en 2 minutos...'
+                  : 'Error cargando logs'
+                }
+              </p>
+              {!error.message.includes('Rate limited') && (
+                <button
+                  onClick={() => {
+                    refetch();
+                  }}
+                  className={`mt-2 px-3 py-1 text-xs rounded-md transition-colors duration-200 ${
+                    isDarkMode 
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                      : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  }`}
+                >
+                  Reintentar
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {!loading && !error && logs.length === 0 && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Activity className={`w-8 h-8 mx-auto mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
@@ -157,7 +207,9 @@ const LiveLogs: React.FC<LiveLogsProps> = ({ guildId }) => {
               </p>
             </div>
           </div>
-        ) : (
+        )}
+        
+        {!loading && !error && logs.length > 0 && (
           logs.map((log) => (
             <div 
               key={log._id}

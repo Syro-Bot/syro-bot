@@ -113,6 +113,65 @@ function createRateLimiter(maxAttempts = 20, windowMs = 60000) {
 }
 
 /**
+ * Rate limiting middleware with more lenient settings for data endpoints
+ * @param {number} maxAttempts - Maximum attempts per window
+ * @param {number} windowMs - Time window in milliseconds
+ * @returns {Function} - Rate limiting middleware
+ */
+function createDataRateLimiter(maxAttempts = 60, windowMs = 60000) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress;
+    const key = `data_${ip}`;
+    
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    
+    // Get or create rate limit data
+    let rateLimitData = rateLimitStore.get(key) || { attempts: [], blocked: false };
+    
+    // Remove old attempts outside the window
+    rateLimitData.attempts = rateLimitData.attempts.filter(timestamp => timestamp > windowStart);
+    
+    // Check if blocked
+    if (rateLimitData.blocked) {
+      logger.security('Data rate limit exceeded - IP blocked', { ip, url: req.url });
+      return res.status(429).json({
+        success: false,
+        error: 'Too many requests. Please try again later.'
+      });
+    }
+    
+    // Check current attempts
+    if (rateLimitData.attempts.length >= maxAttempts) {
+      rateLimitData.blocked = true;
+      rateLimitStore.set(key, rateLimitData);
+      
+      // Auto-unblock after 2 minutes (shorter for data endpoints)
+      setTimeout(() => {
+        const currentData = rateLimitStore.get(key);
+        if (currentData) {
+          currentData.blocked = false;
+          currentData.attempts = [];
+          rateLimitStore.set(key, currentData);
+        }
+      }, 2 * 60 * 1000);
+      
+      logger.security('Data rate limit exceeded', { ip, url: req.url });
+      return res.status(429).json({
+        success: false,
+        error: 'Too many requests. Please try again later.'
+      });
+    }
+    
+    // Add current attempt
+    rateLimitData.attempts.push(now);
+    rateLimitStore.set(key, rateLimitData);
+    
+    next();
+  };
+}
+
+/**
  * Validate session integrity with backward compatibility
  * @param {Object} session - Express session object
  * @returns {boolean} - True if session is valid
@@ -586,5 +645,6 @@ module.exports = {
   isValidGuildId,
   sanitizePermissions,
   validateSession,
-  createRateLimiter
+  createRateLimiter,
+  createDataRateLimiter
 }; 

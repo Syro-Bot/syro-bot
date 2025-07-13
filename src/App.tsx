@@ -19,6 +19,9 @@ import { AutoModProvider } from "./contexts/AutoModContext";
 import { ModalProvider, useModal } from "./contexts/ModalContext";
 import { AnimationProvider } from "./contexts/AnimationContext";
 import { createLazyComponent } from "./components/shared/LazyComponent";
+import APIMonitor from "./components/shared/APIMonitor";
+import apiManager from "./utils/apiManager";
+import { API_CONFIG } from "./config/apiConfig";
 
 // Lazy load components for better performance
 const RaidTypeModal = createLazyComponent(() => import("./features/automoderation/components/RaidTypeModal"));
@@ -67,14 +70,20 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
   const [availableGuilds, setAvailableGuilds] = React.useState<any[]>([]);
   
   React.useEffect(() => {
-    // Obtener los servidores donde el usuario tiene permisos
+    // Obtener los servidores donde el usuario tiene permisos usando el API manager optimizado
     if (user) {
-      fetch('http://localhost:3002/me', { 
-        credentials: 'include',
-        cache: 'no-cache'
-      })
-        .then(res => res.json())
-        .then(data => {
+      const fetchGuilds = async () => {
+        try {
+          const data = await apiManager.request({
+            url: `${API_CONFIG.BASE_URL}/me`,
+            options: {
+              credentials: 'include'
+            },
+            cacheTTL: API_CONFIG.CACHE.USER_DATA_TTL,
+            throttleDelay: API_CONFIG.ENDPOINTS.ME.throttleDelay,
+            priority: API_CONFIG.ENDPOINTS.ME.priority
+          });
+
           console.log('🏠 Servidores del usuario:', data);
           if (data.guilds && data.guilds.length > 0) {
             // Filtrar solo servidores donde el usuario es admin o tiene permisos de administrador
@@ -85,7 +94,7 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
             console.log('👑 Servidores con permisos de admin:', adminGuilds);
             setAvailableGuilds(adminGuilds);
             
-            // --- NUEVO: recordar último guild seleccionado ---
+            // Recordar último guild seleccionado
             const lastGuildId = localStorage.getItem('lastSelectedGuildId');
             let selectedGuildId = undefined;
             if (lastGuildId && adminGuilds.some((g: any) => g.id === lastGuildId)) {
@@ -100,12 +109,15 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
             } else {
               console.log('❌ No hay servidores con permisos de administrador');
             }
-            // --- FIN NUEVO ---
           } else {
             console.log('❌ No hay servidores disponibles');
           }
-        })
-        .catch(err => console.error('Error obteniendo guilds del usuario:', err));
+        } catch (error) {
+          console.error('Error obteniendo guilds del usuario:', error);
+        }
+      };
+
+      fetchGuilds();
     }
   }, [user]);
 
@@ -164,6 +176,7 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
           />
             <div className={`rounded-tl-3xl shadow-xl p-8 flex-1 overflow-auto flex flex-col transition-colors duration-500 ${isDarkMode ? 'bg-[#101010]' : 'bg-[#ecf0f9]'}`}>{renderPage()}</div>
           </main>
+          <APIMonitor />
         </div>
       </AutoModProvider>
     </UserTemplateProvider>
@@ -179,70 +192,33 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
 const useAuth = () => {
   const [user, setUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
-  const [lastFetch, setLastFetch] = React.useState(0);
-  const [rateLimitUntil, setRateLimitUntil] = React.useState(0);
-  const [isFetching, setIsFetching] = React.useState(false);
   
   React.useEffect(() => {
     const fetchUser = async () => {
-      const now = Date.now();
-      
-      // Prevent multiple simultaneous requests
-      if (isFetching) {
-        console.log('⏱️ Request already in progress, skipping...');
-        return;
-      }
-      
-      // Check if we're still in rate limit cooldown
-      if (now < rateLimitUntil) {
-        console.log('⏱️ Still in rate limit cooldown, waiting...');
-        return;
-      }
-      
-      // Debounce: no hacer peticiones más frecuentes que cada 5 segundos
-      if (now - lastFetch < 5000) {
-        console.log('⏱️ Debouncing /me request');
-        return;
-      }
-      
-      setIsFetching(true);
-      setLastFetch(now);
-      
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3002/me', { 
-          credentials: 'include',
-          cache: 'no-cache'
+        const data = await apiManager.request({
+          url: `${API_CONFIG.BASE_URL}/me`,
+          options: {
+            credentials: 'include'
+          },
+          cacheTTL: API_CONFIG.CACHE.USER_DATA_TTL,
+          throttleDelay: API_CONFIG.ENDPOINTS.ME.throttleDelay,
+          priority: API_CONFIG.ENDPOINTS.ME.priority
         });
         
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data?.user || null);
-          console.log('✅ User data fetched successfully');
-        } else if (response.status === 429) {
-          const errorData = await response.json();
-          const retryAfter = Math.max((errorData.retry_after || 5) * 1000, 5000); // Minimum 5 seconds
-          console.log(`⚠️ Rate limit hit, waiting ${retryAfter}ms...`);
-          setRateLimitUntil(now + retryAfter + 2000); // Add 2 second buffer
-          setUser(null);
-        } else if (response.status === 401) {
-          console.log('❌ Unauthorized, redirecting to login');
-          setUser(null);
-        } else {
-          console.log(`❌ Unexpected status: ${response.status}`);
-          setUser(null);
-        }
+        setUser(data?.user || null);
+        console.log('✅ User data fetched successfully');
       } catch (error) {
         console.error('Error fetching user:', error);
         setUser(null);
       } finally {
         setLoading(false);
-        setIsFetching(false);
       }
     };
     
     fetchUser();
-  }, [lastFetch, rateLimitUntil, isFetching]);
+  }, []);
   
   return { user, loading };
 };
