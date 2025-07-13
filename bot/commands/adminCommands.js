@@ -282,15 +282,11 @@ async function handleAvatarCommand(message) {
     }
     
     const avatarURL = targetUser.displayAvatarURL({ size: 1024, dynamic: true });
-    const embed = new EmbedBuilder()
-      .setTitle(`🖼️ Avatar de ${targetUser.tag}`)
-      .setImage(avatarURL)
-      .setColor(0x0099FF)
-      .setTimestamp();
     
-    await message.channel.send({ 
-      content: `<@${targetUser.id}>`,
-      embeds: [embed] 
+    // Send simple message with avatar image
+    await message.channel.send({
+      content: `Avatar de ${targetUser}`,
+      files: [avatarURL]
     });
     
   } catch (error) {
