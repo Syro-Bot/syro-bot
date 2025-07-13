@@ -18,6 +18,13 @@ import LiveLogs from '../components/dashboard/LiveLogs';
 import GeneralOptions from '../components/dashboard/GeneralOptions';
 import AnnouncementWarning from '../components/dashboard/AnnouncementWarning';
 
+interface Guild {
+  id: string;
+  name: string;
+  icon?: string;
+  permissions: string;
+}
+
 /**
  * Componente Dashboard
  * Muestra la bienvenida, gráfico de joins y panel de logs en tiempo real.
@@ -25,8 +32,15 @@ import AnnouncementWarning from '../components/dashboard/AnnouncementWarning';
  * @component
  * @param {object} user - Usuario autenticado
  * @param {string} guildId - ID del servidor seleccionado
+ * @param {Array} availableGuilds - Lista de servidores disponibles
+ * @param {function} onGuildChange - Callback para cambiar el servidor
  */
-const Dashboard: React.FC<{ user: any; guildId?: string }> = ({ user, guildId }) => {
+const Dashboard: React.FC<{ 
+  user: any; 
+  guildId?: string;
+  availableGuilds?: Guild[];
+  onGuildChange?: (guildId: string) => void;
+}> = ({ user, guildId, availableGuilds = [], onGuildChange }) => {
   const { isDarkMode } = useTheme();
   const { dashboardAnimationComplete, markDashboardAnimationComplete } = useAnimation();
   const textRef = useRef<HTMLDivElement>(null);
@@ -110,7 +124,12 @@ const Dashboard: React.FC<{ user: any; guildId?: string }> = ({ user, guildId })
       )}
 
       {/* Announcement Warning */}
-      <AnnouncementWarning guildId={guildId} user={user} />
+      <AnnouncementWarning 
+        guildId={guildId} 
+        user={user} 
+        availableGuilds={availableGuilds}
+        onGuildChange={onGuildChange}
+      />
     </div>
   );
 };

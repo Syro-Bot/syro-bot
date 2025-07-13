@@ -115,7 +115,12 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
   const renderPage = () => {
     switch (activeComponent) {
       case "dashboard":
-        return <Dashboard user={user} guildId={guildId} />;
+        return <Dashboard 
+          user={user} 
+          guildId={guildId} 
+          availableGuilds={availableGuilds}
+          onGuildChange={setGuildId}
+        />;
       case "autoModeration":
         return <AutoModeration />;
       case "joinRoles":
@@ -131,7 +136,12 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
       case "socialNotifications":
         return <SocialNotifications />;
       default:
-        return <Dashboard user={user} guildId={guildId} />;
+        return <Dashboard 
+          user={user} 
+          guildId={guildId} 
+          availableGuilds={availableGuilds}
+          onGuildChange={setGuildId}
+        />;
     }
   };
   
