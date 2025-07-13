@@ -30,6 +30,109 @@ const WelcomeConfig = require('./models/WelcomeConfig');
 const LogManager = require('./utils/logManager');
 const { setupMemberCountListeners, updateAllMemberCountChannels } = require('./utils/memberCountUpdater');
 
+// Server configuration cache to reduce database queries
+const serverConfigCache = new Map();
+const CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Optimized database queries with caching and indexing
+ */
+
+/**
+ * Get server configuration with optimized query
+ * @param {string} serverId - Discord server ID
+ * @returns {Promise<Object>} - Server configuration
+ */
+async function getServerConfigOptimized(serverId) {
+  const cacheKey = serverId;
+  const cached = serverConfigCache.get(cacheKey);
+  
+  if (cached && (Date.now() - cached.timestamp) < CONFIG_CACHE_TTL) {
+    return cached.config;
+  }
+  
+  try {
+    // Use projection to only fetch needed fields
+    const config = await ServerConfig.findOne(
+      { serverId },
+      {
+        automodRules: 1,
+        welcomeConfig: 1,
+        joinRoles: 1,
+        memberCountChannels: 1,
+        globalAnnouncementChannels: 1
+      }
+    ).lean(); // Use lean() for better performance
+    
+    serverConfigCache.set(cacheKey, {
+      config: config || null,
+      timestamp: Date.now()
+    });
+    
+    return config;
+  } catch (error) {
+    console.error(`Error fetching server config for ${serverId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Batch update server configurations
+ * @param {Array} updates - Array of update operations
+ * @returns {Promise<Object>} - Update result
+ */
+async function batchUpdateServerConfigs(updates) {
+  try {
+    const bulkOps = updates.map(update => ({
+      updateOne: {
+        filter: { serverId: update.serverId },
+        update: { $set: update.data },
+        upsert: true
+      }
+    }));
+    
+    const result = await ServerConfig.bulkWrite(bulkOps);
+    
+    // Clear cache for updated servers
+    updates.forEach(update => {
+      clearServerConfigCache(update.serverId);
+    });
+    
+    return result;
+  } catch (error) {
+    console.error('Error in batch update:', error);
+    throw error;
+  }
+}
+
+/**
+ * Clear server configuration cache
+ * @param {string} serverId - Discord server ID (optional, clears all if not provided)
+ */
+function clearServerConfigCache(serverId = null) {
+  if (serverId) {
+    serverConfigCache.delete(serverId);
+  } else {
+    serverConfigCache.clear();
+  }
+}
+
+/**
+ * Setup server config cache cleanup
+ */
+function setupConfigCacheCleanup() {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, value] of serverConfigCache.entries()) {
+      if (now - value.timestamp > CONFIG_CACHE_TTL) {
+        serverConfigCache.delete(key);
+      }
+    }
+  }, CONFIG_CACHE_TTL);
+  
+  console.log('⚙️ Server config cache cleanup configured');
+}
+
 /**
  * Discord Client Configuration
  * Sets up the bot with necessary intents to monitor server activity
@@ -45,9 +148,9 @@ const client = new Client({
 });
 
 /**
- * In-Memory Cache System
+ * In-Memory Cache System with Memory Protection
  * Stores temporary data for automoderation and raid detection
- * All caches are cleared automatically based on time windows
+ * All caches are cleared automatically based on time windows and size limits
  */
 const recentMessages = new Map();    // Tracks recent messages per user for spam detection
 const recentJoins = new Map();       // Tracks recent member joins for raid detection
@@ -55,6 +158,99 @@ const recentChannels = new Map();    // Tracks recent channel creation for raid 
 const recentRoles = new Map();       // Tracks recent role creation for raid detection
 const serverLockdowns = new Map();   // Tracks servers currently in lockdown
 const raidChannels = new Map();      // Tracks channels created during raids for cleanup
+
+// Cache size limits to prevent memory leaks
+const CACHE_SIZE_LIMITS = {
+  recentMessages: 1000,  // Max 1000 user message entries
+  recentJoins: 500,      // Max 500 join entries
+  recentChannels: 200,   // Max 200 channel entries
+  recentRoles: 200,      // Max 200 role entries
+  serverLockdowns: 100,  // Max 100 server lockdowns
+  raidChannels: 100      // Max 100 raid channel entries
+};
+
+// Cache cleanup intervals (in milliseconds)
+const CACHE_CLEANUP_INTERVALS = {
+  recentMessages: 5 * 60 * 1000,    // 5 minutes
+  recentJoins: 10 * 60 * 1000,      // 10 minutes
+  recentChannels: 15 * 60 * 1000,   // 15 minutes
+  recentRoles: 15 * 60 * 1000,      // 15 minutes
+  serverLockdowns: 60 * 60 * 1000,  // 1 hour
+  raidChannels: 30 * 60 * 1000      // 30 minutes
+};
+
+/**
+ * Enhanced Cache Cleanup Utility with Size Limits
+ * 
+ * Removes old entries from cache maps based on time windows and size limits.
+ * This prevents memory leaks and ensures accurate automoderation.
+ * 
+ * @param {Map} cache - The cache map to clean (recentMessages, recentJoins, etc.)
+ * @param {number} timeWindow - Time window in seconds for keeping entries
+ * @param {string} cacheName - Name of the cache for size limiting
+ */
+function cleanupCache(cache, timeWindow, cacheName = 'unknown') {
+  const now = Date.now();
+  const sizeLimit = CACHE_SIZE_LIMITS[cacheName] || 1000;
+  
+  // If cache is over size limit, remove oldest entries first
+  if (cache.size > sizeLimit) {
+    const entries = Array.from(cache.entries());
+    entries.sort((a, b) => {
+      const aOldest = Math.min(...a[1].map(entry => entry.timestamp));
+      const bOldest = Math.min(...b[1].map(entry => entry.timestamp));
+      return aOldest - bOldest;
+    });
+    
+    // Remove oldest entries until we're under the limit
+    const toRemove = entries.slice(0, cache.size - sizeLimit);
+    toRemove.forEach(([key]) => cache.delete(key));
+    
+    console.log(`🧹 Cache ${cacheName} size reduced from ${entries.length} to ${cache.size} entries`);
+  }
+  
+  // Remove old entries based on time window
+  for (const [key, entries] of cache.entries()) {
+    const filteredEntries = entries.filter(entry => now - entry.timestamp < timeWindow * 1000);
+    if (filteredEntries.length === 0) {
+      cache.delete(key);
+    } else {
+      cache.set(key, filteredEntries);
+    }
+  }
+}
+
+/**
+ * Setup automatic cache cleanup intervals
+ */
+function setupCacheCleanup() {
+  // Cleanup recentMessages every 5 minutes
+  setInterval(() => {
+    cleanupCache(recentMessages, 300, 'recentMessages'); // 5 minutes
+  }, CACHE_CLEANUP_INTERVALS.recentMessages);
+  
+  // Cleanup recentJoins every 10 minutes
+  setInterval(() => {
+    cleanupCache(recentJoins, 600, 'recentJoins'); // 10 minutes
+  }, CACHE_CLEANUP_INTERVALS.recentJoins);
+  
+  // Cleanup recentChannels every 15 minutes
+  setInterval(() => {
+    cleanupCache(recentChannels, 900, 'recentChannels'); // 15 minutes
+  }, CACHE_CLEANUP_INTERVALS.recentChannels);
+  
+  // Cleanup recentRoles every 15 minutes
+  setInterval(() => {
+    cleanupCache(recentRoles, 900, 'recentRoles'); // 15 minutes
+  }, CACHE_CLEANUP_INTERVALS.recentRoles);
+  
+  // Cleanup raidChannels every 30 minutes
+  setInterval(() => {
+    cleanupCache(raidChannels, 1800, 'raidChannels'); // 30 minutes
+  }, CACHE_CLEANUP_INTERVALS.raidChannels);
+  
+  console.log('🧹 Cache cleanup intervals configured');
+}
 
 /**
  * Get Custom Emoji Function
@@ -78,27 +274,6 @@ function getCustomEmoji(guild, emojiName, fallback) {
 }
 
 /**
- * Cache Cleanup Utility
- * 
- * Removes old entries from cache maps based on time windows.
- * This prevents memory leaks and ensures accurate automoderation.
- * 
- * @param {Map} cache - The cache map to clean (recentMessages, recentJoins, etc.)
- * @param {number} timeWindow - Time window in seconds for keeping entries
- */
-function cleanupCache(cache, timeWindow) {
-  const now = Date.now();
-  for (const [key, entries] of cache.entries()) {
-    const filteredEntries = entries.filter(entry => now - entry.timestamp < timeWindow * 1000);
-    if (filteredEntries.length === 0) {
-      cache.delete(key);
-    } else {
-      cache.set(key, filteredEntries);
-    }
-  }
-}
-
-/**
  * Generate Welcome Image
  * 
  * Creates a custom welcome image using canvas based on user configuration.
@@ -111,29 +286,80 @@ function cleanupCache(cache, timeWindow) {
  */
 async function generateWelcomeImage(config, userAvatarUrl, username) {
   try {
-    // Create canvas with dimensions from config
-    const canvas = createCanvas(600, 300);
+    // Security validations
+    if (!config || typeof config !== 'object') {
+      throw new Error('Invalid config object provided');
+    }
+    
+    if (!userAvatarUrl || typeof userAvatarUrl !== 'string') {
+      throw new Error('Invalid avatar URL provided');
+    }
+    
+    if (!username || typeof username !== 'string') {
+      throw new Error('Invalid username provided');
+    }
+    
+    // Validate URL format
+    try {
+      new URL(userAvatarUrl);
+    } catch (error) {
+      throw new Error('Invalid avatar URL format');
+    }
+    
+    // Size limits for memory protection
+    const MAX_IMAGE_SIZE = 1024; // Max 1024px
+    const MAX_CANVAS_SIZE = 1200; // Max 1200px canvas
+    
+    // Validate and limit canvas dimensions
+    const canvasWidth = Math.min(config.width || 600, MAX_CANVAS_SIZE);
+    const canvasHeight = Math.min(config.height || 300, MAX_CANVAS_SIZE);
+    
+    // Validate and limit avatar size
+    const avatarSize = Math.min(config.imageSize || 120, MAX_IMAGE_SIZE);
+    
+    // Create canvas with validated dimensions
+    const canvas = createCanvas(canvasWidth, canvasHeight);
     const ctx = canvas.getContext('2d');
     
-    // Set background color
-    ctx.fillStyle = config.backgroundColor || '#1a1a1a';
-    ctx.fillRect(0, 0, 600, 300);
+    // Set background color with validation
+    const backgroundColor = config.backgroundColor || '#1a1a1a';
+    if (!/^#[0-9A-F]{6}$/i.test(backgroundColor)) {
+      throw new Error('Invalid background color format');
+    }
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     
-    // Load and draw background image if provided
+    // Load and draw background image if provided (with size limits)
     if (config.backgroundImage) {
       try {
         const bgImage = await loadImage(config.backgroundImage);
-        ctx.drawImage(bgImage, 0, 0, 600, 300);
+        
+        // Limit background image size
+        const bgWidth = Math.min(bgImage.width, MAX_IMAGE_SIZE);
+        const bgHeight = Math.min(bgImage.height, MAX_IMAGE_SIZE);
+        
+        ctx.drawImage(bgImage, 0, 0, canvasWidth, canvasHeight);
       } catch (error) {
         console.log('Error loading background image, using color only:', error.message);
       }
     }
     
-    // Load user avatar
+    // Load user avatar with size limits
     let avatarImage;
     try {
       console.log('Loading avatar from URL:', userAvatarUrl);
       avatarImage = await loadImage(userAvatarUrl);
+      
+      // Validate avatar dimensions
+      if (avatarImage.width > MAX_IMAGE_SIZE || avatarImage.height > MAX_IMAGE_SIZE) {
+        console.log('Avatar too large, resizing...');
+        // Create a temporary canvas to resize
+        const tempCanvas = createCanvas(MAX_IMAGE_SIZE, MAX_IMAGE_SIZE);
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(avatarImage, 0, 0, MAX_IMAGE_SIZE, MAX_IMAGE_SIZE);
+        avatarImage = tempCanvas;
+      }
+      
       console.log('Avatar loaded successfully');
     } catch (error) {
       console.log('Error loading avatar, trying alternative URL:', error.message);
@@ -151,6 +377,8 @@ async function generateWelcomeImage(config, userAvatarUrl, username) {
         } catch (defaultError) {
           console.log('Error loading default avatar:', defaultError.message);
           // Create a simple colored circle as fallback
+          const avatarX = (canvasWidth - avatarSize) / 2;
+          const avatarY = (canvasHeight - avatarSize) / 2;
           ctx.fillStyle = '#7289da';
           ctx.beginPath();
           ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
@@ -160,10 +388,9 @@ async function generateWelcomeImage(config, userAvatarUrl, username) {
       }
     }
     
-    // Draw user avatar in center
-    const avatarSize = config.imageSize || 120;
-    const avatarX = (600 - avatarSize) / 2;
-    const avatarY = (300 - avatarSize) / 2;
+    // Draw user avatar in center with validated position
+    const avatarX = (canvasWidth - avatarSize) / 2;
+    const avatarY = (canvasHeight - avatarSize) / 2;
     
     // Create circular avatar
     ctx.save();
@@ -174,20 +401,26 @@ async function generateWelcomeImage(config, userAvatarUrl, username) {
     ctx.drawImage(avatarImage, avatarX, avatarY, avatarSize, avatarSize);
     ctx.restore();
     
-    // Configure text styling
-    const fontSize = config.fontSize || 24;
+    // Configure text styling with validation
+    const fontSize = Math.min(config.fontSize || 24, 72); // Max 72px font
     ctx.font = `bold ${fontSize}px Arial`;
-    ctx.fillStyle = config.textColor || '#ffffff';
+    
+    // Validate text color
+    const textColor = config.textColor || '#ffffff';
+    if (!/^#[0-9A-F]{6}$/i.test(textColor)) {
+      throw new Error('Invalid text color format');
+    }
+    ctx.fillStyle = textColor;
     ctx.textAlign = 'center';
     
     // Draw welcome text at top (16px from top, matching frontend top-4)
     const welcomeText = config.welcomeText || 'Welcome';
-    ctx.fillText(welcomeText, 300, 16 + fontSize);
+    ctx.fillText(welcomeText, canvasWidth / 2, 16 + fontSize);
     
     // Draw user text at bottom (32px from bottom, slightly higher than frontend)
     const userText = (config.userText || '{user}').replace('{user}', username);
     ctx.font = `bold ${fontSize * 0.8}px Arial`;
-    ctx.fillText(userText, 300, 300 - 32);
+    ctx.fillText(userText, canvasWidth / 2, canvasHeight - 32);
     
     // Return the image buffer
     return canvas.toBuffer('image/png');
@@ -198,7 +431,7 @@ async function generateWelcomeImage(config, userAvatarUrl, username) {
 }
 
 /**
- * Server Lockdown Management
+ * Secure Server Lockdown Management
  * 
  * Applies emergency lockdown to a Discord server when raids are detected.
  * This function restricts server permissions, cleans up raid-created content,
@@ -210,156 +443,208 @@ async function generateWelcomeImage(config, userAvatarUrl, username) {
  * @returns {Promise<void>}
  */
 async function applyLockdown(guild, duration, raidType = 'general') {
-  console.log(`🔒 applyLockdown iniciado para ${guild.name} - raidType: ${raidType}, duration: ${duration}`);
-  
-  if (serverLockdowns.has(guild.id)) {
-    console.log(`⚠️ Servidor ${guild.name} ya está en lockdown`);
-    return; // Ya está en lockdown
-  }
-  
-  console.log(`🔒 Aplicando lockdown a ${guild.name}`);
-  serverLockdowns.set(guild.id, true);
-  
-  // Log lockdown started
-  await LogManager.logLockdownStarted(guild.id, `Raid detection: ${raidType}`, duration);
-  
   try {
-    console.log(`🔧 Verificando permisos del bot en ${guild.name}`);
-    console.log(`🔧 Permisos del bot:`, guild.members.me.permissions.toArray());
+    console.log(`🔒 applyLockdown iniciado para ${guild.name} - raidType: ${raidType}, duration: ${duration}`);
     
-    // Obtener el rol @everyone
-    const everyoneRole = guild.roles.everyone;
-    
-    // Restringir permisos para @everyone (más restrictivo)
-    await everyoneRole.setPermissions([
-      PermissionsBitField.Flags.ViewChannel,
-      PermissionsBitField.Flags.ReadMessageHistory
-    ]);
-    
-    // Restringir permisos en canales específicos también
-    const channelsToRestrict = guild.channels.cache.filter(ch => 
-      ch.type === 0 && // Solo canales de texto
-      ch.permissionsFor(guild.members.me).has(PermissionsBitField.Flags.ManageChannels)
-    );
-    
-    for (const [_, channel] of channelsToRestrict) {
-      try {
-        await channel.permissionOverwrites.edit(everyoneRole, {
-          SendMessages: false,
-          CreatePublicThreads: false,
-          CreatePrivateThreads: false,
-          SendMessagesInThreads: false,
-          AttachFiles: false,
-          EmbedLinks: false,
-          UseExternalEmojis: false,
-          AddReactions: false
-        });
-      } catch (error) {
-        console.error(`Error restringiendo canal ${channel.name}:`, error);
-      }
+    // Security validations
+    if (!guild || typeof guild !== 'object') {
+      console.error('❌ Invalid guild object provided to applyLockdown');
+      return;
     }
     
-    // Eliminar canales creados durante el raid si es un channel raid
-    if (raidType === 'channel' && raidChannels.has(guild.id)) {
-      const channelsToDelete = raidChannels.get(guild.id);
-      console.log(`🗑️ Eliminando ${channelsToDelete.length} canales creados durante el raid`);
-      console.log(`📋 Canales a eliminar:`, channelsToDelete);
+    // Validate duration (max 1440 minutes = 24 hours)
+    if (!duration || duration < 1 || duration > 1440) {
+      console.error(`❌ Invalid lockdown duration: ${duration}. Must be between 1 and 1440 minutes.`);
+      return;
+    }
+    
+    // Validate raid type
+    const validRaidTypes = ['join', 'channel', 'role', 'general'];
+    if (!validRaidTypes.includes(raidType)) {
+      console.error(`❌ Invalid raid type: ${raidType}. Must be one of: ${validRaidTypes.join(', ')}`);
+      return;
+    }
+    
+    // Check if already in lockdown
+    if (serverLockdowns.has(guild.id)) {
+      console.log(`⚠️ Servidor ${guild.name} ya está en lockdown`);
+      return;
+    }
+    
+    // Validate bot permissions before applying lockdown
+    const botMember = guild.members.me;
+    if (!botMember) {
+      console.error(`❌ Bot not found in guild ${guild.name}`);
+      return;
+    }
+    
+    const requiredPermissions = [
+      PermissionsBitField.Flags.ManageRoles,
+      PermissionsBitField.Flags.ManageChannels,
+      PermissionsBitField.Flags.SendMessages
+    ];
+    
+    const missingPermissions = requiredPermissions.filter(perm => !botMember.permissions.has(perm));
+    if (missingPermissions.length > 0) {
+      console.error(`❌ Bot missing required permissions in ${guild.name}:`, missingPermissions);
+      return;
+    }
+    
+    console.log(`🔒 Aplicando lockdown a ${guild.name}`);
+    serverLockdowns.set(guild.id, { startTime: Date.now(), duration, raidType });
+    
+    // Log lockdown started
+    await LogManager.logLockdownStarted(guild.id, `Raid detection: ${raidType}`, duration);
+    
+    try {
+      console.log(`🔧 Verificando permisos del bot en ${guild.name}`);
+      console.log(`🔧 Permisos del bot:`, botMember.permissions.toArray());
       
-      let deletedCount = 0;
-      for (const channelId of channelsToDelete) {
+      // Obtener el rol @everyone
+      const everyoneRole = guild.roles.everyone;
+      
+      // Restringir permisos para @everyone (más restrictivo)
+      await everyoneRole.setPermissions([
+        PermissionsBitField.Flags.ViewChannel,
+        PermissionsBitField.Flags.ReadMessageHistory
+      ]);
+      
+      // Restringir permisos en canales específicos también
+      const channelsToRestrict = guild.channels.cache.filter(ch => 
+        ch.type === 0 && // Solo canales de texto
+        ch.permissionsFor(botMember).has(PermissionsBitField.Flags.ManageChannels)
+      );
+      
+      for (const [_, channel] of channelsToRestrict) {
         try {
-          const channel = guild.channels.cache.get(channelId);
-          if (channel) {
-            console.log(`🗑️ Intentando eliminar canal: ${channel.name} (${channelId})`);
-            await channel.delete('Canal eliminado por raid detection');
-            console.log(`✅ Canal eliminado: ${channel.name}`);
-            deletedCount++;
-          } else {
-            console.log(`❌ Canal no encontrado en cache: ${channelId}`);
+          await channel.permissionOverwrites.edit(everyoneRole, {
+            SendMessages: false,
+            CreatePublicThreads: false,
+            CreatePrivateThreads: false,
+            SendMessagesInThreads: false,
+            AttachFiles: false,
+            EmbedLinks: false,
+            UseExternalEmojis: false,
+            AddReactions: false
+          });
+        } catch (error) {
+          console.error(`Error restringiendo canal ${channel.name}:`, error);
+        }
+      }
+      
+      // Eliminar canales creados durante el raid si es un channel raid
+      if (raidType === 'channel' && raidChannels.has(guild.id)) {
+        const channelsToDelete = raidChannels.get(guild.id);
+        console.log(`🗑️ Eliminando ${channelsToDelete.length} canales creados durante el raid`);
+        console.log(`📋 Canales a eliminar:`, channelsToDelete);
+        
+        let deletedCount = 0;
+        for (const channelId of channelsToDelete) {
+          try {
+            const channel = guild.channels.cache.get(channelId);
+            if (channel) {
+              console.log(`🗑️ Intentando eliminar canal: ${channel.name} (${channelId})`);
+              await channel.delete('Canal eliminado por raid detection');
+              console.log(`✅ Canal eliminado: ${channel.name}`);
+              deletedCount++;
+            } else {
+              console.log(`❌ Canal no encontrado en cache: ${channelId}`);
+            }
+          } catch (error) {
+            console.error(`❌ Error eliminando canal ${channelId}:`, error);
+          }
+        }
+        console.log(`📊 Total de canales eliminados: ${deletedCount}/${channelsToDelete.length}`);
+        raidChannels.delete(guild.id);
+      } else {
+        console.log(`ℹ️ No se eliminaron canales - raidType: ${raidType}, tiene raidChannels: ${raidChannels.has(guild.id)}`);
+      }
+      
+      // Enviar alerta
+      const alertChannel = guild.systemChannel || 
+                          guild.channels.cache.find(ch => ch.type === 0 && ch.permissionsFor(botMember).has(PermissionsBitField.Flags.SendMessages));
+      
+      if (alertChannel) {
+        const raidEmoji = getCustomEmoji(guild, 'alertblue', '🚨');
+        const embed = new EmbedBuilder()
+          .setTitle(`${raidEmoji} RAID DETECTADO`)
+          .setDescription(`Se ha detectado actividad sospechosa (${raidType}). El servidor ha sido puesto en lockdown por ${duration} minutos.`)
+          .setColor(0xFF0000)
+          .setTimestamp();
+        
+        await alertChannel.send({ embeds: [embed] });
+      }
+      
+      // Auto-unlock después del tiempo especificado
+      const unlockTimeout = setTimeout(async () => {
+        try {
+          await everyoneRole.setPermissions([
+            PermissionsBitField.Flags.ViewChannel,
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.ReadMessageHistory,
+            PermissionsBitField.Flags.AttachFiles,
+            PermissionsBitField.Flags.EmbedLinks,
+            PermissionsBitField.Flags.UseExternalEmojis,
+            PermissionsBitField.Flags.AddReactions
+          ]);
+          
+          // Restaurar permisos en canales específicos
+          const channelsToRestore = guild.channels.cache.filter(ch => 
+            ch.type === 0 && // Solo canales de texto
+            ch.permissionsFor(botMember).has(PermissionsBitField.Flags.ManageChannels)
+          );
+          
+          for (const [_, channel] of channelsToRestore) {
+            try {
+              await channel.permissionOverwrites.edit(everyoneRole, {
+                SendMessages: null,
+                CreatePublicThreads: null,
+                CreatePrivateThreads: null,
+                SendMessagesInThreads: null,
+                AttachFiles: null,
+                EmbedLinks: null,
+                UseExternalEmojis: null,
+                AddReactions: null
+              });
+            } catch (error) {
+              console.error(`Error restaurando canal ${channel.name}:`, error);
+            }
+          }
+          
+          serverLockdowns.delete(guild.id);
+          
+          // Log lockdown ended
+          await LogManager.logLockdownEnded(guild.id);
+          
+          if (alertChannel) {
+            const embed = new EmbedBuilder()
+              .setTitle('✅ LOCKDOWN TERMINADO')
+              .setDescription('El servidor ha sido desbloqueado automáticamente.')
+              .setColor(0x00FF00)
+              .setTimestamp();
+            
+            await alertChannel.send({ embeds: [embed] });
           }
         } catch (error) {
-          console.error(`❌ Error eliminando canal ${channelId}:`, error);
+          console.error('Error al desbloquear servidor:', error);
+          serverLockdowns.delete(guild.id);
         }
-      }
-      console.log(`📊 Total de canales eliminados: ${deletedCount}/${channelsToDelete.length}`);
-      raidChannels.delete(guild.id);
-    } else {
-      console.log(`ℹ️ No se eliminaron canales - raidType: ${raidType}, tiene raidChannels: ${raidChannels.has(guild.id)}`);
-    }
-    
-    // Enviar alerta
-    const alertChannel = guild.systemChannel || 
-                        guild.channels.cache.find(ch => ch.type === 0 && ch.permissionsFor(guild.members.me).has(PermissionsBitField.Flags.SendMessages));
-    
-    if (alertChannel) {
-      const raidEmoji = getCustomEmoji(guild, 'alertblue', '🚨');
-      const embed = new EmbedBuilder()
-        .setTitle(`${raidEmoji} RAID DETECTADO`)
-        .setDescription(`Se ha detectado actividad sospechosa (${raidType}). El servidor ha sido puesto en lockdown por ${duration} minutos.`)
-        .setColor(0xFF0000)
-        .setTimestamp();
+      }, duration * 60 * 1000);
       
-      await alertChannel.send({ embeds: [embed] });
+      // Store timeout reference for potential cancellation
+      serverLockdowns.set(guild.id, { 
+        startTime: Date.now(), 
+        duration, 
+        raidType, 
+        unlockTimeout 
+      });
+      
+    } catch (error) {
+      console.error('Error al aplicar lockdown:', error);
+      serverLockdowns.delete(guild.id);
     }
-    
-    // Auto-unlock después del tiempo especificado
-    setTimeout(async () => {
-      try {
-        await everyoneRole.setPermissions([
-          PermissionsBitField.Flags.ViewChannel,
-          PermissionsBitField.Flags.SendMessages,
-          PermissionsBitField.Flags.ReadMessageHistory,
-          PermissionsBitField.Flags.AttachFiles,
-          PermissionsBitField.Flags.EmbedLinks,
-          PermissionsBitField.Flags.UseExternalEmojis,
-          PermissionsBitField.Flags.AddReactions
-        ]);
-        
-        // Restaurar permisos en canales específicos
-        const channelsToRestore = guild.channels.cache.filter(ch => 
-          ch.type === 0 && // Solo canales de texto
-          ch.permissionsFor(guild.members.me).has(PermissionsBitField.Flags.ManageChannels)
-        );
-        
-        for (const [_, channel] of channelsToRestore) {
-          try {
-            await channel.permissionOverwrites.edit(everyoneRole, {
-              SendMessages: null,
-              CreatePublicThreads: null,
-              CreatePrivateThreads: null,
-              SendMessagesInThreads: null,
-              AttachFiles: null,
-              EmbedLinks: null,
-              UseExternalEmojis: null,
-              AddReactions: null
-            });
-          } catch (error) {
-            console.error(`Error restaurando canal ${channel.name}:`, error);
-          }
-        }
-        
-        serverLockdowns.delete(guild.id);
-        
-        // Log lockdown ended
-        await LogManager.logLockdownEnded(guild.id);
-        
-        if (alertChannel) {
-          const embed = new EmbedBuilder()
-            .setTitle('✅ LOCKDOWN TERMINADO')
-            .setDescription('El servidor ha sido desbloqueado automáticamente.')
-            .setColor(0x00FF00)
-            .setTimestamp();
-          
-          await alertChannel.send({ embeds: [embed] });
-        }
-      } catch (error) {
-        console.error('Error al desbloquear servidor:', error);
-        serverLockdowns.delete(guild.id);
-      }
-    }, duration * 60 * 1000);
-    
   } catch (error) {
-    console.error('Error al aplicar lockdown:', error);
+    console.error('Error en applyLockdown:', error);
     serverLockdowns.delete(guild.id);
   }
 }
@@ -371,11 +656,17 @@ async function applyLockdown(guild, duration, raidType = 'general') {
 client.once('ready', () => {
   console.log(`Bot logged in as ${client.user.tag}`);
   
+  // Setup all cache and cleanup systems
+  setupCacheCleanup();
+  setupConfigCacheCleanup();
+  
   // Setup member count listeners
   setupMemberCountListeners(client);
   
   // Update all member count channels on startup
   updateAllMemberCountChannels(client);
+  
+  console.log('✅ All systems initialized successfully');
 });
 
 /**
@@ -395,7 +686,7 @@ client.on('messageCreate', async (message) => {
   
   try {
     // ===== SPAM DETECTION =====
-    const config = await ServerConfig.findOne({ serverId: message.guild.id });
+    const config = await getServerConfigOptimized(message.guild.id);
     if (config && config.automodRules?.Spam && config.automodRules.Spam.length > 0) {
       const rule = config.automodRules.Spam[0];
       const key = `${message.guild.id}-${message.author.id}`;
@@ -416,7 +707,7 @@ client.on('messageCreate', async (message) => {
       userMessages.push({ timestamp: Date.now() });
       
       // Limpiar mensajes antiguos
-      cleanupCache(recentMessages, rule.timeWindow);
+      cleanupCache(recentMessages, rule.timeWindow, 'recentMessages');
       
       // Verificar si excede el límite
       if (userMessages.length >= rule.messageCount) {
@@ -580,6 +871,14 @@ client.on('messageCreate', async (message) => {
     
     // Comando !unlock
     if (message.content === '!unlock') {
+      // Check rate limiting
+      if (isOnCooldown(message.author.id, '!unlock')) {
+        await message.channel.send('⏰ Debes esperar antes de usar este comando nuevamente.');
+        return;
+      }
+      
+      setCooldown(message.author.id, '!unlock');
+      
       try {
         const guild = message.guild;
         const everyoneRole = guild.roles.everyone;
@@ -635,6 +934,14 @@ client.on('messageCreate', async (message) => {
     
     // Comando !cleanraid
     if (message.content === '!cleanraid') {
+      // Check rate limiting
+      if (isOnCooldown(message.author.id, '!cleanraid')) {
+        await message.channel.send('⏰ Debes esperar antes de usar este comando nuevamente.');
+        return;
+      }
+      
+      setCooldown(message.author.id, '!cleanraid');
+      
       try {
         const guild = message.guild;
         console.log(`🧹 Comando cleanraid ejecutado por ${message.author.tag} en ${guild.name}`);
@@ -682,6 +989,14 @@ client.on('messageCreate', async (message) => {
     
     // Comando !raidstatus
     if (message.content === '!raidstatus') {
+      // Check rate limiting
+      if (isOnCooldown(message.author.id, '!raidstatus')) {
+        await message.channel.send('⏰ Debes esperar antes de usar este comando nuevamente.');
+        return;
+      }
+      
+      setCooldown(message.author.id, '!raidstatus');
+      
       try {
         const guild = message.guild;
         console.log(`📊 Comando raidstatus ejecutado por ${message.author.tag} en ${guild.name}`);
@@ -725,6 +1040,14 @@ client.on('messageCreate', async (message) => {
     
     // Comando xnuke
     if (message.content === 'xnuke') {
+      // Check rate limiting
+      if (isOnCooldown(message.author.id, 'xnuke')) {
+        await message.channel.send('⏰ Debes esperar antes de usar este comando nuevamente.');
+        return;
+      }
+      
+      setCooldown(message.author.id, 'xnuke');
+      
       try {
         const guild = message.guild;
         const channel = message.channel;
@@ -1127,7 +1450,7 @@ client.on('guildMemberAdd', async (member) => {
     guildJoins.push({ timestamp: Date.now() });
     
     // Clean up old joins
-    cleanupCache(recentJoins, rule.timeWindow);
+    cleanupCache(recentJoins, rule.timeWindow, 'recentJoins');
     
     // Check if limit is exceeded
     if (guildJoins.length >= rule.joinCount) {
@@ -1185,7 +1508,7 @@ client.on('roleCreate', async (role) => {
     guildRoles.push({ timestamp: Date.now() });
     
     // Limpiar roles antiguos
-    cleanupCache(recentRoles, rule.timeWindow);
+    cleanupCache(recentRoles, rule.timeWindow, 'recentRoles');
     
     // Verificar si excede el límite
     if (guildRoles.length >= rule.roleCount) {
@@ -1269,7 +1592,7 @@ client.on('channelCreate', async (channel) => {
     console.log(`📊 Canales recientes: ${guildChannels.length}/${rule.channelCount}`);
     
     // Limpiar canales antiguos
-    cleanupCache(recentChannels, rule.timeWindow);
+    cleanupCache(recentChannels, rule.timeWindow, 'recentChannels');
     
     // Verificar si excede el límite
     if (guildChannels.length >= rule.channelCount) {
@@ -1328,7 +1651,7 @@ client.on('roleCreate', async (role) => {
     guildRoles.push({ timestamp: Date.now() });
     
     // Limpiar roles antiguos
-    cleanupCache(recentRoles, rule.timeWindow);
+    cleanupCache(recentRoles, rule.timeWindow, 'recentRoles');
     
     // Verificar si excede el límite
     if (guildRoles.length >= rule.roleCount) {
@@ -1383,3 +1706,174 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/syro-bot'
  * Logs the bot into Discord using the token from environment variables
  */
 client.login(process.env.DISCORD_TOKEN); 
+
+// Rate limiting for administrative commands
+const commandCooldowns = new Map();
+const COMMAND_COOLDOWNS = {
+  '!unlock': 30000,    // 30 seconds
+  '!cleanraid': 60000, // 1 minute
+  '!raidstatus': 10000, // 10 seconds
+  'xnuke': 300000,     // 5 minutes
+  'xconfirmnuke': 30000 // 30 seconds
+};
+
+/**
+ * Check if user is on cooldown for a command
+ * @param {string} userId - Discord user ID
+ * @param {string} command - Command name
+ * @returns {boolean} - True if user is on cooldown
+ */
+function isOnCooldown(userId, command) {
+  const key = `${userId}-${command}`;
+  const cooldown = COMMAND_COOLDOWNS[command];
+  
+  if (!cooldown) return false;
+  
+  const lastUsed = commandCooldowns.get(key);
+  if (!lastUsed) return false;
+  
+  const timeLeft = cooldown - (Date.now() - lastUsed);
+  return timeLeft > 0;
+}
+
+/**
+ * Set cooldown for a command
+ * @param {string} userId - Discord user ID
+ * @param {string} command - Command name
+ */
+function setCooldown(userId, command) {
+  const key = `${userId}-${command}`;
+  commandCooldowns.set(key, Date.now());
+  
+  // Clean up old cooldowns
+  setTimeout(() => {
+    commandCooldowns.delete(key);
+  }, COMMAND_COOLDOWNS[command] || 60000);
+} 
+
+// Debouncing for raid detection to prevent multiple triggers
+const raidDetectionDebounce = new Map();
+const RAID_DEBOUNCE_DELAY = 5000; // 5 seconds
+
+/**
+ * Debounced raid detection to prevent multiple triggers
+ * @param {string} guildId - Discord guild ID
+ * @param {string} raidType - Type of raid
+ * @param {Function} callback - Function to execute after debounce
+ */
+function debouncedRaidDetection(guildId, raidType, callback) {
+  const key = `${guildId}-${raidType}`;
+  
+  if (raidDetectionDebounce.has(key)) {
+    clearTimeout(raidDetectionDebounce.get(key));
+  }
+  
+  const timeoutId = setTimeout(() => {
+    raidDetectionDebounce.delete(key);
+    callback();
+  }, RAID_DEBOUNCE_DELAY);
+  
+  raidDetectionDebounce.set(key, timeoutId);
+} 
+
+/**
+ * Enhanced Error Handler with Context
+ * @param {Error} error - Error object
+ * @param {string} context - Context where error occurred
+ * @param {Object} additionalData - Additional data for logging
+ */
+function handleError(error, context, additionalData = {}) {
+  const errorInfo = {
+    message: error.message,
+    stack: error.stack,
+    context,
+    timestamp: new Date().toISOString(),
+    ...additionalData
+  };
+  
+  console.error(`❌ Error in ${context}:`, errorInfo);
+  
+  // Log to database if it's a critical error
+  if (context.includes('lockdown') || context.includes('raid') || context.includes('spam')) {
+    LogManager.logError(errorInfo).catch(err => {
+      console.error('Failed to log error to database:', err);
+    });
+  }
+}
+
+/**
+ * Safe async operation wrapper
+ * @param {Function} operation - Async function to execute
+ * @param {string} context - Context for error handling
+ * @param {Function} fallback - Fallback function if operation fails
+ */
+async function safeAsyncOperation(operation, context, fallback = null) {
+  try {
+    return await operation();
+  } catch (error) {
+    handleError(error, context);
+    if (fallback) {
+      return fallback();
+    }
+    return null;
+  }
+} 
+
+/**
+ * Enhanced permission validation system
+ */
+
+/**
+ * Check if user has required permissions for administrative commands
+ * @param {GuildMember} member - Discord guild member
+ * @param {Array} requiredPermissions - Array of required permissions
+ * @returns {Object} - Validation result with missing permissions
+ */
+function validateAdminPermissions(member, requiredPermissions = []) {
+  const missingPermissions = [];
+  const hasAllPermissions = requiredPermissions.every(permission => {
+    if (!member.permissions.has(permission)) {
+      missingPermissions.push(permission);
+      return false;
+    }
+    return true;
+  });
+  
+  return {
+    hasAllPermissions,
+    missingPermissions,
+    memberPermissions: member.permissions.toArray()
+  };
+}
+
+/**
+ * Check if bot has required permissions in a channel
+ * @param {TextChannel} channel - Discord text channel
+ * @param {Array} requiredPermissions - Array of required permissions
+ * @returns {Object} - Validation result with missing permissions
+ */
+function validateBotChannelPermissions(channel, requiredPermissions = []) {
+  const botMember = channel.guild.members.me;
+  if (!botMember) {
+    return {
+      hasAllPermissions: false,
+      missingPermissions: ['Bot not found in guild'],
+      botPermissions: []
+    };
+  }
+  
+  const missingPermissions = [];
+  const hasAllPermissions = requiredPermissions.every(permission => {
+    if (!channel.permissionsFor(botMember).has(permission)) {
+      missingPermissions.push(permission);
+      return false;
+    }
+    return true;
+  });
+  
+  return {
+    hasAllPermissions,
+    missingPermissions,
+    botPermissions: channel.permissionsFor(botMember).toArray()
+  };
+} 
