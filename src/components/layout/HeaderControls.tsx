@@ -15,6 +15,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useTemplates } from '../../contexts/TemplateContext';
 import PendingTemplatesModal from '../shared/PendingTemplatesModal';
 import GlobalAnnouncementModal from '../dashboard/GlobalAnnouncementModal';
+import MobileMenuButton from './MobileMenuButton';
 import { BOT_OWNER_ID, BOT_CLIENT_ID } from '../../config/constants';
 
 /**
@@ -25,6 +26,8 @@ import { BOT_OWNER_ID, BOT_CLIENT_ID } from '../../config/constants';
  * @property {string} guildId - ID del servidor seleccionado
  * @property {function} onGuildChange - Callback para cambiar el servidor
  * @property {Array} availableGuilds - Lista de servidores disponibles
+ * @property {function} onMobileMenuToggle - Callback para abrir/cerrar menú móvil
+ * @property {boolean} isMobileMenuOpen - Estado del menú móvil
  */
 interface HeaderControlsProps {
   activeSection: string;
@@ -32,6 +35,8 @@ interface HeaderControlsProps {
   guildId?: string;
   onGuildChange?: (guildId: string) => void;
   availableGuilds?: any[];
+  onMobileMenuToggle?: () => void;
+  isMobileMenuOpen?: boolean;
 }
 
 function formatSectionName(name: string) {
@@ -48,7 +53,15 @@ function formatSectionName(name: string) {
  * @component
  * @param {HeaderControlsProps} props
  */
-const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, guildId, onGuildChange, availableGuilds }) => {
+const HeaderControls: React.FC<HeaderControlsProps> = ({ 
+  activeSection, 
+  user, 
+  guildId, 
+  onGuildChange, 
+  availableGuilds,
+  onMobileMenuToggle,
+  isMobileMenuOpen = false
+}) => {
   const { isDarkMode, toggleTheme } = useTheme();
   const { pendingCount, submitTemplate } = useTemplates();
   const [showModal, setShowModal] = useState(false);
@@ -197,13 +210,25 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
 
   return (
     <>
-      <header className="flex items-center justify-between px-8 py-4 transition-colors duration-300 bg-transparent">
-        <div className="flex items-center space-x-[1rem]">
-          <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{formatSectionName(activeSection)}</div>
+      <header className="flex items-center justify-between px-4 md:px-8 py-4 transition-colors duration-300 bg-transparent">
+        {/* Lado izquierdo - Título y selector de servidor */}
+        <div className="flex items-center space-x-4">
+          {/* Botón de menú móvil - Solo visible en móvil */}
+          <div className="md:hidden">
+            <MobileMenuButton 
+              onClick={onMobileMenuToggle || (() => {})} 
+              isOpen={isMobileMenuOpen}
+            />
+          </div>
+          
+          {/* Título de sección */}
+          <div className={`text-xl md:text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+            {formatSectionName(activeSection)}
+          </div>
 
-          {/* Selector de servidor */}
+          {/* Selector de servidor - Oculto en móvil */}
           {availableGuilds && availableGuilds.length > 1 && (
-            <div className="flex items-center">
+            <div className="hidden md:flex items-center">
               <select
                 value={guildId || ''}
                 onChange={(e) => handleGuildChange(e.target.value)}
@@ -221,23 +246,26 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
             </div>
           )}
         </div>
+
+        {/* Lado derecho - Controles de usuario */}
         <div className="flex items-center space-x-2">
-          {/* Global Announcement Button - Only for bot owner */}
+          {/* Global Announcement Button - Solo para bot owner, oculto en móvil */}
           {user?.id === BOT_OWNER_ID && (
             <button
               onClick={() => setShowGlobalAnnouncementModal(true)}
-              className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow hover:from-blue-600 hover:to-blue-800 transition-all duration-200 flex items-center gap-2"
+              className="hidden md:flex bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow hover:from-blue-600 hover:to-blue-800 transition-all duration-200 items-center gap-2"
             >
               <Megaphone className="w-4 h-4" />
               Announcement
             </button>
           )}
           
+          {/* Botón de templates - Oculto en móvil */}
           {activeSection === 'templates' && (
             <>
               {/* Contador de pendientes */}
               {pendingCount > 0 && (
-                <div className="relative">
+                <div className="relative hidden md:block">
                   <button
                     onClick={() => setShowPendingModal(true)}
                     className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-blue-600 hover:bg-blue-600 transition-colors cursor-pointer"
@@ -249,12 +277,14 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
               )}
               <button
                 onClick={() => setShowModal(true)}
-                className="bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow hover:from-blue-600 hover:to-blue-800 transition-all duration-200"
+                className="hidden md:block bg-gradient-to-r from-blue-500 to-blue-700 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow hover:from-blue-600 hover:to-blue-800 transition-all duration-200"
               >
                 Upload Template
               </button>
             </>
           )}
+
+          {/* Perfil de usuario */}
           {user ? (
             <div className="relative flex items-center gap-2 group">
               <button
@@ -262,19 +292,28 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
                 onClick={() => setShowUserMenu((prev) => !prev)}
                 style={{ background: 'none', border: 'none', padding: 0 }}
               >
-                {/* Arrow */}
-                {showUserMenu ? (
-                  <ChevronDown size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                ) : (
-                  <ChevronUp size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-                )}
-                <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{user.username}</span>
+                {/* Arrow - Oculto en móvil */}
+                <div className="hidden md:block">
+                  {showUserMenu ? (
+                    <ChevronDown size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                  ) : (
+                    <ChevronUp size={18} className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                  )}
+                </div>
+                
+                {/* Nombre de usuario - Oculto en móvil */}
+                <span className={`font-medium hidden md:block ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {user.username}
+                </span>
+                
+                {/* Avatar */}
                 <img
                   src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`}
                   alt={user.username}
                   className="w-8 h-8 rounded-full object-cover"
                 />
               </button>
+              
               {/* Menú desplegable */}
               {showUserMenu && (
                 <div className={`absolute top-full right-0 mt-2 w-48 rounded-lg shadow-lg z-50 border animate-fadeIn ${isDarkMode ? 'bg-[#181c24] border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -322,6 +361,7 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({ activeSection, user, gu
           )}
         </div>
       </header>
+
       {/* Modal para subir template */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">

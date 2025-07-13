@@ -3,6 +3,7 @@
  *
  * Componente que muestra el gráfico de joins de los últimos 15 días.
  * Incluye carga de datos, actualización automática y adaptación a dark mode.
+ * Completamente responsive para móvil y desktop.
  *
  * @author Syro Frontend Team
  * @version 1.0.0
@@ -50,11 +51,11 @@ const JoinsChart: React.FC<JoinsChartProps> = ({ guildId }) => {
   const totalJoins = statsData?.totalJoins || 0;
 
   return (
-    <div className={`w-[48rem] h-[23rem] backdrop-blur-sm rounded-2xl p-6 transition-colors duration-300 ${
+    <div className={`w-full h-auto min-h-[20rem] md:h-[23rem] backdrop-blur-sm rounded-2xl p-4 md:p-6 transition-colors duration-300 ${
       isDarkMode ? 'bg-[#181c24]' : 'bg-white'
     }`}>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-md font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent uppercase flex items-center gap-2 ml-12">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
+        <h2 className="text-sm md:text-md font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent uppercase flex items-center gap-2 md:ml-12">
           <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
           <span className="text-left">ÚLTIMOS 15 DÍAS: {totalJoins} JOINS</span>
         </h2>
@@ -86,7 +87,7 @@ const JoinsChart: React.FC<JoinsChartProps> = ({ guildId }) => {
       </div>
       
       {loading && (
-        <div className="flex items-center justify-center h-32">
+        <div className="flex items-center justify-center h-32 md:h-40">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
             <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -97,7 +98,7 @@ const JoinsChart: React.FC<JoinsChartProps> = ({ guildId }) => {
       )}
       
       {error && (
-        <div className="flex items-center justify-center h-32">
+        <div className="flex items-center justify-center h-32 md:h-40">
           <div className="text-center">
             <div className="text-red-500 mb-2">⚠️</div>
             <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -125,49 +126,54 @@ const JoinsChart: React.FC<JoinsChartProps> = ({ guildId }) => {
       )}
       
       {!loading && !error && (
-        <ResponsiveContainer width="100%" height="85%">
-        <BarChart data={chartData}>
-          <defs>
-            <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#60a5fa" />
-              <stop offset="100%" stopColor="#2563eb" />
-            </linearGradient>
-          </defs>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke={isDarkMode ? '#4B5563' : '#E5E7EB'} 
-          />
-          <XAxis 
-            dataKey="date" 
-            stroke={isDarkMode ? '#9CA3AF' : '#6B7280'}
-            tickFormatter={(value) => new Date(value).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
-          />
-          <YAxis 
-            stroke={isDarkMode ? '#9CA3AF' : '#6B7280'} 
-            allowDecimals={false} 
-          />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: isDarkMode ? '#374151' : '#FFFFFF', 
-              border: 'none', 
-              borderRadius: '8px',
-              color: isDarkMode ? '#F9FAFB' : '#1F2937',
-              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
-            }}
-            labelFormatter={(value) => new Date(value).toLocaleDateString('es-ES', { 
-              day: '2-digit', 
-              month: 'long', 
-              year: 'numeric' 
-            })}
-          />
-          <Bar 
-            dataKey="joins" 
-            fill="url(#barGradient)"
-            radius={[8, 8, 0, 0]}
-            barSize={32}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+        <div className="w-full h-64 md:h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <defs>
+                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#60a5fa" />
+                  <stop offset="100%" stopColor="#2563eb" />
+                </linearGradient>
+              </defs>
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke={isDarkMode ? '#4B5563' : '#E5E7EB'} 
+              />
+              <XAxis 
+                dataKey="date" 
+                stroke={isDarkMode ? '#9CA3AF' : '#6B7280'}
+                tickFormatter={(value) => new Date(value).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+                fontSize={12}
+              />
+              <YAxis 
+                stroke={isDarkMode ? '#9CA3AF' : '#6B7280'} 
+                allowDecimals={false}
+                fontSize={12}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: isDarkMode ? '#374151' : '#FFFFFF', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  color: isDarkMode ? '#F9FAFB' : '#1F2937',
+                  boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+                  fontSize: '12px'
+                }}
+                labelFormatter={(value) => new Date(value).toLocaleDateString('es-ES', { 
+                  day: '2-digit', 
+                  month: 'long', 
+                  year: 'numeric' 
+                })}
+              />
+              <Bar 
+                dataKey="joins" 
+                fill="url(#barGradient)"
+                radius={[4, 4, 0, 0]}
+                barSize={20}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       )}
     </div>
   );

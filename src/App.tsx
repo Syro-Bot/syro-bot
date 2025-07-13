@@ -10,9 +10,10 @@
  */
 
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
 import HeaderControls from "./components/layout/HeaderControls";
+import MobileMenu from "./components/layout/MobileMenu";
 import LoadingSpinner from "./components/shared/LoadingSpinner";
 import { useTheme } from "./contexts/ThemeContext";
 import { TemplateProvider, useTemplates } from "./contexts/TemplateContext";
@@ -64,6 +65,7 @@ const UserTemplateProvider: React.FC<{ children: React.ReactNode; user: any }> =
  */
 const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: string) => void; user: any }> = ({ activeComponent, setActiveComponent, user }) => {
   const { isDarkMode } = useTheme();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   
   // Obtener el guildId del primer servidor disponible (temporal)
   const [guildId, setGuildId] = React.useState<string | undefined>();
@@ -128,6 +130,15 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
     }
   }, [guildId]);
 
+  // Cerrar menú móvil cuando cambie la sección
+  React.useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [activeComponent]);
+
+  const handleMobileMenuToggle = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   const renderPage = () => {
     switch (activeComponent) {
       case "dashboard":
@@ -165,19 +176,38 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
     <UserTemplateProvider user={user}>
       <AutoModProvider guildId={guildId}>
         <div className="flex h-screen transition-colors duration-500">
-          <Sidebar onNavigate={setActiveComponent} activeComponent={activeComponent} />
+          {/* Sidebar - Oculto en móvil */}
+          <div className="hidden md:block">
+            <Sidebar onNavigate={setActiveComponent} activeComponent={activeComponent} />
+          </div>
+          
+          {/* Contenido principal */}
           <main className="flex-1 h-screen flex flex-col transition-colors duration-500">
             <HeaderControls 
-            activeSection={activeComponent} 
-            user={user} 
-            guildId={guildId}
-            onGuildChange={setGuildId}
-            availableGuilds={availableGuilds}
-          />
-            <div className={`rounded-tl-3xl shadow-xl p-8 flex-1 overflow-auto flex flex-col transition-colors duration-500 ${isDarkMode ? 'bg-[#101010]' : 'bg-[#ecf0f9]'}`}>{renderPage()}</div>
+              activeSection={activeComponent} 
+              user={user} 
+              guildId={guildId}
+              onGuildChange={setGuildId}
+              availableGuilds={availableGuilds}
+              onMobileMenuToggle={handleMobileMenuToggle}
+              isMobileMenuOpen={isMobileMenuOpen}
+            />
+            <div className={`rounded-tl-3xl md:rounded-tl-3xl shadow-xl p-4 md:p-8 flex-1 overflow-auto flex flex-col transition-colors duration-500 ${isDarkMode ? 'bg-[#101010]' : 'bg-[#ecf0f9]'}`}>
+              {renderPage()}
+            </div>
           </main>
+          
+          {/* API Monitor - Solo en desarrollo */}
           {(import.meta.env.DEV || import.meta.env.VITE_SHOW_API_MONITOR === 'true') && <APIMonitor />}
         </div>
+
+        {/* Menú móvil */}
+        <MobileMenu
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+          onNavigate={setActiveComponent}
+          activeComponent={activeComponent}
+        />
       </AutoModProvider>
     </UserTemplateProvider>
   );
@@ -197,92 +227,116 @@ const useAuth = () => {
     const fetchUser = async () => {
       try {
         setLoading(true);
-        const data = await apiManager.request({
-          url: `${API_CONFIG.BASE_URL}/me`,
-          options: {
-            credentials: 'include'
-          },
-          cacheTTL: API_CONFIG.CACHE.USER_DATA_TTL,
-          throttleDelay: API_CONFIG.ENDPOINTS.ME.throttleDelay,
-          priority: API_CONFIG.ENDPOINTS.ME.priority
+        // Usar fetch directo para debuggear
+        const response = await fetch(`${API_CONFIG.BASE_URL}/me`, {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
+
+        console.log('🔍 Status de respuesta:', response.status);
         
-        setUser(data?.user || null);
-        console.log('✅ User data fetched successfully');
+        if (response.ok) {
+          const data = await response.json();
+          console.log('🔍 Respuesta de autenticación:', data);
+          
+          if (data && data.user) {
+            setUser(data.user);
+            console.log('✅ Usuario autenticado:', data.user.username);
+          } else {
+            console.log('❌ Usuario no autenticado - Data recibida:', data);
+            setUser(null);
+          }
+        } else {
+          console.log('❌ Error de respuesta:', response.status, response.statusText);
+          setUser(null);
+        }
       } catch (error) {
-        console.error('Error fetching user:', error);
+        console.error('❌ Error de autenticación:', error);
         setUser(null);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchUser();
   }, []);
-  
+
   return { user, loading };
 };
 
-
-
 /**
- * Protected route component.
- * Only renders children if the user is authenticated.
+ * Protected route component that requires authentication.
+ * Redirects to login if user is not authenticated.
  *
- * @param children - Render prop that receives the authenticated user
+ * @component
+ * @param {Object} props - Component props
+ * @param {Function} props.children - Function that receives the authenticated user
  */
 const ProtectedRoute: React.FC<{ children: (user: any) => React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
-  const location = useLocation();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen w-screen">
-        <LoadingSpinner 
-          size="lg" 
-          showText={false}
-        />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <LoadingSpinner />
       </div>
     );
   }
+
   if (!user) {
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/login" replace />;
   }
+
   return <>{children(user)}</>;
 };
 
 /**
- * Root component for the Syro application.
- * Defines main routes and global context.
+ * Main App component that sets up routing and global providers.
+ * Handles the overall application structure and navigation.
+ *
+ * @component
  */
 const App: React.FC = () => {
-  const [activeComponent, setActiveComponent] = React.useState("dashboard");
-  const { isDarkMode } = useTheme();
+  const [activeComponent, setActiveComponent] = React.useState('dashboard');
+
   return (
-    <div className={(isDarkMode ? "bg-black" : "bg-white") + " transition-colors duration-500"} style={{ minHeight: "100vh" }}>
-      <Router>
-        <AnimationProvider>
-          <TemplateProvider>
-            <ModalProvider>
-              <Routes>
-                <Route path="/" element={<Login />} />
-                <Route path="/dashboard" element={
+    <Router>
+      <AnimationProvider>
+        <TemplateProvider>
+          <ModalProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/*"
+                element={
                   <ProtectedRoute>
                     {(user) => (
-                      <MainLayout activeComponent={activeComponent} setActiveComponent={setActiveComponent} user={user} />
+                      <MainLayout
+                        activeComponent={activeComponent}
+                        setActiveComponent={setActiveComponent}
+                        user={user}
+                      />
                     )}
                   </ProtectedRoute>
-                } />
-              </Routes>
-              <GlobalModals />
-            </ModalProvider>
-          </TemplateProvider>
-        </AnimationProvider>
-      </Router>
-    </div>
+                }
+              />
+            </Routes>
+            <GlobalModals />
+          </ModalProvider>
+        </TemplateProvider>
+      </AnimationProvider>
+    </Router>
   );
 };
 
+/**
+ * Global modals component that renders modals that need to be available globally.
+ * Currently includes the RaidTypeModal for automoderation features.
+ *
+ * @component
+ */
 const GlobalModals: React.FC = () => {
   const { showRaidTypeModal, setShowRaidTypeModal, raidTypeModalProps } = useModal();
   const { isDarkMode } = useTheme();
@@ -290,12 +344,14 @@ const GlobalModals: React.FC = () => {
   if (!raidTypeModalProps) return null;
 
   return (
-    <RaidTypeModal
-      isOpen={showRaidTypeModal}
-      onClose={() => setShowRaidTypeModal(false)}
-      onSelectType={raidTypeModalProps.onSelectType}
-      isDarkMode={isDarkMode}
-    />
+    <>
+      <RaidTypeModal
+        isOpen={showRaidTypeModal}
+        onClose={() => setShowRaidTypeModal(false)}
+        onSelectType={raidTypeModalProps.onSelectType}
+        isDarkMode={isDarkMode}
+      />
+    </>
   );
 };
 

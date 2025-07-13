@@ -3,6 +3,7 @@
  *
  * Componente que muestra logs en tiempo real del bot.
  * Incluye diferentes tipos de logs con íconos y colores.
+ * Completamente responsive para móvil y desktop.
  *
  * @author Syro Frontend Team
  * @version 1.0.0
@@ -119,11 +120,11 @@ const LiveLogs: React.FC<LiveLogsProps> = ({ guildId }) => {
   }, [logs]);
 
   return (
-    <div className={`w-[48rem] h-[23rem] backdrop-blur-sm rounded-2xl p-6 transition-colors duration-300 ${
+    <div className={`w-full h-auto min-h-[20rem] md:h-[23rem] backdrop-blur-sm rounded-2xl p-4 md:p-6 transition-colors duration-300 ${
       isDarkMode ? 'bg-[#181c24]' : 'bg-white'
     }`}>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-md font-bold bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent uppercase flex items-center gap-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
+        <h2 className="text-sm md:text-md font-bold bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent uppercase flex items-center gap-2">
           <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
           <span className="text-left">LOGS EN TIEMPO REAL</span>
         </h2>
@@ -157,7 +158,7 @@ const LiveLogs: React.FC<LiveLogsProps> = ({ guildId }) => {
       {/* Contenedor de logs con scroll */}
       <div 
         ref={logsContainerRef}
-        className="h-[calc(100%-3rem)] overflow-y-auto space-y-2 pr-2"
+        className="h-64 md:h-[calc(100%-3rem)] overflow-y-auto space-y-2 pr-2"
       >
         {loading && (
           <div className="flex items-center justify-center h-full">
@@ -201,44 +202,71 @@ const LiveLogs: React.FC<LiveLogsProps> = ({ guildId }) => {
         {!loading && !error && logs.length === 0 && (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <Activity className={`w-8 h-8 mx-auto mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+              <Activity className={`w-8 h-8 mx-auto mb-2 text-gray-400`} />
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Esperando eventos...
+                No hay logs disponibles
               </p>
             </div>
           </div>
         )}
         
-        {!loading && !error && logs.length > 0 && (
-          logs.map((log) => (
-            <div 
-              key={log._id}
-              className={`flex items-start gap-3 p-3 rounded-lg transition-colors duration-200 ${
-                isDarkMode ? 'bg-gray-800/50 hover:bg-gray-800' : 'bg-gray-50 hover:bg-gray-100'
-              }`}
-            >
-              <div className={`flex-shrink-0 mt-0.5 ${getLogColor(log.type)}`}>
-                {getLogIcon(log.type)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {log.title}
-                </p>
-                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {log.description}
-                </p>
-                {log.username && (
-                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Usuario: {log.username}
-                  </p>
-                )}
-              </div>
-              <div className={`flex-shrink-0 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                {formatTime(log.timestamp)}
-              </div>
+        {!loading && !error && logs.map((log) => (
+          <div
+            key={log._id}
+            className={`flex items-start gap-3 p-3 rounded-lg transition-all duration-200 ${
+              isDarkMode 
+                ? 'bg-gray-800/50 hover:bg-gray-700/50' 
+                : 'bg-gray-50 hover:bg-gray-100'
+            }`}
+          >
+            {/* Icono */}
+            <div className={`flex-shrink-0 mt-0.5 ${getLogColor(log.type)}`}>
+              {getLogIcon(log.type)}
             </div>
-          ))
-        )}
+            
+            {/* Contenido */}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                <h3 className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {log.title}
+                </h3>
+                <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {formatTime(log.timestamp)}
+                </span>
+              </div>
+              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                {log.description}
+              </p>
+              
+              {/* Información adicional si está disponible */}
+              {(log.username || log.channelName || log.roleName) && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {log.username && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
+                      isDarkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      👤 {log.username}
+                    </span>
+                  )}
+                  {log.channelName && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
+                      isDarkMode ? 'bg-purple-900/30 text-purple-300' : 'bg-purple-100 text-purple-700'
+                    }`}>
+                      # {log.channelName}
+                    </span>
+                  )}
+                  {log.roleName && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${
+                      isDarkMode ? 'bg-green-900/30 text-green-300' : 'bg-green-100 text-green-700'
+                    }`}>
+                      🛡️ {log.roleName}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
