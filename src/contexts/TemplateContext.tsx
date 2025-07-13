@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 interface Template {
   _id: string;
@@ -56,7 +56,7 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
-  const fetchPendingTemplates = async () => {
+  const fetchPendingTemplates = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -84,9 +84,9 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
-  const fetchApprovedTemplates = async () => {
+  const fetchApprovedTemplates = useCallback(async () => {
     try {
       const response = await fetch('/api/templates/approved', {
         credentials: 'include'
@@ -101,9 +101,9 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (error) {
       console.error('Error fetching approved templates:', error);
     }
-  };
+  }, []);
 
-  const approveTemplate = async (id: string) => {
+  const approveTemplate = useCallback(async (id: string) => {
     if (!user) return;
     
     try {
@@ -125,9 +125,9 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (error) {
       console.error('Error approving template:', error);
     }
-  };
+  }, [user, fetchPendingTemplates, fetchApprovedTemplates]);
 
-  const rejectTemplate = async (id: string) => {
+  const rejectTemplate = useCallback(async (id: string) => {
     if (!user) return;
     
     try {
@@ -148,9 +148,9 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (error) {
       console.error('Error rejecting template:', error);
     }
-  };
+  }, [user, fetchPendingTemplates]);
 
-  const submitTemplate = async (templateData: { name: string; tags: string; link: string; icon?: string }) => {
+  const submitTemplate = useCallback(async (templateData: { name: string; tags: string; link: string; icon?: string }) => {
     if (!user) {
       return { success: false, error: 'Usuario no autenticado' };
     }
@@ -181,13 +181,13 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error('Error submitting template:', error);
       return { success: false, error: 'Error interno del servidor' };
     }
-  };
+  }, [user, fetchPendingTemplates]);
 
   useEffect(() => {
     if (user) {
       fetchPendingTemplates();
     }
-  }, [user]);
+  }, [user, fetchPendingTemplates]);
 
   const value: TemplateContextType = {
     pendingTemplates,

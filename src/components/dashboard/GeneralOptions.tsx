@@ -10,11 +10,12 @@
  */
 
 import React, { useState } from "react";
-import { Bomb, Settings, Megaphone, Users } from 'lucide-react';
+import { Bomb, Settings, Megaphone, Users, Database } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import NukeModal from './NukeModal';
 import AnnouncementModal from './AnnouncementModal';
 import MemberCountModal from './MemberCountModal';
+import DataRetentionModal from './DataRetentionModal';
 
 interface GeneralOptionsProps {
   guildId?: string;
@@ -32,6 +33,7 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
   const [isNukeModalOpen, setIsNukeModalOpen] = useState(false);
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [isMemberCountModalOpen, setIsMemberCountModalOpen] = useState(false);
+  const [isDataRetentionModalOpen, setIsDataRetentionModalOpen] = useState(false);
 
   const handleNukeClick = () => {
     if (!guildId) {
@@ -55,6 +57,14 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
       return;
     }
     setIsMemberCountModalOpen(true);
+  };
+
+  const handleDataRetentionClick = () => {
+    if (!guildId) {
+      alert('Please select a server first');
+      return;
+    }
+    setIsDataRetentionModalOpen(true);
   };
 
   return (
@@ -165,15 +175,37 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
             }`}></div>
           </button>
 
-          {/* Espacio para futuras opciones */}
-          <div className={`flex items-center justify-center h-20 rounded-xl border-2 border-dashed ${
-            isDarkMode ? 'border-gray-600 text-gray-400' : 'border-gray-300 text-gray-500'
-          }`}>
-            <div className="text-center">
-              <Settings className={`w-6 h-6 mx-auto mb-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
-              <p className="text-xs">More options coming soon...</p>
+          {/* Opción Data Retention */}
+          <button
+            onClick={handleDataRetentionClick}
+            className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-200 ${
+              isDarkMode 
+                ? 'bg-gradient-to-r from-orange-500/20 to-orange-600/20 hover:from-orange-500/30 hover:to-orange-600/30 border border-orange-500/30' 
+                : 'bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 border border-orange-200'
+            }`}
+          >
+            {/* Icono */}
+            <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center ${
+              isDarkMode ? 'bg-orange-500/20' : 'bg-orange-100'
+            }`}>
+              <Database className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
             </div>
-          </div>
+            
+            {/* Contenido */}
+            <div className="flex-1 text-left">
+              <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Data Retention
+              </h3>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Configure data deletion policies when Syro leaves the server. Default: 3 days retention.
+              </p>
+            </div>
+            
+            {/* Indicador */}
+            <div className={`flex-shrink-0 w-2 h-2 rounded-full ${
+              isDarkMode ? 'bg-orange-400' : 'bg-orange-500'
+            }`}></div>
+          </button>
         </div>
       </div>
 
@@ -201,6 +233,15 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
           guildId={guildId}
           isOpen={isMemberCountModalOpen}
           onClose={() => setIsMemberCountModalOpen(false)}
+        />
+      )}
+
+      {/* Modal de Data Retention */}
+      {isDataRetentionModalOpen && (
+        <DataRetentionModal
+          guildId={guildId}
+          isOpen={isDataRetentionModalOpen}
+          onClose={() => setIsDataRetentionModalOpen(false)}
         />
       )}
     </>

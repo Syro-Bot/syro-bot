@@ -6,8 +6,9 @@ const Templates: React.FC = () => {
   const { approvedTemplates, fetchApprovedTemplates, isLoading } = useTemplates();
 
   useEffect(() => {
+    // Solo cargar una vez cuando el componente se monta
     fetchApprovedTemplates();
-  }, [fetchApprovedTemplates]);
+  }, []); // Array vacío para que solo se ejecute una vez
 
   if (isLoading) {
     return (

@@ -13,6 +13,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
 import HeaderControls from "./components/layout/HeaderControls";
+import LoadingSpinner from "./components/shared/LoadingSpinner";
 import { useTheme } from "./contexts/ThemeContext";
 import { TemplateProvider, useTemplates } from "./contexts/TemplateContext";
 import { AutoModProvider } from "./contexts/AutoModContext";
@@ -176,7 +177,7 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
           />
             <div className={`rounded-tl-3xl shadow-xl p-8 flex-1 overflow-auto flex flex-col transition-colors duration-500 ${isDarkMode ? 'bg-[#101010]' : 'bg-[#ecf0f9]'}`}>{renderPage()}</div>
           </main>
-          <APIMonitor />
+          {(import.meta.env.DEV || import.meta.env.VITE_SHOW_API_MONITOR === 'true') && <APIMonitor />}
         </div>
       </AutoModProvider>
     </UserTemplateProvider>
@@ -223,6 +224,8 @@ const useAuth = () => {
   return { user, loading };
 };
 
+
+
 /**
  * Protected route component.
  * Only renders children if the user is authenticated.
@@ -234,10 +237,12 @@ const ProtectedRoute: React.FC<{ children: (user: any) => React.ReactNode }> = (
   const location = useLocation();
 
   if (loading) {
-    // Mostrar un loading visible
     return (
-      <div className="flex items-center justify-center h-screen">
-        <span className="text-xl text-blue-600">Cargando sesión...</span>
+      <div className="flex items-center justify-center h-screen w-screen">
+        <LoadingSpinner 
+          size="lg" 
+          showText={false}
+        />
       </div>
     );
   }

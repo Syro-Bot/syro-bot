@@ -10,6 +10,7 @@
 
 import React, { Suspense, lazy, Component } from 'react';
 import type { ReactNode, ComponentType } from 'react';
+import LoadingSpinner from './LoadingSpinner';
 
 interface LazyComponentState {
   hasError: boolean;
@@ -58,13 +59,13 @@ class ErrorBoundary extends Component<
 }
 
 /**
- * Default loading component
+ * Default loading component using our LoadingSpinner
  */
 const DefaultLoading: React.FC = () => (
-  <div className="flex items-center justify-center p-8">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-    <span className="ml-2 text-gray-600">Loading...</span>
-  </div>
+  <LoadingSpinner 
+    size="md" 
+    showText={false}
+  />
 );
 
 /**
