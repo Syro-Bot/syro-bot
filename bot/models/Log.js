@@ -29,6 +29,7 @@ const logSchema = new mongoose.Schema({
       'raid_ended',
       'channel_created',
       'channel_deleted',
+      'channel_nuke',
       'lockdown_started',
       'lockdown_ended',
       'spam_detected',
@@ -37,7 +38,10 @@ const logSchema = new mongoose.Schema({
       'member_unbanned',
       'welcome_sent',
       'boost_detected',
-      'automod_action'
+      'automod_action',
+      'nuke_command',
+      'purge_command',
+      'member_count_update'
     ]
   },
   title: {

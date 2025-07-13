@@ -1,11 +1,11 @@
 /**
- * Sanitization Middleware
+ * Sanitization Middleware - SECURE VERSION
  * 
  * This middleware automatically sanitizes incoming request data
  * to prevent XSS, injection attacks, and data corruption.
  * 
  * @author Syro Development Team
- * @version 1.0.0
+ * @version 2.0.0 - SECURE
  */
 
 const {
@@ -18,79 +18,202 @@ const {
 } = require('../utils/sanitizer');
 const logger = require('../utils/logger');
 
+// Maximum request sizes to prevent DoS
+const MAX_REQUEST_SIZE = 1024 * 1024; // 1MB
+const MAX_FIELD_SIZE = 64 * 1024; // 64KB
+const MAX_ARRAY_LENGTH = 1000;
+const MAX_OBJECT_KEYS = 100;
+
 /**
- * General sanitization middleware
- * Sanitizes all incoming request data
+ * Validate request size to prevent DoS attacks
+ * @param {Object} req - Express request object
+ * @returns {boolean} - True if request size is acceptable
+ */
+function validateRequestSize(req) {
+  try {
+    const bodySize = JSON.stringify(req.body || {}).length;
+    const querySize = JSON.stringify(req.query || {}).length;
+    const paramsSize = JSON.stringify(req.params || {}).length;
+    
+    const totalSize = bodySize + querySize + paramsSize;
+    
+    if (totalSize > MAX_REQUEST_SIZE) {
+      logger.security('Request size exceeded limit', {
+        url: req.url,
+        method: req.method,
+        totalSize,
+        maxSize: MAX_REQUEST_SIZE,
+        ip: req.ip
+      });
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    logger.errorWithContext(error, { context: 'Request size validation' });
+    return false;
+  }
+}
+
+/**
+ * Sanitize filename to prevent path traversal
+ * @param {string} filename - Original filename
+ * @returns {string} - Sanitized filename
+ */
+function sanitizeFilename(filename) {
+  if (!filename || typeof filename !== 'string') {
+    return 'unknown';
+  }
+  
+  // Remove path traversal characters
+  let sanitized = filename
+    .replace(/\.\./g, '') // Remove ../
+    .replace(/[\/\\]/g, '_') // Replace slashes with underscores
+    .replace(/[^\w\-\.]/g, '_') // Only allow alphanumeric, hyphens, dots
+    .substring(0, 255); // Limit length
+  
+  // Ensure it has an extension
+  if (!sanitized.includes('.')) {
+    sanitized += '.txt';
+  }
+  
+  return sanitized || 'unknown.txt';
+}
+
+/**
+ * Deep sanitize object recursively
+ * @param {any} data - Data to sanitize
+ * @param {number} depth - Current recursion depth
+ * @returns {any} - Sanitized data
+ */
+function deepSanitize(data, depth = 0) {
+  // Prevent infinite recursion
+  if (depth > 10) {
+    logger.security('Maximum sanitization depth exceeded', { depth });
+    return null;
+  }
+  
+  if (data === null || data === undefined) {
+    return data;
+  }
+  
+  if (typeof data === 'string') {
+    return sanitizeText(data);
+  }
+  
+  if (typeof data === 'number') {
+    // Validate number range
+    if (!isFinite(data) || data > Number.MAX_SAFE_INTEGER || data < Number.MIN_SAFE_INTEGER) {
+      return 0;
+    }
+    return data;
+  }
+  
+  if (typeof data === 'boolean') {
+    return data;
+  }
+  
+  if (Array.isArray(data)) {
+    // Limit array length
+    if (data.length > MAX_ARRAY_LENGTH) {
+      logger.security('Array length exceeded limit', { 
+        length: data.length, 
+        maxLength: MAX_ARRAY_LENGTH 
+      });
+      return data.slice(0, MAX_ARRAY_LENGTH);
+    }
+    
+    return data.map(item => deepSanitize(item, depth + 1));
+  }
+  
+  if (typeof data === 'object') {
+    const sanitized = {};
+    const keys = Object.keys(data);
+    
+    // Limit object keys
+    if (keys.length > MAX_OBJECT_KEYS) {
+      logger.security('Object keys exceeded limit', { 
+        keys: keys.length, 
+        maxKeys: MAX_OBJECT_KEYS 
+      });
+      keys.splice(MAX_OBJECT_KEYS);
+    }
+    
+    for (const key of keys) {
+      // Sanitize key name
+      const sanitizedKey = sanitizeText(key).substring(0, 100);
+      if (sanitizedKey) {
+        sanitized[sanitizedKey] = deepSanitize(data[key], depth + 1);
+      }
+    }
+    
+    return sanitized;
+  }
+  
+  return null;
+}
+
+/**
+ * Secure general sanitization middleware
+ * Sanitizes all incoming request data with size validation
  * 
  * @returns {Function} - Express middleware function
  */
 function sanitizeAll() {
   return (req, res, next) => {
     try {
-      // LOG: Estado inicial
-      logger.warn('[SANITIZE-ALL] BEFORE', {
-        url: req.url,
-        method: req.method,
-        query: JSON.stringify(req.query),
-        body: JSON.stringify(req.body),
-        params: JSON.stringify(req.params)
-      });
+      // Validate request size first
+      if (!validateRequestSize(req)) {
+        return res.status(413).json({
+          success: false,
+          error: 'Request too large'
+        });
+      }
 
       // Sanitize query parameters
       if (req.query) {
-        Object.keys(req.query).forEach(key => {
-          if (typeof req.query[key] === 'string') {
-            req.query[key] = sanitizeText(req.query[key]);
-          }
-        });
+        req.query = deepSanitize(req.query);
       }
 
       // Sanitize body parameters
       if (req.body) {
-        Object.keys(req.body).forEach(key => {
-          if (typeof req.body[key] === 'string') {
-            req.body[key] = sanitizeText(req.body[key]);
-          }
-        });
+        req.body = deepSanitize(req.body);
       }
 
       // Sanitize URL parameters
       if (req.params) {
-        Object.keys(req.params).forEach(key => {
-          if (typeof req.params[key] === 'string') {
-            req.params[key] = sanitizeText(req.params[key]);
-          }
-        });
+        req.params = deepSanitize(req.params);
       }
 
-      // LOG: Estado después de sanitizar
-      logger.warn('[SANITIZE-ALL] AFTER', {
-        url: req.url,
-        method: req.method,
-        query: JSON.stringify(req.query),
-        body: JSON.stringify(req.body),
-        params: JSON.stringify(req.params)
-      });
-
-      logger.security('Request data sanitized', {
+      logger.security('Request data sanitized securely', {
         url: req.url,
         method: req.method,
         hasQuery: !!req.query,
         hasBody: !!req.body,
-        hasParams: !!req.params
+        hasParams: !!req.params,
+        ip: req.ip
       });
 
       next();
     } catch (error) {
-      logger.errorWithContext(error, { context: 'General sanitization' });
-      next();
+      logger.errorWithContext(error, { 
+        context: 'General sanitization',
+        url: req.url,
+        method: req.method,
+        ip: req.ip
+      });
+      
+      res.status(400).json({
+        success: false,
+        error: 'Invalid request data'
+      });
     }
   };
 }
 
 /**
- * Automod rule sanitization middleware
- * Specifically sanitizes automod rule data
+ * Secure automod rule sanitization middleware
+ * Specifically sanitizes automod rule data with validation
  * 
  * @returns {Function} - Express middleware function
  */
@@ -100,9 +223,27 @@ function sanitizeAutomodRules() {
       if (req.body && req.body.automodRules) {
         const originalRules = JSON.stringify(req.body.automodRules);
         
+        // Validate automod rules structure
+        if (typeof req.body.automodRules !== 'object') {
+          logger.security('Invalid automod rules structure', {
+            url: req.url,
+            method: req.method,
+            type: typeof req.body.automodRules
+          });
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid automod rules format'
+          });
+        }
+        
         // Sanitize each rule category
         Object.keys(req.body.automodRules).forEach(category => {
           if (Array.isArray(req.body.automodRules[category])) {
+            // Limit array length
+            if (req.body.automodRules[category].length > MAX_ARRAY_LENGTH) {
+              req.body.automodRules[category] = req.body.automodRules[category].slice(0, MAX_ARRAY_LENGTH);
+            }
+            
             req.body.automodRules[category] = req.body.automodRules[category].map(rule => 
               sanitizeAutomodRule(rule)
             );
@@ -111,26 +252,36 @@ function sanitizeAutomodRules() {
 
         const sanitizedRules = JSON.stringify(req.body.automodRules);
         
-        logger.security('Automod rules sanitized', {
+        logger.security('Automod rules sanitized securely', {
           url: req.url,
           method: req.method,
           originalLength: originalRules.length,
           sanitizedLength: sanitizedRules.length,
-          changes: originalRules.length !== sanitizedRules.length
+          changes: originalRules.length !== sanitizedRules.length,
+          ip: req.ip
         });
       }
 
       next();
     } catch (error) {
-      logger.errorWithContext(error, { context: 'Automod rules sanitization' });
-      next();
+      logger.errorWithContext(error, { 
+        context: 'Automod rules sanitization',
+        url: req.url,
+        method: req.method,
+        ip: req.ip
+      });
+      
+      res.status(400).json({
+        success: false,
+        error: 'Invalid automod rules data'
+      });
     }
   };
 }
 
 /**
- * Template sanitization middleware
- * Specifically sanitizes template data
+ * Secure template sanitization middleware
+ * Specifically sanitizes template data with validation
  * 
  * @returns {Function} - Express middleware function
  */
@@ -139,6 +290,20 @@ function sanitizeTemplates() {
     try {
       if (req.body) {
         const originalBody = JSON.stringify(req.body);
+        
+        // Validate body structure
+        if (typeof req.body !== 'object') {
+          logger.security('Invalid template body structure', {
+            url: req.url,
+            method: req.method,
+            type: typeof req.body
+          });
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid template data format'
+          });
+        }
+        
         const sanitizedBody = sanitizeTemplate(req.body);
         
         // Replace body with sanitized version
@@ -148,25 +313,35 @@ function sanitizeTemplates() {
           }
         });
 
-        logger.security('Template data sanitized', {
+        logger.security('Template data sanitized securely', {
           url: req.url,
           method: req.method,
           originalLength: originalBody.length,
-          sanitizedLength: JSON.stringify(req.body).length
+          sanitizedLength: JSON.stringify(req.body).length,
+          ip: req.ip
         });
       }
 
       next();
     } catch (error) {
-      logger.errorWithContext(error, { context: 'Template sanitization' });
-      next();
+      logger.errorWithContext(error, { 
+        context: 'Template sanitization',
+        url: req.url,
+        method: req.method,
+        ip: req.ip
+      });
+      
+      res.status(400).json({
+        success: false,
+        error: 'Invalid template data'
+      });
     }
   };
 }
 
 /**
- * URL sanitization middleware
- * Validates and sanitizes URLs in request data
+ * Secure URL sanitization middleware
+ * Validates and sanitizes URLs in request data with domain restrictions
  * 
  * @param {Array} allowedDomains - List of allowed domains
  * @returns {Function} - Express middleware function
@@ -175,6 +350,7 @@ function sanitizeUrls(allowedDomains = []) {
   return (req, res, next) => {
     try {
       const sanitizedUrls = [];
+      const removedUrls = [];
 
       // Check body for URLs
       if (req.body) {
@@ -187,8 +363,8 @@ function sanitizeUrls(allowedDomains = []) {
               sanitizedUrls.push({ field: key, url: sanitizedUrl });
             } else {
               // Remove invalid URL
+              removedUrls.push({ field: key, url: req.body[key] });
               delete req.body[key];
-              logger.security('Invalid URL removed', { field: key, url: req.body[key] });
             }
           }
         });
@@ -205,31 +381,42 @@ function sanitizeUrls(allowedDomains = []) {
               sanitizedUrls.push({ field: key, url: sanitizedUrl });
             } else {
               // Remove invalid URL
+              removedUrls.push({ field: key, url: req.query[key] });
               delete req.query[key];
-              logger.security('Invalid URL removed from query', { field: key, url: req.query[key] });
             }
           }
         });
       }
 
-      if (sanitizedUrls.length > 0) {
-        logger.security('URLs sanitized', {
+      if (sanitizedUrls.length > 0 || removedUrls.length > 0) {
+        logger.security('URLs processed securely', {
           url: req.url,
           method: req.method,
-          sanitizedUrls
+          sanitizedCount: sanitizedUrls.length,
+          removedCount: removedUrls.length,
+          ip: req.ip
         });
       }
 
       next();
     } catch (error) {
-      logger.errorWithContext(error, { context: 'URL sanitization' });
-      next();
+      logger.errorWithContext(error, { 
+        context: 'URL sanitization',
+        url: req.url,
+        method: req.method,
+        ip: req.ip
+      });
+      
+      res.status(400).json({
+        success: false,
+        error: 'Invalid URL data'
+      });
     }
   };
 }
 
 /**
- * Discord content sanitization middleware
+ * Secure Discord content sanitization middleware
  * Sanitizes Discord-specific content like mentions and formatting
  * 
  * @returns {Function} - Express middleware function
@@ -268,24 +455,34 @@ function sanitizeDiscordContentMiddleware() {
       }
 
       if (sanitizedFields.length > 0) {
-        logger.security('Discord content sanitized', {
+        logger.security('Discord content sanitized securely', {
           url: req.url,
           method: req.method,
-          sanitizedFields
+          sanitizedFields,
+          ip: req.ip
         });
       }
 
       next();
     } catch (error) {
-      logger.errorWithContext(error, { context: 'Discord content sanitization' });
-      next();
+      logger.errorWithContext(error, { 
+        context: 'Discord content sanitization',
+        url: req.url,
+        method: req.method,
+        ip: req.ip
+      });
+      
+      res.status(400).json({
+        success: false,
+        error: 'Invalid Discord content'
+      });
     }
   };
 }
 
 /**
- * File upload sanitization middleware
- * Sanitizes file names and metadata
+ * Secure file upload sanitization middleware
+ * Sanitizes file names and metadata with validation
  * 
  * @returns {Function} - Express middleware function
  */
@@ -297,26 +494,28 @@ function sanitizeFileUploads() {
         req.file.originalname = sanitizeFilename(originalName);
         
         if (originalName !== req.file.originalname) {
-          logger.security('File name sanitized', {
+          logger.security('File name sanitized securely', {
             url: req.url,
             method: req.method,
-            originalName,
-            sanitizedName: req.file.originalname
+            originalName: originalName.substring(0, 50),
+            sanitizedName: req.file.originalname,
+            ip: req.ip
           });
         }
       }
 
-      if (req.files) {
+      if (req.files && Array.isArray(req.files)) {
         req.files.forEach(file => {
           const originalName = file.originalname;
           file.originalname = sanitizeFilename(originalName);
           
           if (originalName !== file.originalname) {
-            logger.security('File name sanitized', {
+            logger.security('File name sanitized securely', {
               url: req.url,
               method: req.method,
-              originalName,
-              sanitizedName: file.originalname
+              originalName: originalName.substring(0, 50),
+              sanitizedName: file.originalname,
+              ip: req.ip
             });
           }
         });
@@ -324,8 +523,17 @@ function sanitizeFileUploads() {
 
       next();
     } catch (error) {
-      logger.errorWithContext(error, { context: 'File upload sanitization' });
-      next();
+      logger.errorWithContext(error, { 
+        context: 'File upload sanitization',
+        url: req.url,
+        method: req.method,
+        ip: req.ip
+      });
+      
+      res.status(400).json({
+        success: false,
+        error: 'Invalid file data'
+      });
     }
   };
 }
@@ -336,5 +544,8 @@ module.exports = {
   sanitizeTemplates,
   sanitizeUrls,
   sanitizeDiscordContentMiddleware,
-  sanitizeFileUploads
+  sanitizeFileUploads,
+  validateRequestSize,
+  deepSanitize,
+  sanitizeFilename
 }; 
