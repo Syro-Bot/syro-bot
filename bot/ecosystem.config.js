@@ -21,6 +21,7 @@ module.exports = {
       name: 'syro-server',
       cwd: './',
       script: 'server.js',
+      env_file: '.env',
       env: {
         NODE_ENV: 'development',
         PORT: 3001
@@ -43,6 +44,7 @@ module.exports = {
       name: 'syro-bot',
       cwd: './',
       script: 'index.js',
+      env_file: '.env',
       env: {
         NODE_ENV: 'development'
       },
@@ -64,6 +66,7 @@ module.exports = {
       name: 'syro-auth',
       cwd: './',
       script: 'auth-server.js',
+      env_file: '.env',
       env: {
         NODE_ENV: 'development',
         PORT: 3002
