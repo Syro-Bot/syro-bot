@@ -69,7 +69,16 @@ async function applyLockdown(guild, duration, raidType = 'general') {
     }
     
     console.log(`🔒 Aplicando lockdown a ${guild.name}`);
-    cacheManager.serverLockdowns.set(guild.id, { startTime: Date.now(), duration, raidType });
+    
+    // Store lockdown info with start time
+    const lockdownInfo = { 
+      startTime: Date.now(), 
+      duration, 
+      raidType,
+      originalPermissions: null // We'll store the original permissions here
+    };
+    
+    cacheManager.serverLockdowns.set(guild.id, lockdownInfo);
     
     // Log lockdown started
     await LogManager.logLockdownStarted(guild.id, `Raid detection: ${raidType}`, duration);
@@ -81,32 +90,55 @@ async function applyLockdown(guild, duration, raidType = 'general') {
       // Obtener el rol @everyone
       const everyoneRole = guild.roles.everyone;
       
-      // Restringir permisos para @everyone (más restrictivo)
+      // Store original permissions before modifying
+      lockdownInfo.originalPermissions = everyoneRole.permissions.toArray();
+      console.log(`📋 Permisos originales de @everyone:`, lockdownInfo.originalPermissions);
+      
+      // Apply minimal restrictions - only block message sending and file attachments
+      // Don't block invites, voice channels, or other essential permissions
       await everyoneRole.setPermissions([
         PermissionsBitField.Flags.ViewChannel,
-        PermissionsBitField.Flags.ReadMessageHistory
+        PermissionsBitField.Flags.ReadMessageHistory,
+        PermissionsBitField.Flags.UseExternalEmojis,
+        PermissionsBitField.Flags.AddReactions,
+        PermissionsBitField.Flags.Connect, // Allow voice connections
+        PermissionsBitField.Flags.Speak,   // Allow speaking in voice
+        PermissionsBitField.Flags.CreateInvite, // Allow creating invites
+        PermissionsBitField.Flags.UseVAD,  // Allow voice activity detection
+        PermissionsBitField.Flags.Stream,  // Allow streaming
+        PermissionsBitField.Flags.UseEmbeddedActivities, // Allow activities
+        PermissionsBitField.Flags.UseSoundboard, // Allow soundboard
+        PermissionsBitField.Flags.UseExternalStickers, // Allow external stickers
+        PermissionsBitField.Flags.SendMessagesInThreads, // Allow thread messages
+        PermissionsBitField.Flags.CreatePublicThreads, // Allow public threads
+        PermissionsBitField.Flags.CreatePrivateThreads, // Allow private threads
+        PermissionsBitField.Flags.AttachFiles, // Allow file attachments
+        PermissionsBitField.Flags.EmbedLinks, // Allow embeds
+        // Only block these specific permissions:
+        // SendMessages: false (blocked)
+        // CreateInstantInvite: false (blocked for channels, but allowed for roles)
       ]);
       
-      // Restringir permisos en canales específicos también
-      const channelsToRestrict = guild.channels.cache.filter(ch => 
+      console.log(`✅ Permisos de @everyone actualizados - solo mensajes bloqueados`);
+      
+      // Apply channel-specific restrictions only to text channels
+      const textChannelsToRestrict = guild.channels.cache.filter(ch => 
         ch.type === 0 && // Solo canales de texto
         ch.permissionsFor(botMember).has(PermissionsBitField.Flags.ManageChannels)
       );
       
-      for (const [_, channel] of channelsToRestrict) {
+      console.log(`📝 Aplicando restricciones a ${textChannelsToRestrict.size} canales de texto`);
+      
+      for (const [_, channel] of textChannelsToRestrict) {
         try {
           await channel.permissionOverwrites.edit(everyoneRole, {
             SendMessages: false,
-            CreatePublicThreads: false,
-            CreatePrivateThreads: false,
-            SendMessagesInThreads: false,
             AttachFiles: false,
-            EmbedLinks: false,
-            UseExternalEmojis: false,
-            AddReactions: false
+            EmbedLinks: false
           });
+          console.log(`✅ Restricciones aplicadas a #${channel.name}`);
         } catch (error) {
-          console.error(`Error restringiendo canal ${channel.name}:`, error);
+          console.error(`❌ Error restringiendo canal ${channel.name}:`, error);
         }
       }
       
@@ -145,7 +177,7 @@ async function applyLockdown(guild, duration, raidType = 'general') {
       if (alertChannel) {
         const embed = new EmbedBuilder()
           .setTitle('🚨 RAID DETECTADO')
-          .setDescription(`Se ha detectado actividad sospechosa (${raidType}). El servidor ha sido puesto en lockdown por ${duration} minutos.`)
+          .setDescription(`Se ha detectado actividad sospechosa (${raidType}). El servidor ha sido puesto en lockdown por ${duration} minutos.\n\n**Restricciones aplicadas:**\n• Mensajes de texto bloqueados\n• Archivos adjuntos bloqueados\n• Embeds bloqueados\n\n**Permisos mantenidos:**\n• Canales de voz funcionando\n• Invitaciones permitidas\n• Reacciones permitidas`)
           .setColor(0xFF0000)
           .setTimestamp();
         
@@ -155,15 +187,36 @@ async function applyLockdown(guild, duration, raidType = 'general') {
       // Auto-unlock después del tiempo especificado
       const unlockTimeout = setTimeout(async () => {
         try {
-          await everyoneRole.setPermissions([
-            PermissionsBitField.Flags.ViewChannel,
-            PermissionsBitField.Flags.SendMessages,
-            PermissionsBitField.Flags.ReadMessageHistory,
-            PermissionsBitField.Flags.AttachFiles,
-            PermissionsBitField.Flags.EmbedLinks,
-            PermissionsBitField.Flags.UseExternalEmojis,
-            PermissionsBitField.Flags.AddReactions
-          ]);
+          console.log(`⏰ Auto-unlock iniciado para ${guild.name} después de ${duration} minutos`);
+          
+          // Restore original permissions
+          if (lockdownInfo.originalPermissions) {
+            await everyoneRole.setPermissions(lockdownInfo.originalPermissions);
+            console.log(`✅ Permisos originales restaurados para @everyone`);
+          } else {
+            // Fallback to default permissions if original not stored
+            await everyoneRole.setPermissions([
+              PermissionsBitField.Flags.ViewChannel,
+              PermissionsBitField.Flags.SendMessages,
+              PermissionsBitField.Flags.ReadMessageHistory,
+              PermissionsBitField.Flags.AttachFiles,
+              PermissionsBitField.Flags.EmbedLinks,
+              PermissionsBitField.Flags.UseExternalEmojis,
+              PermissionsBitField.Flags.AddReactions,
+              PermissionsBitField.Flags.Connect,
+              PermissionsBitField.Flags.Speak,
+              PermissionsBitField.Flags.CreateInvite,
+              PermissionsBitField.Flags.UseVAD,
+              PermissionsBitField.Flags.Stream,
+              PermissionsBitField.Flags.UseEmbeddedActivities,
+              PermissionsBitField.Flags.UseSoundboard,
+              PermissionsBitField.Flags.UseExternalStickers,
+              PermissionsBitField.Flags.SendMessagesInThreads,
+              PermissionsBitField.Flags.CreatePublicThreads,
+              PermissionsBitField.Flags.CreatePrivateThreads
+            ]);
+            console.log(`✅ Permisos por defecto restaurados para @everyone`);
+          }
           
           // Restaurar permisos en canales específicos
           const channelsToRestore = guild.channels.cache.filter(ch => 
@@ -171,24 +224,23 @@ async function applyLockdown(guild, duration, raidType = 'general') {
             ch.permissionsFor(botMember).has(PermissionsBitField.Flags.ManageChannels)
           );
           
+          console.log(`📝 Restaurando permisos en ${channelsToRestore.size} canales de texto`);
+          
           for (const [_, channel] of channelsToRestore) {
             try {
               await channel.permissionOverwrites.edit(everyoneRole, {
                 SendMessages: null,
-                CreatePublicThreads: null,
-                CreatePrivateThreads: null,
-                SendMessagesInThreads: null,
                 AttachFiles: null,
-                EmbedLinks: null,
-                UseExternalEmojis: null,
-                AddReactions: null
+                EmbedLinks: null
               });
+              console.log(`✅ Permisos restaurados en #${channel.name}`);
             } catch (error) {
-              console.error(`Error restaurando canal ${channel.name}:`, error);
+              console.error(`❌ Error restaurando canal ${channel.name}:`, error);
             }
           }
           
           cacheManager.serverLockdowns.delete(guild.id);
+          console.log(`✅ Lockdown removido de cache para ${guild.name}`);
           
           // Log lockdown ended
           await LogManager.logLockdownEnded(guild.id);
@@ -196,32 +248,27 @@ async function applyLockdown(guild, duration, raidType = 'general') {
           if (alertChannel) {
             const embed = new EmbedBuilder()
               .setTitle('✅ LOCKDOWN TERMINADO')
-              .setDescription('El servidor ha sido desbloqueado automáticamente.')
+              .setDescription('El servidor ha sido desbloqueado automáticamente.\n\n**Permisos restaurados:**\n• Mensajes de texto habilitados\n• Archivos adjuntos habilitados\n• Embeds habilitados\n• Todos los permisos originales restaurados')
               .setColor(0x00FF00)
               .setTimestamp();
             
             await alertChannel.send({ embeds: [embed] });
           }
         } catch (error) {
-          console.error('Error al desbloquear servidor:', error);
+          console.error('❌ Error al desbloquear servidor automáticamente:', error);
           cacheManager.serverLockdowns.delete(guild.id);
         }
       }, duration * 60 * 1000);
       
       // Store timeout reference for potential cancellation
-      cacheManager.serverLockdowns.set(guild.id, { 
-        startTime: Date.now(), 
-        duration, 
-        raidType, 
-        unlockTimeout 
-      });
+      lockdownInfo.unlockTimeout = unlockTimeout;
       
     } catch (error) {
-      console.error('Error al aplicar lockdown:', error);
+      console.error('❌ Error al aplicar lockdown:', error);
       cacheManager.serverLockdowns.delete(guild.id);
     }
   } catch (error) {
-    console.error('Error en applyLockdown:', error);
+    console.error('❌ Error en applyLockdown:', error);
     cacheManager.serverLockdowns.delete(guild.id);
   }
 }
@@ -233,17 +280,44 @@ async function applyLockdown(guild, duration, raidType = 'general') {
  */
 async function manualUnlock(guild, channel) {
   try {
-    const everyoneRole = guild.roles.everyone;
+    console.log(`🔓 Manual unlock iniciado para ${guild.name} por ${channel.name}`);
     
-    await everyoneRole.setPermissions([
-      PermissionsBitField.Flags.ViewChannel,
-      PermissionsBitField.Flags.SendMessages,
-      PermissionsBitField.Flags.ReadMessageHistory,
-      PermissionsBitField.Flags.AttachFiles,
-      PermissionsBitField.Flags.EmbedLinks,
-      PermissionsBitField.Flags.UseExternalEmojis,
-      PermissionsBitField.Flags.AddReactions
-    ]);
+    const everyoneRole = guild.roles.everyone;
+    const lockdownInfo = cacheManager.serverLockdowns.get(guild.id);
+    
+    if (!lockdownInfo) {
+      await channel.send('✅ El servidor no está en lockdown.');
+      return;
+    }
+    
+    // Restore original permissions if available
+    if (lockdownInfo.originalPermissions) {
+      await everyoneRole.setPermissions(lockdownInfo.originalPermissions);
+      console.log(`✅ Permisos originales restaurados manualmente para @everyone`);
+    } else {
+      // Fallback to default permissions
+      await everyoneRole.setPermissions([
+        PermissionsBitField.Flags.ViewChannel,
+        PermissionsBitField.Flags.SendMessages,
+        PermissionsBitField.Flags.ReadMessageHistory,
+        PermissionsBitField.Flags.AttachFiles,
+        PermissionsBitField.Flags.EmbedLinks,
+        PermissionsBitField.Flags.UseExternalEmojis,
+        PermissionsBitField.Flags.AddReactions,
+        PermissionsBitField.Flags.Connect,
+        PermissionsBitField.Flags.Speak,
+        PermissionsBitField.Flags.CreateInvite,
+        PermissionsBitField.Flags.UseVAD,
+        PermissionsBitField.Flags.Stream,
+        PermissionsBitField.Flags.UseEmbeddedActivities,
+        PermissionsBitField.Flags.UseSoundboard,
+        PermissionsBitField.Flags.UseExternalStickers,
+        PermissionsBitField.Flags.SendMessagesInThreads,
+        PermissionsBitField.Flags.CreatePublicThreads,
+        PermissionsBitField.Flags.CreatePrivateThreads
+      ]);
+      console.log(`✅ Permisos por defecto restaurados manualmente para @everyone`);
+    }
     
     // Restaurar permisos en canales específicos
     const botMember = guild.members.me;
@@ -252,35 +326,40 @@ async function manualUnlock(guild, channel) {
       ch.permissionsFor(botMember).has(PermissionsBitField.Flags.ManageChannels)
     );
     
-    for (const [_, channel] of channelsToRestore) {
+    console.log(`📝 Restaurando permisos manualmente en ${channelsToRestore.size} canales de texto`);
+    
+    for (const [_, textChannel] of channelsToRestore) {
       try {
-        await channel.permissionOverwrites.edit(everyoneRole, {
+        await textChannel.permissionOverwrites.edit(everyoneRole, {
           SendMessages: null,
-          CreatePublicThreads: null,
-          CreatePrivateThreads: null,
-          SendMessagesInThreads: null,
           AttachFiles: null,
-          EmbedLinks: null,
-          UseExternalEmojis: null,
-          AddReactions: null
+          EmbedLinks: null
         });
+        console.log(`✅ Permisos restaurados manualmente en #${textChannel.name}`);
       } catch (error) {
-        console.error(`Error restaurando canal ${channel.name}:`, error);
+        console.error(`❌ Error restaurando canal ${textChannel.name}:`, error);
       }
     }
     
+    // Clear timeout if it exists
+    if (lockdownInfo.unlockTimeout) {
+      clearTimeout(lockdownInfo.unlockTimeout);
+      console.log(`⏰ Timeout de auto-unlock cancelado`);
+    }
+    
     cacheManager.serverLockdowns.delete(guild.id);
+    console.log(`✅ Lockdown removido manualmente de cache para ${guild.name}`);
     
     const embed = new EmbedBuilder()
       .setTitle('✅ SERVIDOR DESBLOQUEADO')
-      .setDescription('El servidor ha sido desbloqueado manualmente por un administrador.')
+      .setDescription('El servidor ha sido desbloqueado manualmente por un administrador.\n\n**Permisos restaurados:**\n• Mensajes de texto habilitados\n• Archivos adjuntos habilitados\n• Embeds habilitados\n• Canales de voz funcionando\n• Invitaciones habilitadas\n• Todos los permisos originales restaurados')
       .setColor(0x00FF00)
       .setTimestamp();
     
     await channel.send({ embeds: [embed] });
     
   } catch (error) {
-    console.error('Error al desbloquear manualmente:', error);
+    console.error('❌ Error al desbloquear manualmente:', error);
     await channel.send('❌ Error al desbloquear el servidor.');
   }
 }

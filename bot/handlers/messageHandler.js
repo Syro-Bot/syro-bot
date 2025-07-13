@@ -67,6 +67,11 @@ async function handleMessageCreate(message) {
       await adminCommands.handleNukeCommand(message);
     }
     
+    // Handle permissions diagnostic command
+    if (message.content === 'xperms') {
+      await adminCommands.handlePermissionsCommand(message);
+    }
+    
     // Handle avatar command (for everyone)
     if (message.content.startsWith('xavatar')) {
       await adminCommands.handleAvatarCommand(message);
