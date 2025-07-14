@@ -131,42 +131,44 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
   };
 
   return (
-    <div className="w-full max-w-[90rem] mx-auto py-12 transition-colors duration-300">
+    <div className="w-full max-w-[90rem] mx-auto py-6 transition-colors duration-300">
       {/* Banner Header */}
-      <div className="bg-gradient-to-r from-blue-400 via-blue-600 to-blue-900 rounded-3xl p-24 mb-10 max-w-[80rem] mx-auto">
-        <h1 className="text-6xl font-extrabold text-white uppercase leading-none text-center">
+      <div className="bg-gradient-to-r from-blue-400 via-blue-600 to-blue-900 rounded-3xl p-10 md:p-24 mb-8 md:mb-10 max-w-[80rem] mx-auto">
+        <h1 className="text-3xl md:text-6xl font-extrabold text-white uppercase leading-none text-center">
           Create New Channel
         </h1>
-        <p className="text-blue-100 text-center text-xl mt-4 font-medium">
+        <p className="text-blue-100 text-center text-base md:text-xl mt-4 font-medium">
           Build your server's communication structure
         </p>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-[80rem] mx-auto">
-        {/* Channel list left */}
-        <div className="lg:col-span-1">
+      {/* Responsive layout: mobile vertical, desktop grid */}
+      <div className="flex flex-col gap-8 md:grid md:grid-cols-3 md:gap-8 max-w-[80rem] mx-auto">
+        {/* Server Channels */}
+        <div className="md:col-span-1">
           <div className="sticky top-8">
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-4 md:mb-6">
               <div className="p-2 bg-blue-500/10 rounded-xl">
                 <Hash className="w-6 h-6 text-blue-500" />
               </div>
               <div>
-                <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Server Channels</h2>
-                <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{channels.length} channels total</p>
+                <h2 className={`text-lg md:text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Server Channels</h2>
+                <p className={`text-xs md:text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>{channels.length} channels total</p>
               </div>
             </div>
-            <ChannelListDisplay channels={channels} height={600} />
+            {/* Responsive height: 400px en móvil, 700px en desktop */}
+            <ChannelListDisplay channels={channels} height={typeof window !== 'undefined' && window.innerWidth >= 768 ? 700 : 400} />
           </div>
         </div>
-        {/* Form right */}
-        <div className="lg:col-span-2">
-          {/* Header: Botones de modo */}
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-8 text-white rounded-3xl mb-8">
-            <div className="flex items-center justify-center h-20">
-              <div className="flex gap-6 w-full max-w-2xl">
+        {/* Formulario y opciones */}
+        <div className="md:col-span-2 flex flex-col gap-6">
+          {/* Basic Settings */}
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 md:p-8 text-white rounded-3xl mb-4 md:mb-8">
+            <div className="flex flex-col md:flex-row items-center justify-center md:h-20 gap-4 md:gap-0">
+              <div className="flex gap-4 md:gap-6 w-full max-w-2xl">
                 <button
                   type="button"
                   onClick={() => setMode('channel')}
-                  className={`flex-1 flex items-center justify-center gap-3 py-5 px-8 rounded-xl font-semibold text-lg transition-all duration-200 ${mode === 'channel'
+                  className={`flex-1 flex items-center justify-center gap-3 py-3 md:py-5 px-4 md:px-8 rounded-xl font-semibold text-base md:text-lg transition-all duration-200 ${mode === 'channel'
                     ? 'bg-white/20 text-white'
                     : 'bg-white/10 text-blue-100 hover:bg-white/15'
                   }`}
@@ -176,7 +178,7 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
                 <button
                   type="button"
                   onClick={() => setMode('category')}
-                  className={`flex-1 flex items-center justify-center gap-3 py-5 px-8 rounded-xl font-semibold text-lg transition-all duration-200 ${mode === 'category'
+                  className={`flex-1 flex items-center justify-center gap-3 py-3 md:py-5 px-4 md:px-8 rounded-xl font-semibold text-base md:text-lg transition-all duration-200 ${mode === 'category'
                     ? 'bg-white/20 text-white'
                     : 'bg-white/10 text-blue-100 hover:bg-white/15'
                   }`}
@@ -187,54 +189,49 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
             </div>
           </div>
           {/* Formulario dinámico */}
-          {mode === 'channel' ? (
-            <ChannelForm
-              isDarkMode={isDarkMode}
-              name={name}
-              setName={setName}
-              type={type}
-              setType={setType}
-              categoryId={categoryId}
-              setCategoryId={setCategoryId}
-              topic={topic}
-              setTopic={setTopic}
-              userLimit={userLimit}
-              setUserLimit={setUserLimit}
-              categories={categories}
-              loading={loading}
-              success={success}
-              error={error}
-              onSubmit={handleChannelSubmit}
-              roles={roles}
-              selectedRoles={selectedRoles}
-              isPrivate={isPrivate}
-              isNSFW={isNSFW}
-              slowmode={slowmode}
-              showAdvanced={showAdvanced}
-              setShowAdvanced={setShowAdvanced}
-              setIsPrivate={setIsPrivate}
-              setIsNSFW={setIsNSFW}
-              setSlowmode={setSlowmode}
-              toggleRole={toggleRole}
-            />
-          ) : (
-            <CategoryForm
-              isDarkMode={isDarkMode}
-              catName={catName}
-              setCatName={setCatName}
-              loading={loading}
-              success={success}
-              error={error}
-              onSubmit={handleCategorySubmit}
-              roles={roles}
-              selectedRoles={selectedRoles}
-              isPrivate={isPrivate}
-              showAdvanced={showAdvanced}
-              setShowAdvanced={setShowAdvanced}
-              setIsPrivate={setIsPrivate}
-              toggleRole={toggleRole}
-            />
-          )}
+          <div className="bg-white dark:bg-[#181c24] rounded-2xl shadow p-4 md:p-8">
+            {mode === 'channel' ? (
+              <ChannelForm
+                isDarkMode={isDarkMode}
+                name={name}
+                setName={setName}
+                type={type}
+                setType={setType}
+                categoryId={categoryId}
+                setCategoryId={setCategoryId}
+                topic={topic}
+                setTopic={setTopic}
+                isPrivate={isPrivate}
+                setIsPrivate={setIsPrivate}
+                isNSFW={isNSFW}
+                setIsNSFW={setIsNSFW}
+                slowmode={slowmode}
+                setSlowmode={setSlowmode}
+                userLimit={userLimit}
+                setUserLimit={setUserLimit}
+                roles={roles}
+                selectedRoles={selectedRoles}
+                toggleRole={toggleRole}
+                categories={categories}
+                loading={loading}
+                error={error}
+                success={success}
+                onSubmit={handleChannelSubmit}
+                showAdvanced={showAdvanced}
+                setShowAdvanced={setShowAdvanced}
+              />
+            ) : (
+              <CategoryForm
+                isDarkMode={isDarkMode}
+                name={catName}
+                setName={setCatName}
+                loading={loading}
+                error={error}
+                success={success}
+                onSubmit={handleCategorySubmit}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

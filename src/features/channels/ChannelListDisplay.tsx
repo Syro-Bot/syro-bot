@@ -32,15 +32,19 @@ const ChannelListDisplay: React.FC<ChannelListDisplayProps> = ({
   const noCategoryChannels = channels.filter(c => c.type !== 4 && (!c.parentId || c.parentId === null)).sort((a, b) => a.position - b.position);
 
   return (
-    <div className={`flex flex-col items-center justify-center min-w-[340px] max-w-[380px] w-full rounded-2xl px-6 py-0`} style={{ height }}>
-      <div className="w-full h-full overflow-y-auto pt-6 pb-6 pr-3">
+    <div
+      className={`flex flex-col items-center justify-center min-w-[340px] max-w-[380px] w-full rounded-2xl px-2 py-0`}
+      style={{ height }}
+    >
+      <div className="w-full h-full overflow-y-auto pt-6 pb-6 pr-1">
         {categories.map(category => (
           <div key={category.id} className="mb-2 w-full">
             <div className={`flex items-center gap-2 justify-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               <Folder size={14} />
               <span className="font-medium text-sm uppercase tracking-wide">{category.name}</span>
             </div>
-            <div className="space-y-2 flex flex-col items-center w-full">
+            {/* Grid para canales de la categoría */}
+            <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 md:hidden">
               {channels
                 .filter(c => c.parentId === category.id)
                 .sort((a, b) => a.position - b.position)
@@ -48,7 +52,35 @@ const ChannelListDisplay: React.FC<ChannelListDisplayProps> = ({
                   <div
                     key={channel.id}
                     onClick={onChannelClick ? () => onChannelClick(channel) : undefined}
-                    className={`rounded-lg p-3 border max-w-md w-full transition-colors cursor-pointer ${selectedChannelId === channel.id
+                    className={`rounded-lg p-3 border w-full transition-colors cursor-pointer text-center ${selectedChannelId === channel.id
+                      ? 'border-blue-500 bg-blue-500/20'
+                      : isDarkMode
+                        ? 'bg-white/10 border-white/10 hover:bg-white/20'
+                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      {channel.type === 2 ? (
+                        <Mic size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      ) : (
+                        <Hash size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      )}
+                      <span className={`font-medium text-xs truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{channel.name}</span>
+                      <span className="text-[10px] text-gray-500">#{channel.position}</span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+            {/* Desktop: columna vertical, cards grandes */}
+            <div className="w-full space-y-2 hidden md:flex flex-col items-center mt-2">
+              {channels
+                .filter(c => c.parentId === category.id)
+                .sort((a, b) => a.position - b.position)
+                .map(channel => (
+                  <div
+                    key={channel.id}
+                    onClick={onChannelClick ? () => onChannelClick(channel) : undefined}
+                    className={`rounded-lg p-4 border max-w-md w-full transition-colors cursor-pointer ${selectedChannelId === channel.id
                       ? 'border-blue-500 bg-blue-500/20'
                       : isDarkMode
                         ? 'bg-white/10 border-white/10 hover:bg-white/20'
@@ -56,12 +88,12 @@ const ChannelListDisplay: React.FC<ChannelListDisplayProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                    {channel.type === 2 ? (
-                      <Mic size={14} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
-                    ) : (
-                      <Hash size={14} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
-                    )}
-                      <span className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{channel.name}</span>
+                      {channel.type === 2 ? (
+                        <Mic size={18} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      ) : (
+                        <Hash size={18} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      )}
+                      <span className={`font-medium text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{channel.name}</span>
                       <span className="text-xs text-gray-500 ml-auto">#{channel.position}</span>
                     </div>
                   </div>
@@ -76,12 +108,37 @@ const ChannelListDisplay: React.FC<ChannelListDisplayProps> = ({
               <Folder size={14} />
               <span className="font-medium text-sm uppercase tracking-wide">No Category</span>
             </div>
-            <div className="space-y-2 flex flex-col items-center w-full">
+            <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 md:hidden">
               {noCategoryChannels.map(channel => (
                 <div
                   key={channel.id}
                   onClick={onChannelClick ? () => onChannelClick(channel) : undefined}
-                  className={`rounded-lg p-3 border max-w-md w-full transition-colors cursor-pointer ${selectedChannelId === channel.id
+                  className={`rounded-lg p-3 border w-full transition-colors cursor-pointer text-center ${selectedChannelId === channel.id
+                    ? 'border-blue-500 bg-blue-500/20'
+                    : isDarkMode
+                      ? 'bg-white/10 border-white/10 hover:bg-white/20'
+                      : 'bg-white border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    {channel.type === 2 ? (
+                      <Mic size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                    ) : (
+                      <Hash size={16} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                    )}
+                    <span className={`font-medium text-xs truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{channel.name}</span>
+                    <span className="text-[10px] text-gray-500">#{channel.position}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop: columna vertical, cards grandes */}
+            <div className="w-full space-y-2 hidden md:flex flex-col items-center mt-2">
+              {noCategoryChannels.map(channel => (
+                <div
+                  key={channel.id}
+                  onClick={onChannelClick ? () => onChannelClick(channel) : undefined}
+                  className={`rounded-lg p-4 border max-w-md w-full transition-colors cursor-pointer ${selectedChannelId === channel.id
                     ? 'border-blue-500 bg-blue-500/20'
                     : isDarkMode
                       ? 'bg-white/10 border-white/10 hover:bg-white/20'
@@ -90,11 +147,11 @@ const ChannelListDisplay: React.FC<ChannelListDisplayProps> = ({
                 >
                   <div className="flex items-center gap-2">
                     {channel.type === 2 ? (
-                      <Mic size={14} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      <Mic size={18} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
                     ) : (
-                    <Hash size={14} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
+                      <Hash size={18} className={isDarkMode ? 'text-gray-400' : 'text-gray-500'} />
                     )}
-                    <span className={`font-medium text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{channel.name}</span>
+                    <span className={`font-medium text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{channel.name}</span>
                     <span className="text-xs text-gray-500 ml-auto">#{channel.position}</span>
                   </div>
                 </div>
