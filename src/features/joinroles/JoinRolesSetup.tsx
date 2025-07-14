@@ -78,20 +78,20 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
         setAssignedGeneralRoles(cachedData.general || []);
         setAssignedUserRoles(cachedData.user || []);
         setAssignedBotRoles(cachedData.bot || []);
-        
+
         // Auto-load role type cards if there are saved roles
         const hasGeneralRoles = (cachedData.general || []).length > 0;
         const hasUserRoles = (cachedData.user || []).length > 0;
         const hasBotRoles = (cachedData.bot || []).length > 0;
-        
+
         const typesToLoad: string[] = [];
         if (hasGeneralRoles) typesToLoad.push('general');
         if (hasUserRoles) typesToLoad.push('user');
         if (hasBotRoles) typesToLoad.push('bot');
-        
+
         const roleTypesToAdd = ROLE_TYPES.filter(role => typesToLoad.includes(role.type));
         setSelectedRoles(roleTypesToAdd);
-        
+
         setIsInitialLoad(false);
         setLoadError(null);
         console.log('✅ Loaded from cache:', cachedData);
@@ -108,21 +108,21 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
       setIsInitialLoad(true);
       setHasUserChanges(false);
       setLoadError(null);
-      
+
       const response = await fetch(`/api/join-roles/${guildId}`, {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const responseText = await response.text();
       console.log('🔍 Raw response:', responseText);
-      
+
       let data;
       try {
         data = JSON.parse(responseText);
@@ -132,32 +132,32 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
         setLoadError('Invalid response from server');
         return;
       }
-      
+
       if (data.success) {
         const joinRoles = data.joinRoles || { general: [], user: [], bot: [] };
-        
+
         // Guardar en caché
         if (guildId) {
           joinRolesCache.set(guildId, joinRoles);
         }
-        
+
         setAssignedGeneralRoles(joinRoles.general || []);
         setAssignedUserRoles(joinRoles.user || []);
         setAssignedBotRoles(joinRoles.bot || []);
-        
+
         // Auto-load role type cards if there are saved roles
         const hasGeneralRoles = (joinRoles.general || []).length > 0;
         const hasUserRoles = (joinRoles.user || []).length > 0;
         const hasBotRoles = (joinRoles.bot || []).length > 0;
-        
+
         const typesToLoad: string[] = [];
         if (hasGeneralRoles) typesToLoad.push('general');
         if (hasUserRoles) typesToLoad.push('user');
         if (hasBotRoles) typesToLoad.push('bot');
-        
+
         const roleTypesToAdd = ROLE_TYPES.filter(role => typesToLoad.includes(role.type));
         setSelectedRoles(roleTypesToAdd);
-        
+
         console.log('✅ Join roles config loaded:', joinRoles);
         console.log('📋 Auto-loaded role type cards:', roleTypesToAdd.map(r => r.type));
       } else {
@@ -197,7 +197,7 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
 
       const responseText = await response.text();
       console.log('🔍 Save response:', responseText);
-      
+
       let data;
       try {
         data = JSON.parse(responseText);
@@ -206,7 +206,7 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
         console.error('❌ Save response was not valid JSON:', responseText);
         return;
       }
-      
+
       if (data.success) {
         // Actualizar caché
         if (guildId) {
@@ -276,7 +276,7 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
             Assign roles automatically to users when they join your server
           </p>
         </div>
-        
+
         <div className="max-w-[80rem] mx-auto flex items-center justify-center h-64">
           <div className="text-center">
             <div className="text-red-500 text-xl mb-4">⚠️ Error loading configuration</div>
@@ -330,18 +330,38 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
             {selectedRoles.map((role, idx) => (
               <div
                 key={idx}
-                className={`rounded-2xl p-6 shadow-lg flex flex-col gap-2 border-2 transition-all duration-200 ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
+                className={`rounded-2xl p-6 shadow-md flex flex-col gap-2 border-2 transition-all duration-200 ${isDarkMode
+                    ? "bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]"
+                    : "bg-gradient-to-br from-white via-blue-50 to-blue-100 border-blue-100"
+                  }`}
               >
                 <div className={`flex items-center gap-3 mb-2`}>
-                  <div className={`w-12 h-12 aspect-square flex-shrink-0 flex-grow-0 overflow-hidden rounded-xl bg-gradient-to-r ${role.gradient} flex items-center justify-center`}>
-                    <role.icon className="w-6 h-6 text-white" />
+                  <div
+                    className={`flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center
+  ${role.type === 'general'
+                        ? (isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100')
+                        : role.type === 'user'
+                          ? (isDarkMode ? 'bg-green-500/20' : 'bg-green-100')
+                          : role.type === 'bot'
+                            ? (isDarkMode ? 'bg-purple-500/20' : 'bg-purple-100')
+                            : (isDarkMode ? 'bg-gray-500/20' : 'bg-gray-100')
+                      }
+`}>
+                    <role.icon className={`w-5 h-5 md:w-6 md:h-6 ${role.type === 'general'
+                        ? (isDarkMode ? 'text-blue-400' : 'text-blue-600')
+                        : role.type === 'user'
+                          ? (isDarkMode ? 'text-green-400' : 'text-green-600')
+                          : role.type === 'bot'
+                            ? (isDarkMode ? 'text-purple-400' : 'text-purple-600')
+                            : (isDarkMode ? 'text-gray-300' : 'text-gray-600')
+                      }`} />
                   </div>
                   <div>
                     <h4 className={`font-semibold text-lg ${isDarkMode ? "text-white" : "text-gray-900"}`}>{role.title}</h4>
                     <p className={`text-sm ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>{role.description}</p>
                   </div>
                 </div>
-                
+
                 {/* Botón + y modal para cada tipo */}
                 <div className="mt-4 relative flex items-end justify-start h-10">
                   <RoleSelectorButton
@@ -372,14 +392,20 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
           {/* Modal de selección de tipo de roles */}
           {isModalOpen && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className={`rounded-2xl p-6 max-w-md w-full mx-4 shadow-lg ${isDarkMode ? "bg-gray-800" : "bg-white"}`}>
+              <div className={`rounded-2xl p-6 max-w-md w-full mx-4 shadow-lg border-2 ${isDarkMode
+                  ? "bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]"
+                  : "bg-gradient-to-br from-white via-blue-50 to-blue-100 border-blue-100"
+                }`}>
                 <h3 className={`text-xl font-bold mb-4 ${isDarkMode ? "text-white" : "text-gray-900"}`}>Select role type</h3>
                 <div className="space-y-3">
                   {ROLE_TYPES.map((role) => (
                     <button
                       key={role.type}
                       onClick={() => handleSelectType(role.type)}
-                      className={`w-full p-4 rounded-xl border-2 transition-all duration-200 hover:scale-105 ${isDarkMode ? "border-gray-600 hover:border-gray-400 bg-gray-700" : "border-gray-200 hover:border-gray-300 bg-gray-50"}`}
+                      className={`w-full p-4 rounded-xl border-2 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 ${isDarkMode
+                          ? "border-gray-600/50 hover:border-gray-400/50 bg-gradient-to-r from-gray-800/50 to-gray-700/50"
+                          : "border-gray-200 hover:border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100"
+                        }`}
                     >
                       <div className="flex items-center space-x-3">
                         <div className={`w-12 h-12 aspect-square flex-shrink-0 flex-grow-0 overflow-hidden rounded-xl bg-gradient-to-r ${role.gradient} flex items-center justify-center`}>

@@ -79,6 +79,40 @@ const AutoModRuleCard: React.FC<AutoModRuleCardProps> = ({ rule, isDarkMode, fea
     }
   };
 
+  const getIconBgAndColor = () => {
+    if (featureName === 'Raids') {
+      switch (rule.raidType) {
+        case 'join':
+          return {
+            bg: isDarkMode ? 'bg-green-500/20' : 'bg-green-100',
+            color: isDarkMode ? 'text-green-400' : 'text-green-600',
+          };
+        case 'channel':
+          return {
+            bg: isDarkMode ? 'bg-purple-500/20' : 'bg-purple-100',
+            color: isDarkMode ? 'text-purple-400' : 'text-purple-600',
+          };
+        case 'role':
+          return {
+            bg: isDarkMode ? 'bg-orange-500/20' : 'bg-orange-100',
+            color: isDarkMode ? 'text-orange-400' : 'text-orange-600',
+          };
+        default:
+          return {
+            bg: isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100',
+            color: isDarkMode ? 'text-blue-400' : 'text-blue-600',
+          };
+      }
+    } else {
+      // Spam
+      return {
+        bg: isDarkMode ? 'bg-red-500/20' : 'bg-red-100',
+        color: isDarkMode ? 'text-red-400' : 'text-red-600',
+      };
+    }
+  };
+  const iconStyle = getIconBgAndColor();
+
   const renderSpamControls = () => (
     <>
       {/* Número de mensajes */}
@@ -379,21 +413,19 @@ const AutoModRuleCard: React.FC<AutoModRuleCardProps> = ({ rule, isDarkMode, fea
 
   return (
     <div
-      className={`rounded-xl p-4 border ${
+      className={`rounded-2xl p-6 border-2 shadow-md transition-all duration-200 ${
         isDarkMode 
-          ? 'bg-white/10 backdrop-blur-sm border-white/20' 
-          : 'bg-gray-100/80 backdrop-blur-sm border-gray-200'
+          ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]' 
+          : 'bg-gradient-to-br from-white via-blue-50 to-blue-100 border-blue-100'
       }`}
     >
-      <div className="flex items-center mb-2">
-        <div className="mr-2">
-          <raidTypeInfo.icon className="w-5 h-5 text-blue-500" />
+      <div className="flex items-center gap-3 mb-2">
+        <div className={`flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center shadow-md ${iconStyle.bg}`}>
+          <raidTypeInfo.icon className={`w-5 h-5 md:w-6 md:h-6 ${iconStyle.color}`} />
         </div>
-        <h3 className={`text-lg font-bold ${
-          isDarkMode ? 'text-white' : 'text-gray-900'
-        }`}>
-          {raidTypeInfo.label}
-        </h3>
+        <div>
+          <h3 className={`font-semibold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{raidTypeInfo.label}</h3>
+        </div>
       </div>
       <p className={`text-sm text-left mb-4 ${
         isDarkMode ? 'text-white/80' : 'text-gray-700'
