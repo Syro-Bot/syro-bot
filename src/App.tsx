@@ -277,10 +277,11 @@ const useAuth = () => {
  */
 const ProtectedRoute: React.FC<{ children: (user: any) => React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
+  const { isDarkMode } = useTheme();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
         <LoadingSpinner />
       </div>
     );
