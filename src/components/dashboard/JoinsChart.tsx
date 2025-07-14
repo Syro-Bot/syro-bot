@@ -142,7 +142,12 @@ const JoinsChart: React.FC<JoinsChartProps> = ({ guildId }) => {
               <XAxis 
                 dataKey="date" 
                 stroke={isDarkMode ? '#9CA3AF' : '#6B7280'}
-                tickFormatter={(value) => new Date(value).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}
+                tickFormatter={(value) => {
+                  // value es YYYY-MM-DD en UTC, mostrar en local
+                  const [year, month, day] = value.split('-');
+                  const utcDate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+                  return utcDate.toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' });
+                }}
                 fontSize={12}
               />
               <YAxis 
@@ -159,11 +164,12 @@ const JoinsChart: React.FC<JoinsChartProps> = ({ guildId }) => {
                   boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
                   fontSize: '12px'
                 }}
-                labelFormatter={(value) => new Date(value).toLocaleDateString('es-ES', { 
-                  day: '2-digit', 
-                  month: 'long', 
-                  year: 'numeric' 
-                })}
+                labelFormatter={(value) => {
+                  // value es YYYY-MM-DD en UTC, mostrar en local
+                  const [year, month, day] = value.split('-');
+                  const utcDate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+                  return utcDate.toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' });
+                }}
               />
               <Bar 
                 dataKey="joins" 

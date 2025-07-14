@@ -279,23 +279,24 @@ function registerLegacyRoutes(app) {
         });
       }
 
-      const getLocalDateString = (date) => {
+      // Cambiar a agrupación por día UTC
+      const getUTCDateString = (date) => {
         const d = new Date(date);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
       };
 
       const firstJoinDate = new Date(Math.min(...recentJoins.map(j => new Date(j.timestamp).getTime())));
-      const firstDay = new Date(firstJoinDate.getFullYear(), firstJoinDate.getMonth(), firstJoinDate.getDate());
-      const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+      const firstDay = new Date(Date.UTC(firstJoinDate.getUTCFullYear(), firstJoinDate.getUTCMonth(), firstJoinDate.getUTCDate()));
+      const lastDay = new Date(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate()));
 
       const dailyStats = {};
-      for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-        const dayKey = getLocalDateString(d);
+      for (let d = new Date(firstDay); d <= lastDay; d.setUTCDate(d.getUTCDate() + 1)) {
+        const dayKey = getUTCDateString(d);
         dailyStats[dayKey] = 0;
       }
 
       recentJoins.forEach(join => {
-        const dayKey = getLocalDateString(join.timestamp);
+        const dayKey = getUTCDateString(join.timestamp);
         if (dailyStats.hasOwnProperty(dayKey)) {
           dailyStats[dayKey]++;
         }
@@ -311,8 +312,8 @@ function registerLegacyRoutes(app) {
         totalJoins: recentJoins.length,
         guildId: guildId,
         dateRange: {
-          start: getLocalDateString(firstDay),
-          end: getLocalDateString(lastDay)
+          start: getUTCDateString(firstDay),
+          end: getUTCDateString(lastDay)
         }
       });
     } catch (error) {
