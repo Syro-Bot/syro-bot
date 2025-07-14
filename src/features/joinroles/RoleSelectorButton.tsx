@@ -124,7 +124,7 @@ const RoleSelectorButton: React.FC<RoleSelectorButtonProps> = ({
         onClick={() => setShowRoleModal(true)}
         className={`flex items-center justify-center w-8 h-8 rounded-md transition-colors text-xl font-bold ${getColorClasses()}`}
         title="Add Role"
-        style={{ position: 'absolute', left: 0, bottom: 0 }}
+        // style eliminado para permitir layout normal
       >
         <Plus size={20} />
       </button>
