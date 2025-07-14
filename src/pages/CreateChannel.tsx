@@ -190,7 +190,7 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
             </div>
           </div>
           {/* Formulario dinámico */}
-          <div className="bg-white dark:bg-[#181c24] rounded-2xl shadow p-4 md:p-8">
+          <div className="rounded-2xl shadow p-4 md:p-8">
             {mode === 'channel' ? (
               <ChannelForm
                 isDarkMode={isDarkMode}

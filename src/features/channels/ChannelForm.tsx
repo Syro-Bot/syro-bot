@@ -148,7 +148,7 @@ const ChannelForm: React.FC<ChannelFormProps> = ({
             value={topic}
             onChange={e => setTopic(e.target.value)}
             rows={3}
-            className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 ${isDarkMode
+            className={`w-full px-4 py-3 rounded-xl border transition-all duration-200 resize-none ${isDarkMode
               ? 'bg-gray-800 border-gray-600 text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
               : 'bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
             }`}
