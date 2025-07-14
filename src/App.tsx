@@ -175,15 +175,16 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
   return (
     <UserTemplateProvider user={user}>
       <AutoModProvider guildId={guildId}>
-        <div className="flex h-screen transition-colors duration-500">
+        <div className={`flex h-screen transition-colors duration-500 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
           {/* Sidebar - Oculto en móvil */}
-          <div className="hidden md:block">
+          <div className="hidden md:block" key={`sidebar-${isDarkMode}`}>
             <Sidebar onNavigate={setActiveComponent} activeComponent={activeComponent} />
           </div>
           
           {/* Contenido principal */}
           <main className="flex-1 h-screen flex flex-col transition-colors duration-500">
             <HeaderControls 
+              key={`header-${isDarkMode}`}
               activeSection={activeComponent} 
               user={user} 
               guildId={guildId}

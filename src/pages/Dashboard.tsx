@@ -165,49 +165,50 @@ const Dashboard: React.FC<{
         <div className={`${
           isMobile 
             ? 'mt-8 space-y-6 px-4' 
-            : 'absolute top-16 left-6 z-0'
+            : 'mt-16 px-6'
         }`}>
-          {/* Gráfico de estadísticas */}
+          {/* Grid de 2 columnas en desktop, 1 en móvil */}
           <div className={`${
             isMobile 
-              ? 'w-full' 
-              : 'w-[48rem]'
+              ? 'space-y-6' 
+              : 'grid grid-cols-2 gap-6'
           }`}>
-            <JoinsChart guildId={guildId} />
+            {/* Gráfico de estadísticas */}
+            <div className="w-full">
+              <JoinsChart guildId={guildId} />
+            </div>
+            
+            {/* Panel de logs en tiempo real */}
+            <div className="w-full">
+              <LiveLogs guildId={guildId} />
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Panel de logs en tiempo real */}
-      {showChart && (
-        <div className={`${
-          isMobile 
-            ? 'mt-6 px-4' 
-            : 'absolute top-16 right-6 z-0'
-        }`}>
+          
+          {/* Segunda fila - Opciones generales y cuadrado vacío */}
           <div className={`${
             isMobile 
-              ? 'w-full' 
-              : 'w-[48rem]'
+              ? 'mt-6 space-y-6' 
+              : 'mt-6 grid grid-cols-2 gap-6'
           }`}>
-            <LiveLogs guildId={guildId} />
-          </div>
-        </div>
-      )}
-
-      {/* Opciones generales */}
-      {showChart && (
-        <div className={`${
-          isMobile 
-            ? 'mt-6 px-4 mb-8' 
-            : 'absolute bottom-0 left-6 z-0'
-        }`}>
-          <div className={`${
-            isMobile 
-              ? 'w-full' 
-              : 'w-[48rem]'
-          }`}>
-            <GeneralOptions guildId={guildId} />
+            {/* Opciones generales */}
+            <div className="w-full">
+              <GeneralOptions guildId={guildId} />
+            </div>
+            
+            {/* Cuadrado vacío - para futuras funcionalidades */}
+            <div className={`w-full h-full min-h-[300px] rounded-2xl border-2 border-dashed transition-colors ${
+              isDarkMode 
+                ? 'border-gray-700 bg-gray-900/50' 
+                : 'border-gray-300 bg-gray-50'
+            }`}>
+              <div className="flex items-center justify-center h-full">
+                <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <div className="text-4xl mb-2">📦</div>
+                  <p className="text-sm font-medium">Nueva funcionalidad</p>
+                  <p className="text-xs mt-1">Próximamente</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -63,6 +63,9 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({
   isMobileMenuOpen = false
 }) => {
   const { isDarkMode, toggleTheme } = useTheme();
+  
+  // Debug: verificar si el tema está cambiando
+  console.log('🎨 HeaderControls - isDarkMode:', isDarkMode);
   const { pendingCount, submitTemplate } = useTemplates();
   const [showModal, setShowModal] = useState(false);
   const [showPendingModal, setShowPendingModal] = useState(false);
@@ -210,7 +213,7 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({
 
   return (
     <>
-      <header className="flex items-center justify-between px-4 md:px-8 py-4 transition-colors duration-300 bg-transparent">
+      <header className={`flex items-center justify-between px-4 md:px-8 py-4 transition-colors duration-300 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
         {/* Lado izquierdo - Título y selector de servidor */}
         <div className="flex items-center space-x-4">
           {/* Botón de menú móvil - Solo visible en móvil */}

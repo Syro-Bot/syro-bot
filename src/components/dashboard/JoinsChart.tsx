@@ -51,7 +51,7 @@ const JoinsChart: React.FC<JoinsChartProps> = ({ guildId }) => {
   const totalJoins = statsData?.totalJoins || 0;
 
   return (
-    <div className={`w-full h-auto min-h-[20rem] md:h-[23rem] backdrop-blur-sm rounded-2xl p-4 md:p-6 transition-colors duration-300 ${
+    <div className={`w-full h-auto min-h-[20rem] md:h-[23rem] backdrop-blur-sm rounded-2xl p-6 md:p-8 transition-colors duration-300 ${
       isDarkMode ? 'bg-[#181c24]' : 'bg-white'
     }`}>
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
@@ -126,9 +126,9 @@ const JoinsChart: React.FC<JoinsChartProps> = ({ guildId }) => {
       )}
       
       {!loading && !error && (
-        <div className="w-full h-64 md:h-80">
+        <div className="w-full h-64 md:h-80 px-2 pb-4">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData}>
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
               <defs>
                 <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#60a5fa" />

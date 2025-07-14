@@ -148,7 +148,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
         }`}
       >
         {/* Header del menú */}
-        <div className={`relative h-full flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+        <div className={`relative h-full flex flex-col ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
           {/* Header con logo y botón cerrar */}
           <div className={`flex items-center justify-between p-6 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
             <div className="flex items-center gap-3">

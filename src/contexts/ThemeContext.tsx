@@ -8,8 +8,24 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const toggleTheme = () => setIsDarkMode((prev) => !prev);
+  // Cargar el tema desde localStorage al inicializar
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('syro-theme');
+    if (savedTheme) {
+      return savedTheme === 'dark';
+    }
+    // Detectar preferencia del sistema si no hay tema guardado
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => {
+      const newTheme = !prev;
+      // Guardar en localStorage
+      localStorage.setItem('syro-theme', newTheme ? 'dark' : 'light');
+      return newTheme;
+    });
+  };
 
   useEffect(() => {
     const root = window.document.documentElement;

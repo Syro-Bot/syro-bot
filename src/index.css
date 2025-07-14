@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global background */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Dark mode background */
+.dark {
+  background-color: #000;
+}
+
+/* Light mode background */
+:root {
+  background-color: #fff;
+}
+
 /* Custom slider styles */
 .slider-orange::-webkit-slider-thumb {
   appearance: none;
