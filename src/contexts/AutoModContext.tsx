@@ -203,8 +203,35 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
         ...prev,
         [featureName]: (prev[featureName] || []).filter(rule => ruleId !== rule.id)
       };
+      // GUARDA usando el estado actualizado, no el global
+      saveRulesWithRules(guildId, updatedRules);
       return updatedRules;
     });
+  };
+
+  // Nueva función auxiliar:
+  const saveRulesWithRules = async (guildId: string, rulesToSave: Record<string, AutoModRule[]>) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/servers/${guildId}/automod/rules`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ automodRules: rulesToSave })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al guardar reglas');
+      }
+      console.log('✅ Reglas guardadas:', result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const value: AutoModContextType = {

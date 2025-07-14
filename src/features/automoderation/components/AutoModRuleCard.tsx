@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import type { AutoModRule, RaidTypeInfo } from "../types";
 import { useAutoMod } from "../../../contexts/AutoModContext";
-import { Users, Hash, Shield, ShieldCheck } from "lucide-react";
+import { Users, Hash, Shield, ShieldCheck, Trash } from "lucide-react";
 
 interface AutoModRuleCardProps {
   rule: AutoModRule;
@@ -10,7 +10,7 @@ interface AutoModRuleCardProps {
 }
 
 const AutoModRuleCard: React.FC<AutoModRuleCardProps> = ({ rule, isDarkMode, featureName }) => {
-  const { updateRule } = useAutoMod();
+  const { updateRule, deleteRule } = useAutoMod();
   const [messageCount, setMessageCount] = useState(rule.messageCount || 3);
   const [timeWindow, setTimeWindow] = useState(rule.timeWindow || 5);
   const [joinCount, setJoinCount] = useState(rule.joinCount || 5);
@@ -413,12 +413,20 @@ const AutoModRuleCard: React.FC<AutoModRuleCardProps> = ({ rule, isDarkMode, fea
 
   return (
     <div
-      className={`rounded-2xl p-6 border-2 shadow-md transition-all duration-200 ${
+      className={`rounded-2xl p-6 border-2 shadow-md transition-all duration-200 relative ${
         isDarkMode 
           ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]' 
           : 'bg-gradient-to-br from-white via-blue-50 to-blue-100 border-blue-100'
       }`}
     >
+      {/* Botón eliminar */}
+      <button
+        className={`absolute top-3 right-3 p-2 rounded-full transition-colors duration-200 hover:bg-red-500/20 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}
+        title="Delete rule"
+        onClick={() => deleteRule(featureName, rule.id)}
+      >
+        <Trash className="w-5 h-5" />
+      </button>
       <div className="flex items-center gap-3 mb-2">
         <div className={`flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center shadow-md ${iconStyle.bg}`}>
           <raidTypeInfo.icon className={`w-5 h-5 md:w-6 md:h-6 ${iconStyle.color}`} />

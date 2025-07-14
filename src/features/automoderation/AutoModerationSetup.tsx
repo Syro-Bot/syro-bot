@@ -14,6 +14,7 @@ const AutoModerationSetup: React.FC<AutoModerationSetupProps> = ({ feature, onBa
   const handleAddRule = async () => {
     switch (feature.name) {
       case "Spam":
+        if ((rules.Spam || []).length > 0) return; // Solo permitir uno
         await addRule("Spam", {
           title: "Spam",
           description: "Take Actions when a user sends messages too fast",
@@ -92,6 +93,8 @@ const AutoModerationSetup: React.FC<AutoModerationSetupProps> = ({ feature, onBa
           <button
             className="absolute top-4 right-6 px-3 py-1 text-xs font-bold uppercase rounded-md bg-white/30 text-white hover:bg-white/50 transition-colors"
             onClick={handleAddRule}
+            disabled={feature.name === 'Spam' && (rules.Spam || []).length > 0}
+            style={feature.name === 'Spam' && (rules.Spam || []).length > 0 ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           >
             Add
           </button>
