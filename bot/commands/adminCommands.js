@@ -138,9 +138,9 @@ async function handleProcess(interaction) {
       ephemeral: true
     });
   }
-
+  
   await interaction.deferReply({ ephemeral: true });
-
+  
   try {
     const processedCount = await dataRetentionService.forceProcess();
 
@@ -223,7 +223,7 @@ async function handleCancel(interaction) {
     await interaction.editReply({
       content: '❌ Error cancelling scheduled deletion'
     });
-  }
+          }
 }
 
 /**
@@ -244,7 +244,7 @@ const dataRetentionInfo = {
 
       // Get or create settings
       const config = await DataRetentionConfig.getGuildSettings(guildId);
-
+      
       const embed = new EmbedBuilder()
         .setTitle('🗑️ Data Retention Settings')
         .setColor('#FF6B35')
@@ -281,7 +281,7 @@ const dataRetentionInfo = {
           text: 'Configure these settings in the web dashboard' 
         })
         .setTimestamp();
-
+      
       await interaction.editReply({ embeds: [embed] });
 
     } catch (error) {
@@ -366,7 +366,7 @@ async function handleCleanRaidCommand(message) {
     if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
       return await message.reply('❌ You need Administrator permissions to use this command');
     }
-
+    
     // This would integrate with your raid detection system
     await message.reply('🧹 Raid cleanup initiated...');
   } catch (error) {
@@ -383,8 +383,8 @@ async function handleRaidStatusCommand(message) {
   try {
     if (!message.member.permissions.has(PermissionFlagsBits.Administrator)) {
       return await message.reply('❌ You need Administrator permissions to use this command');
-    }
-
+  }
+  
     const guild = message.guild;
     
     // Check if server is in lockdown
@@ -448,7 +448,7 @@ async function handleNukeCommand(message) {
     const newChannel = await channel.clone();
     await channel.delete();
     await newChannel.setPosition(position);
-
+        
     await newChannel.send('💥 Channel nuked successfully!');
   } catch (error) {
     logger.error('Error in nuke command:', error);

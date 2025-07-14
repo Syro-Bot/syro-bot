@@ -26,7 +26,7 @@ const ChannelListModern: React.FC<ChannelListModernProps> = ({
       className="flex flex-col items-center justify-center min-w-[340px] max-w-[400px] w-full rounded-2xl px-2 py-0"
       style={{ height }}
     >
-      <div className="w-full h-full overflow-y-auto pt-4 pb-4 pr-1">
+      <div className="w-full h-full overflow-y-auto pt-4 pb-4 pr-1 flex flex-col gap-2">
         {/* Categorías y sus canales */}
         {categories.map(category => (
           <React.Fragment key={category.id}>

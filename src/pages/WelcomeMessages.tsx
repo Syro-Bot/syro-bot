@@ -62,12 +62,18 @@ const WelcomeMessages: React.FC<WelcomeMessagesProps> = ({ guildId }) => {
           <div
             key={label}
             onClick={() => handleCardClick(view)}
-            className={`relative w-64 h-64 rounded-2xl flex items-center justify-center overflow-hidden cursor-pointer transition-all duration-200 ${isDarkMode
-                ? 'bg-white/10 dark:bg-black/20 hover:bg-white/20 dark:hover:bg-black/30'
-                : 'bg-white hover:bg-gray-50'
-              }`}
+            className={`relative w-64 h-64 rounded-2xl flex items-center justify-center overflow-hidden cursor-pointer transition-all duration-300
+              group border-2
+              ${isDarkMode
+                ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]'
+                : 'bg-gradient-to-br from-white via-blue-50 to-blue-100 border-blue-100'
+              }
+              hover:shadow-[0_0_32px_0_rgba(80,180,255,0.25)]
+              hover:border-blue-400
+            `}
+            style={{ minWidth: 220 }}
           >
-            <Icon className={`absolute inset-0 w-full h-full pointer-events-none ${isDarkMode ? 'opacity-5' : 'opacity-40'}`} style={{ color: '#c9daf8' }} />
+            <Icon className={`absolute inset-0 w-full h-full pointer-events-none ${isDarkMode ? 'opacity-10' : 'opacity-30'} group-hover:scale-110 transition-transform duration-300`} style={{ color: '#c9daf8' }} />
             <span className="relative z-10 text-xl font-bold text-center drop-shadow bg-gradient-to-r from-blue-300 via-blue-400 to-blue-500 bg-clip-text text-transparent">
               {label}
             </span>

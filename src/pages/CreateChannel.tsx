@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import axios from 'axios';
 import ChannelListDisplay from '../features/channels/ChannelListDisplay';
+import ChannelListModern from '../features/channels/ChannelListModern';
 import ChannelForm from '../features/channels/ChannelForm';
 import CategoryForm from '../features/channels/CategoryForm';
 import type { Channel, Role } from '../features/channels/types';
@@ -156,7 +157,7 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
               </div>
             </div>
             {/* Responsive height: 400px en móvil, 700px en desktop */}
-            <ChannelListDisplay channels={channels} height={typeof window !== 'undefined' && window.innerWidth >= 768 ? 700 : 400} />
+            <ChannelListModern channels={channels} height={typeof window !== 'undefined' && window.innerWidth >= 768 ? 700 : 400} />
           </div>
         </div>
         {/* Formulario y opciones */}
