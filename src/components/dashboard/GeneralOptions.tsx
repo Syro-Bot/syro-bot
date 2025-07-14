@@ -70,12 +70,15 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
 
   return (
     <>
-      <div className={`w-full h-auto min-h-[20rem] md:h-[23rem] backdrop-blur-sm rounded-2xl p-4 md:p-6 transition-colors duration-300 flex flex-col ${
-        isDarkMode ? 'bg-[#181c24]' : 'bg-white'
+      <div className={`w-full h-auto min-h-[20rem] md:h-[23rem] backdrop-blur-sm rounded-2xl p-4 md:p-6 transition-all duration-300 flex flex-col border-2 shadow-md ${
+        isDarkMode 
+          ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]' 
+          : 'bg-gradient-to-br from-white via-blue-50 to-blue-100 border-blue-100'
       }`}>
         <h2 className="text-sm md:text-md font-bold mb-4 bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent uppercase flex items-center gap-2">
-          <Settings className="w-4 h-4" />
+          <span className="inline-block w-2 h-2 rounded-full bg-purple-500"></span>
           <span className="text-left">GENERAL OPTIONS</span>
+          <Settings className="w-4 h-4" />
         </h2>
         
         {/* Grid de opciones */}
@@ -83,10 +86,10 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
           {/* Opción Nuke */}
           <button
             onClick={handleNukeClick}
-            className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl transition-all duration-200 ${
+            className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg ${
               isDarkMode 
-                ? 'bg-gradient-to-r from-red-500/20 to-red-600/20 hover:from-red-500/30 hover:to-red-600/30 border border-red-500/30' 
-                : 'bg-gradient-to-r from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 border border-red-200'
+                ? 'bg-gradient-to-r from-red-500/20 to-red-600/20 hover:from-red-500/30 hover:to-red-600/30 border-2 border-red-500/30 hover:border-red-400/50' 
+                : 'bg-gradient-to-r from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 border-2 border-red-200 hover:border-red-300'
             }`}
           >
             {/* Icono */}
@@ -115,10 +118,10 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
           {/* Opción Send Announcement */}
           <button
             onClick={handleAnnouncementClick}
-            className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl transition-all duration-200 ${
+            className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg ${
               isDarkMode 
-                ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 hover:from-blue-500/30 hover:to-blue-600/30 border border-blue-500/30' 
-                : 'bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 border border-blue-200'
+                ? 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 hover:from-blue-500/30 hover:to-blue-600/30 border-2 border-blue-500/30 hover:border-blue-400/50' 
+                : 'bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 border-2 border-blue-200 hover:border-blue-300'
             }`}
           >
             {/* Icono */}
@@ -147,10 +150,10 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
           {/* Opción Member Count */}
           <button
             onClick={handleMemberCountClick}
-            className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl transition-all duration-200 ${
+            className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg ${
               isDarkMode 
-                ? 'bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-500/30 hover:to-green-600/30 border border-green-500/30' 
-                : 'bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 border border-green-200'
+                ? 'bg-gradient-to-r from-green-500/20 to-green-600/20 hover:from-green-500/30 hover:to-green-600/30 border-2 border-green-500/30 hover:border-green-400/50' 
+                : 'bg-gradient-to-r from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 border-2 border-green-200 hover:border-green-300'
             }`}
           >
             {/* Icono */}
@@ -179,10 +182,10 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = ({ guildId }) => {
           {/* Opción Data Retention */}
           <button
             onClick={handleDataRetentionClick}
-            className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl transition-all duration-200 ${
+            className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg ${
               isDarkMode 
-                ? 'bg-gradient-to-r from-orange-500/20 to-orange-600/20 hover:from-orange-500/30 hover:to-orange-600/30 border border-orange-500/30' 
-                : 'bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 border border-orange-200'
+                ? 'bg-gradient-to-r from-orange-500/20 to-orange-600/20 hover:from-orange-500/30 hover:to-orange-600/30 border-2 border-orange-500/30 hover:border-orange-400/50' 
+                : 'bg-gradient-to-r from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 border-2 border-orange-200 hover:border-orange-300'
             }`}
           >
             {/* Icono */}

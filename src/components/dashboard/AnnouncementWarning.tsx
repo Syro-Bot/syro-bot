@@ -230,8 +230,10 @@ const AnnouncementWarning: React.FC<AnnouncementWarningProps> = ({
     <>
       {/* Warning Overlay */}
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-40">
-        <div className={`w-[90vw] max-w-[600px] rounded-2xl transition-colors duration-300 ${
-          isDarkMode ? 'bg-[#181c24] border border-gray-700' : 'bg-white border border-gray-200'
+        <div className={`w-[90vw] max-w-[600px] rounded-2xl transition-colors duration-300 border-2 ${
+          isDarkMode 
+            ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]' 
+            : 'bg-gradient-to-br from-white via-orange-50 to-orange-100 border-orange-100'
         }`}>
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -328,8 +330,10 @@ const AnnouncementWarning: React.FC<AnnouncementWarningProps> = ({
       {/* Server Selection Modal */}
       {showGuildSelector && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className={`w-[90vw] max-w-[500px] rounded-2xl transition-colors duration-300 ${
-            isDarkMode ? 'bg-[#181c24] border border-gray-700' : 'bg-white border border-gray-200'
+          <div className={`w-[90vw] max-w-[500px] rounded-2xl transition-colors duration-300 border-2 ${
+            isDarkMode 
+              ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]' 
+              : 'bg-gradient-to-br from-white via-orange-50 to-orange-100 border-orange-100'
           }`}>
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -402,7 +406,11 @@ const AnnouncementWarning: React.FC<AnnouncementWarningProps> = ({
       {/* Bot Missing Modal */}
       {showBotMissingModal && selectedGuildWithoutBot && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`relative rounded-3xl shadow-2xl w-full max-w-md overflow-hidden ${isDarkMode ? 'bg-[#181c24]' : 'bg-white'}`}>
+          <div className={`relative rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border-2 ${
+          isDarkMode 
+            ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]' 
+            : 'bg-gradient-to-br from-white via-orange-50 to-orange-100 border-orange-100'
+        }`}>
             {/* Header con gradiente */}
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
               <div className="flex items-center gap-3">
@@ -461,8 +469,10 @@ const AnnouncementWarning: React.FC<AnnouncementWarningProps> = ({
       {/* Configuration Modal */}
       {showConfigModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className={`w-[90vw] max-w-[500px] rounded-2xl transition-colors duration-300 ${
-            isDarkMode ? 'bg-[#181c24] border border-gray-700' : 'bg-white border border-gray-200'
+          <div className={`w-[90vw] max-w-[500px] rounded-2xl transition-colors duration-300 border-2 ${
+            isDarkMode 
+              ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]' 
+              : 'bg-gradient-to-br from-white via-orange-50 to-orange-100 border-orange-100'
           }`}>
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">

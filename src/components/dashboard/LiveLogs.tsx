@@ -120,8 +120,10 @@ const LiveLogs: React.FC<LiveLogsProps> = ({ guildId }) => {
   }, [logs]);
 
   return (
-    <div className={`w-full h-auto min-h-[20rem] md:h-[23rem] backdrop-blur-sm rounded-2xl p-4 md:p-6 transition-colors duration-300 ${
-      isDarkMode ? 'bg-[#181c24]' : 'bg-white'
+    <div className={`w-full h-auto min-h-[20rem] md:h-[23rem] backdrop-blur-sm rounded-2xl p-4 md:p-6 transition-all duration-300 border-2 shadow-md ${
+      isDarkMode 
+        ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]' 
+        : 'bg-gradient-to-br from-white via-green-50 to-green-100 border-green-100'
     }`}>
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
         <h2 className="text-sm md:text-md font-bold bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent uppercase flex items-center gap-2">
