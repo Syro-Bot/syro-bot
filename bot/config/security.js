@@ -218,7 +218,10 @@ const SESSION_SECURITY = {
  * CORS Configuration
  * Enhanced CORS settings for security
  */
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',');
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim());
+
 const CORS_CONFIG = {
   origin: function(origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
