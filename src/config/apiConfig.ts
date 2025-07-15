@@ -9,8 +9,8 @@
  */
 
 export const API_CONFIG = {
-  // Base URLs
-  BASE_URL: 'http://localhost:3002',
+  // Base URLs - Use environment variables in production
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002',
   
   // Rate Limiting Configuration
   RATE_LIMITS: {
