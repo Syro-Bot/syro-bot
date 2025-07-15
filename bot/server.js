@@ -68,6 +68,7 @@ async function startServer() {
     const announcementConfigRoutes = require('./routes/announcement-config');
     const memberCountRoutes = require('./routes/member-count');
     const dataRetentionRoutes = require('./routes/data-retention');
+    const authRoutes = require('./routes/auth'); // <-- Agrego rutas de autenticación
     
     // Register API routes
     app.use('/api', healthRoutes);
@@ -80,6 +81,7 @@ async function startServer() {
     app.use('/api/announcement-config', announcementConfigRoutes);
     app.use('/api/member-count', memberCountRoutes);
     app.use('/api/guild', dataRetentionRoutes);
+    app.use('/', authRoutes); // <-- Registro rutas de login, callback y /me en la raíz
     
     // Legacy routes (to be migrated to modules)
     registerLegacyRoutes(app);

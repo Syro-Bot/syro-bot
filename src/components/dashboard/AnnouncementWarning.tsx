@@ -86,13 +86,24 @@ const AnnouncementWarning: React.FC<AnnouncementWarningProps> = ({
   const checkConfiguration = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/announcement-config/${selectedGuildId}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setIsConfigured(data.configured);
-      } else {
+      if (!response.ok) {
+        if (response.status === 429) {
+          setIsConfigured(false);
+          alert('Estás haciendo demasiadas peticiones. Espera un momento e intenta de nuevo.');
+          return;
+        }
         setIsConfigured(false);
+        return;
       }
+      // Verifica que la respuesta sea JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        setIsConfigured(false);
+        console.error('Respuesta no es JSON');
+        return;
+      }
+      const data = await response.json();
+      setIsConfigured(data.success ? data.configured : false);
     } catch (error) {
       console.error('Error checking announcement configuration:', error);
       setIsConfigured(false);
