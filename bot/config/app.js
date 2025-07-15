@@ -89,7 +89,8 @@ function createApp(discordClient) {
 
     app.get('/callback', async (req, res) => {
       const code = req.query.code;
-      if (!code) return res.status(400).send('No code provided');
+      const frontendRedirect = process.env.FRONTEND_REDIRECT || 'https://syro-web.vercel.app/dashboard';
+      if (!code) return res.redirect(frontendRedirect + '?error=no_code');
       try {
         const tokenRes = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
           client_id: CLIENT_ID,
@@ -104,14 +105,18 @@ function createApp(discordClient) {
         req.session.token = tokenRes.data.access_token;
         req.session.save((err) => {
           if (err) {
-            res.status(500).send('Session save error');
+            return res.redirect(frontendRedirect + '?error=session_save');
           } else {
-            // Redirige al dashboard del frontend (ajusta la URL si es necesario)
-            res.redirect(process.env.FRONTEND_REDIRECT || 'https://syro-web.vercel.app/dashboard');
+            res.redirect(frontendRedirect);
           }
         });
       } catch (e) {
-        res.status(500).send('OAuth2 Error: ' + e.message);
+        // Manejo de rate limit y otros errores
+        let errorType = 'oauth_failed';
+        if (e.response && e.response.status === 429) {
+          errorType = 'oauth_rate_limit';
+        }
+        res.redirect(frontendRedirect + '?error=' + errorType);
       }
     });
     // --- Fin Discord OAuth2 ---
