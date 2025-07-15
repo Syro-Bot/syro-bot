@@ -236,7 +236,7 @@ const CORS_CONFIG = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['X-Total-Count'],
+  exposedHeaders: ['Set-Cookie', 'X-Total-Count'], // <-- Añadido 'Set-Cookie'
   maxAge: 86400 // 24 hours
 };
 
