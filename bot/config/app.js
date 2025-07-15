@@ -12,6 +12,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const path = require('path');
 const fs = require('fs');
 
@@ -55,8 +56,11 @@ function createApp(discordClient) {
       limit: '10mb' 
     }));
 
-    // Session configuration
-    app.use(session(SESSION_SECURITY));
+    // Session configuration (now with MongoDB store)
+    app.use(session({
+      ...SESSION_SECURITY,
+      store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI })
+    }));
 
     // Static file serving with security headers
     const uploadsDir = path.join(__dirname, '..', 'uploads');
