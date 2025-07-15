@@ -5,7 +5,7 @@ import { gsap } from "gsap";
 import { useTheme } from "../../contexts/ThemeContext";
 import ImageConfig from '../welcome/ImageConfig';
 import ChannelListDisplay from './ChannelListDisplay';
-import type { Channel as ChannelType } from './ChannelListDisplay';
+import type { Channel as ChannelType } from './types';
 
 interface ChannelSelectorProps {
   onChannelSelect?: (channel: ChannelType) => void;

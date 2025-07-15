@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { X, Megaphone, Plus, Trash2, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
+import { X, Megaphone, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface Channel {
@@ -468,7 +468,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ guildId, isOpen, 
               )}
 
               {/* Embeds */}
-              {embeds.filter(embed => embed.title || embed.description).map((embed, index) => (
+              {embeds.filter(embed => embed.title || embed.description).map((embed) => (
                 <div key={embed.id} className="mb-4">
                   <div 
                     className="rounded-lg p-4 border-l-4"

@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import type { Feature } from '../features/automoderation/types';
 import AutoModerationSetup from '../features/automoderation/AutoModerationSetup';
 import RoleSelectorButton from '../features/joinroles/RoleSelectorButton';
-import { Plus, X, Shield } from "lucide-react";
+import { X, Shield } from "lucide-react";
 
 const features = [
   { name: "Spam", tag: "Protege del spam", gradient: "from-pink-500 via-red-500 to-yellow-500", description: "Evita mensajes repetidos y masivos" },

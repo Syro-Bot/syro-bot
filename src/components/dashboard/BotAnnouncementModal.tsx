@@ -375,7 +375,7 @@ const BotAnnouncementModal: React.FC<BotAnnouncementModalProps> = ({ isOpen, onC
               )}
 
               {/* Embeds */}
-              {embeds.filter(embed => embed.title || embed.description).map((embed, index) => (
+              {embeds.filter(embed => embed.title || embed.description).map((embed) => (
                 <div key={embed.id} className="mb-4">
                   <div 
                     className="rounded-lg p-4 border-l-4"

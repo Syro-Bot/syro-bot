@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { X, Users, FolderOpen, Settings, AlertCircle } from 'lucide-react';
+import { Users, X, AlertCircle, FolderOpen } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { API_BASE_URL } from '../../config/constants';
 

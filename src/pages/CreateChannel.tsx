@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import axios from 'axios';
-import ChannelListDisplay from '../features/channels/ChannelListDisplay';
 import ChannelListModern from '../features/channels/ChannelListModern';
 import ChannelForm from '../features/channels/ChannelForm';
 import CategoryForm from '../features/channels/CategoryForm';
-import type { Channel, Role } from '../features/channels/types';
+import type { Channel } from '../features/channels/types';
 import { Hash } from 'lucide-react';
 
 interface CreateChannelProps {
@@ -23,7 +22,6 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]); // Placeholder for future
 
   // Advanced
   const [isPrivate, setIsPrivate] = useState(false);
@@ -210,7 +208,7 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
                 setSlowmode={setSlowmode}
                 userLimit={userLimit}
                 setUserLimit={setUserLimit}
-                roles={roles}
+                roles={[]}
                 selectedRoles={selectedRoles}
                 toggleRole={toggleRole}
                 categories={categories}
@@ -224,12 +222,19 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
             ) : (
               <CategoryForm
                 isDarkMode={isDarkMode}
-                name={catName}
-                setName={setCatName}
+                catName={catName}
+                setCatName={setCatName}
                 loading={loading}
                 error={error}
                 success={success}
                 onSubmit={handleCategorySubmit}
+                roles={[]}
+                selectedRoles={selectedRoles}
+                isPrivate={isPrivate}
+                showAdvanced={showAdvanced}
+                setShowAdvanced={setShowAdvanced}
+                setIsPrivate={setIsPrivate}
+                toggleRole={toggleRole}
               />
             )}
           </div>

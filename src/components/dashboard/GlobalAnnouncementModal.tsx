@@ -41,7 +41,6 @@ interface GlobalAnnouncementModalProps {
  */
 const GlobalAnnouncementModal: React.FC<GlobalAnnouncementModalProps> = ({ isOpen, onClose }) => {
   const { isDarkMode } = useTheme();
-  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [content, setContent] = useState('📢 **GLOBAL ANNOUNCEMENT**\n\nThis is a global announcement from Syro Bot.');
   const [embeds, setEmbeds] = useState<Embed[]>([
@@ -422,7 +421,7 @@ const GlobalAnnouncementModal: React.FC<GlobalAnnouncementModalProps> = ({ isOpe
               )}
 
               {/* Embeds */}
-              {embeds.filter(embed => embed.title || embed.description).map((embed, index) => (
+              {embeds.filter(embed => embed.title || embed.description).map((embed) => (
                 <div key={embed.id} className="mb-4">
                   <div 
                     className="rounded-lg p-4 border-l-4"
