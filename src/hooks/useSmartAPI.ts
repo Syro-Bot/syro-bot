@@ -62,7 +62,7 @@ export function useSmartAPI<T = any>(options: UseSmartAPIOptions): UseSmartAPIRe
   
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastFetchRef = useRef<number>(0);
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchData = useCallback(async (force = false) => {
     if (!enabled || !url) return;

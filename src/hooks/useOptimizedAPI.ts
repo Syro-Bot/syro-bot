@@ -53,7 +53,7 @@ export function useOptimizedAPI<T = any>(options: UseOptimizedAPIOptions): UseOp
   const [error, setError] = useState<Error | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
   
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchData = useCallback(async () => {

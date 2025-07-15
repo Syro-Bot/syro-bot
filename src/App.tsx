@@ -288,7 +288,7 @@ const ProtectedRoute: React.FC<{ children: (user: any) => React.ReactNode }> = (
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children(user)}</>;
@@ -309,7 +309,7 @@ const App: React.FC = () => {
         <TemplateProvider>
           <ModalProvider>
             <Routes>
-              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Login />} />
               <Route
                 path="/*"
                 element={
