@@ -17,6 +17,7 @@ import JoinsChart from '../components/dashboard/JoinsChart';
 import LiveLogs from '../components/dashboard/LiveLogs';
 import GeneralOptions from '../components/dashboard/GeneralOptions';
 import AnnouncementWarning from '../components/dashboard/AnnouncementWarning';
+import { useLocation } from 'react-router-dom';
 
 interface Guild {
   id: string;
@@ -46,6 +47,11 @@ const Dashboard: React.FC<{
   const textRef = useRef<HTMLDivElement>(null);
   const [showChart, setShowChart] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const location = useLocation();
+
+  // Leer error de la URL
+  const params = new URLSearchParams(location.search);
+  const error = params.get('error');
 
   // Detectar si es móvil
   useEffect(() => {
@@ -151,6 +157,16 @@ const Dashboard: React.FC<{
 
   return (
     <div className="relative min-h-screen w-full">
+      {/* Mensaje de error de login/OAuth2 */}
+      {error && (
+        <div className="mb-4 p-4 rounded-lg bg-red-100 border border-red-400 text-red-700 text-center">
+          {error === 'oauth_rate_limit' && 'Discord está limitando los inicios de sesión. Espera unos minutos e inténtalo de nuevo.'}
+          {error === 'oauth_failed' && 'Hubo un problema con el login de Discord. Intenta de nuevo.'}
+          {error === 'session_save' && 'Error guardando la sesión. Intenta de nuevo.'}
+          {error === 'no_code' && 'No se recibió el código de Discord. Intenta de nuevo.'}
+          {!['oauth_rate_limit','oauth_failed','session_save','no_code'].includes(error) && 'Error desconocido: ' + error}
+        </div>
+      )}
       {/* Título de bienvenida */}
       <div ref={textRef} className="">
         <h1 className={`font-extrabold bg-gradient-to-r from-blue-400 via-blue-600 to-blue-900 bg-clip-text text-transparent uppercase leading-none text-center ${
