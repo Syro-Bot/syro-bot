@@ -203,10 +203,10 @@ const SESSION_SECURITY = {
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    secure: true, // obligatorio en producción HTTPS
+    sameSite: 'none', // para cross-site cookies
     maxAge: 24 * 60 * 60 * 1000, // 1 day
-    domain: process.env.COOKIE_DOMAIN || undefined,
+    domain: undefined, // solo para syro-backend.onrender.com
     path: '/'
   },
   name: 'syro.sid', // Custom session name
@@ -218,9 +218,12 @@ const SESSION_SECURITY = {
  * CORS Configuration
  * Enhanced CORS settings for security
  */
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
-  .split(',')
-  .map(o => o.trim());
+const allowedOrigins = [
+  'https://syro-web.vercel.app',
+  'https://syro-web-rnp.vercel.app',
+  'https://syro-ql8b2dqf5-rnp.vercel.app',
+  'http://localhost:5173'
+];
 
 const CORS_CONFIG = {
   origin: function(origin, callback) {
