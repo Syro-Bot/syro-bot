@@ -45,17 +45,27 @@ const PORT = process.env.AUTH_PORT || 3002;
  * Enables cross-origin requests from the frontend
  * Must be configured before session middleware
  */
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',');
+
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
-/**
- * Preflight CORS Handler
- * Handles OPTIONS requests for CORS preflight checks
- */
 app.options('*', cors({
-  origin: 'http://localhost:5173',
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 

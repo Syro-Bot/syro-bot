@@ -218,8 +218,15 @@ const SESSION_SECURITY = {
  * CORS Configuration
  * Enhanced CORS settings for security
  */
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',');
 const CORS_CONFIG = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
