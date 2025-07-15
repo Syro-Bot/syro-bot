@@ -39,7 +39,20 @@ router.get('/callback', async (req, res) => {
       if (err) {
         return res.redirect(frontendRedirect + '?error=session_save');
       } else {
-        res.redirect(frontendRedirect);
+        // Responde una página HTML que redirige con JS para asegurar que la cookie se setee
+        res.status(200).send(`
+          <html>
+            <head>
+              <meta http-equiv="refresh" content="0;url=${frontendRedirect}" />
+              <script>
+                window.location.href = "${frontendRedirect}";
+              </script>
+            </head>
+            <body>
+              <p>Redirecting...</p>
+            </body>
+          </html>
+        `);
       }
     });
   } catch (e) {
