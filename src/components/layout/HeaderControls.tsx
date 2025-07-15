@@ -16,7 +16,7 @@ import { useTemplates } from '../../contexts/TemplateContext';
 import PendingTemplatesModal from '../shared/PendingTemplatesModal';
 import GlobalAnnouncementModal from '../dashboard/GlobalAnnouncementModal';
 import MobileMenuButton from './MobileMenuButton';
-import { BOT_OWNER_ID, BOT_CLIENT_ID } from '../../config/constants';
+import { BOT_OWNER_ID, BOT_CLIENT_ID, AUTH_BASE_URL } from '../../config/constants';
 
 /**
  * Props para HeaderControls
@@ -339,7 +339,7 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({
                   {/* Logout */}
                   <button
                     onClick={async () => {
-                      await fetch('http://localhost:3002/logout', { method: 'POST', credentials: 'include' });
+                      await fetch(`${AUTH_BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
                       window.location.reload();
                     }}
                     className={`w-full flex items-center gap-2 text-left px-4 py-2 text-sm rounded-lg transition-colors hover:bg-blue-100 hover:text-white dark:hover:bg-blue-900 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}

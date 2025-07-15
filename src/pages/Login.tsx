@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { useRef } from "react";
+import { AUTH_BASE_URL } from '../config/constants';
 
 // Info icon SVG component
 const InfoIcon = () => (
@@ -21,7 +22,7 @@ const Login: React.FC = () => {
   useEffect(() => {
     document.title = "Syro - Customization Bot";
     // Check if already logged in
-    fetch('http://localhost:3002/me', { credentials: 'include', cache: 'no-cache' })
+    fetch(`${AUTH_BASE_URL}/me`, { credentials: 'include', cache: 'no-cache' })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.user) {
@@ -44,11 +45,11 @@ const Login: React.FC = () => {
   }, [showInstructions]);
 
   const handleLogin = () => {
-    window.location.href = "http://localhost:3002/login";
+    window.location.href = `${AUTH_BASE_URL}/login`;
   };
 
   const handleLogout = async () => {
-    await fetch('http://localhost:3002/logout', {
+    await fetch(`${AUTH_BASE_URL}/logout`, {
       method: 'POST',
       credentials: 'include'
     });
@@ -84,7 +85,7 @@ const Login: React.FC = () => {
             <div className="flex items-center gap-2 w-full md:w-auto">
               <button
                 onClick={async () => {
-                  const res = await fetch('http://localhost:3002/invite');
+                  const res = await fetch(`${AUTH_BASE_URL}/invite`);
                   const data = await res.json();
                   window.open(data.url, '_blank');
                 }}
