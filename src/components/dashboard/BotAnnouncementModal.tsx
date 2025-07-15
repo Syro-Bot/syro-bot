@@ -12,6 +12,8 @@
 import React, { useState } from "react";
 import { X, Megaphone, Plus, Trash2, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_CONFIG } from '../../config/apiConfig';
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 interface Embed {
   id: string;
@@ -91,7 +93,7 @@ const BotAnnouncementModal: React.FC<BotAnnouncementModalProps> = ({ isOpen, onC
   const handleSend = async () => {
     setSending(true);
     try {
-      const response = await fetch('http://localhost:3001/api/bot-announcement-global', {
+      const response = await fetch(`${API_BASE_URL}/api/bot-announcement-global`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

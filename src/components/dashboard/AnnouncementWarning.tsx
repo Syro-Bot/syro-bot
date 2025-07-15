@@ -13,7 +13,9 @@
 import React, { useState, useEffect } from "react";
 import { Megaphone, Settings, X, CheckCircle, Server, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { API_BASE_URL, BOT_CLIENT_ID } from '../../config/constants';
+import { API_CONFIG } from '../../config/apiConfig';
+const API_BASE_URL = API_CONFIG.BASE_URL;
+import { BOT_CLIENT_ID } from '../../config/constants';
 
 interface Channel {
   id: string;

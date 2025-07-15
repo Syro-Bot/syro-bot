@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Upload, Download, Palette, Type, Image as ImageIcon, MessageSquare, Settings, Save } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_CONFIG } from '../../config/apiConfig';
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 interface ImageConfigProps {
   onBack: () => void;
@@ -42,8 +44,8 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
       console.log('🔄 Loading config for channel:', selectedChannel.id);
       
       try {
-        const response = await fetch(`http://localhost:3001/api/welcome-config/${selectedChannel.id}`);
-        console.log('📡 Response status:', response.status);
+        const response = await fetch(`${API_BASE_URL}/api/welcome-config/${selectedChannel.id}`);
+        console.log('�� Response status:', response.status);
         
         if (response.ok) {
           const savedConfig = await response.json();
@@ -101,7 +103,7 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
       ...config,
       backgroundImage: previewBg // base64 o null
     };
-    const response = await fetch('http://localhost:3001/api/welcome-config', {
+    const response = await fetch(`${API_BASE_URL}/api/welcome-config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

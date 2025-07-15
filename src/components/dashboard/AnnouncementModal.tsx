@@ -12,6 +12,8 @@
 import React, { useState, useEffect } from "react";
 import { X, Megaphone, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_CONFIG } from '../../config/apiConfig';
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 interface Channel {
   id: string;
@@ -80,7 +82,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ guildId, isOpen, 
   const loadChannels = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/channels/${guildId}`);
+      const response = await fetch(`${API_BASE_URL}/api/channels/${guildId}`);
       const data = await response.json();
       
       if (data.success) {
@@ -142,7 +144,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ guildId, isOpen, 
 
     setSending(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/announcement/${guildId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/announcement/${guildId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

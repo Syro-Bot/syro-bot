@@ -12,6 +12,8 @@
 import React, { useState, useEffect } from "react";
 import { X, Bomb, AlertTriangle, CheckCircle, Loader } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { API_CONFIG } from '../../config/apiConfig';
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 interface Channel {
   id: string;
@@ -56,7 +58,7 @@ const NukeModal: React.FC<NukeModalProps> = ({ guildId, isOpen, onClose }) => {
     setLoading(true);
     try {
       console.log('🔍 Cargando canales para guild:', guildId);
-      const response = await fetch(`http://localhost:3001/api/channels/${guildId}`);
+      const response = await fetch(`${API_BASE_URL}/api/channels/${guildId}`);
       const data = await response.json();
       
       console.log('📡 Respuesta del servidor:', data);
@@ -84,7 +86,7 @@ const NukeModal: React.FC<NukeModalProps> = ({ guildId, isOpen, onClose }) => {
 
     setNuking(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/nuke/${guildId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/nuke/${guildId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

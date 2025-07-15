@@ -6,6 +6,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import ImageConfig from '../welcome/ImageConfig';
 import ChannelListDisplay from './ChannelListDisplay';
 import type { Channel as ChannelType } from './types';
+import { API_BASE_URL } from '../../config/constants';
 
 interface ChannelSelectorProps {
   onChannelSelect?: (channel: ChannelType) => void;
@@ -43,7 +44,7 @@ const ChannelSelector: React.FC<ChannelSelectorProps> = ({
 
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:3001/api/channels/${guildId}`);
+        const response = await axios.get(`${API_BASE_URL}/api/channels/${guildId}`);
 
         if (response.data.success) {
           setChannels(response.data.channels);

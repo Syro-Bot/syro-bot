@@ -5,6 +5,7 @@ import axios from "axios";
 import { gsap } from "gsap";
 import type { Channel as ChannelType } from '../channels/types';
 import ImageConfig from './ImageConfig';
+import { API_BASE_URL } from '../../config/constants';
 
 interface WelcomeMessageConfigProps {
   type: "join" | "leave" | "boost";
@@ -37,7 +38,7 @@ const WelcomeMessageConfig: React.FC<WelcomeMessageConfigProps> = ({ type, onBac
           setLoading(false);
           return;
         }
-        const response = await axios.get(`http://localhost:3001/api/channels/${guildId}`);
+        const response = await axios.get(`${API_BASE_URL}/api/channels/${guildId}`);
         if (response.data.success) {
           setChannels(response.data.channels);
         } else {

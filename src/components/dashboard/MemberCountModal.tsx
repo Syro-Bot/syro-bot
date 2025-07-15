@@ -12,7 +12,8 @@
 import React, { useState, useEffect } from "react";
 import { Users, X, AlertCircle, FolderOpen } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { API_BASE_URL } from '../../config/constants';
+import { API_CONFIG } from '../../config/apiConfig';
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 interface Category {
   id: string;

@@ -6,6 +6,7 @@ import ChannelForm from '../features/channels/ChannelForm';
 import CategoryForm from '../features/channels/CategoryForm';
 import type { Channel } from '../features/channels/types';
 import { Hash } from 'lucide-react';
+import { API_BASE_URL } from '../config/constants';
 
 interface CreateChannelProps {
   guildId?: string;
@@ -39,7 +40,7 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
       return;
     }
     try {
-      const response = await axios.get(`http://localhost:3001/api/channels/${guildId}`);
+      const response = await axios.get(`${API_BASE_URL}/api/channels/${guildId}`);
       if (response.data.success) {
         setChannels(response.data.channels);
       } else {
@@ -80,7 +81,7 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
     setSuccess(null);
     setError(null);
     try {
-      const response = await axios.post('http://localhost:3001/api/channels', {
+      const response = await axios.post(`${API_BASE_URL}/api/channels`, {
         name,
         type,
         parentId: categoryId || null,
@@ -110,7 +111,7 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
     setSuccess(null);
     setError(null);
     try {
-      const response = await axios.post('http://localhost:3001/api/channels', {
+      const response = await axios.post(`${API_BASE_URL}/api/channels`, {
         name: catName,
         type: 'category',
         guildId: guildId
