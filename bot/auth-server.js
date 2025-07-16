@@ -116,7 +116,7 @@ app.use(session({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 1 day
   }
 }));
@@ -175,6 +175,7 @@ app.get('/login', (req, res) => {
  */
 app.get('/callback', async (req, res) => {
   const code = req.query.code;
+  const frontendRedirect = process.env.FRONTEND_REDIRECT || 'http://localhost:5173/dashboard';
   if (!code) return res.status(400).send('No code provided');
   
   try {
@@ -202,7 +203,7 @@ app.get('/callback', async (req, res) => {
         res.status(500).send('Session save error');
       } else {
         logger.info('✅ Session saved successfully');
-        res.redirect('http://localhost:5173/dashboard');
+        res.redirect(frontendRedirect);
       }
     });
   } catch (e) {

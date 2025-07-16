@@ -59,7 +59,12 @@ function createApp(discordClient) {
     // Session configuration (now with MongoDB store)
     app.use(session({
       ...SESSION_SECURITY,
-      store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI })
+      store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
+      cookie: {
+        ...(SESSION_SECURITY.cookie || {}),
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      }
     }));
 
     // Static file serving with security headers
