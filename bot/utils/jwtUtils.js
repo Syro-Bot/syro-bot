@@ -18,7 +18,7 @@ function generateToken(user) {
     exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
   };
   
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(payload, JWT_SECRET); // Removed expiresIn option
 }
 
 /**
