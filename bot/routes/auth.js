@@ -23,6 +23,7 @@ router.get('/login', (req, res) => {
 // Callback: recibe el code de Discord y genera JWT token
 router.get('/callback', async (req, res) => {
   console.log('[AUTH] /callback called');
+  console.log('[AUTH] Query params:', req.query);
   const code = req.query.code;
   const frontendRedirect = process.env.FRONTEND_REDIRECT || 'http://localhost:5173/dashboard';
   
@@ -32,6 +33,7 @@ router.get('/callback', async (req, res) => {
   }
   
   try {
+    console.log('[AUTH] Starting OAuth2 token exchange...');
     // Intercambiar code por token de Discord
     const tokenRes = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
       client_id: CLIENT_ID,
@@ -44,22 +46,27 @@ router.get('/callback', async (req, res) => {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
     
-    console.log('[AUTH] Discord token received');
+    console.log('[AUTH] Discord token received successfully');
+    console.log('[AUTH] Token response keys:', Object.keys(tokenRes.data));
     
     // Obtener datos del usuario desde Discord
+    console.log('[AUTH] Fetching user data from Discord...');
     const userRes = await axios.get('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${tokenRes.data.access_token}` }
     });
     
-    console.log('[AUTH] User data received:', userRes.data.username);
+    console.log('[AUTH] User data received successfully:', userRes.data.username);
+    console.log('[AUTH] User data keys:', Object.keys(userRes.data));
     
     // Generar JWT token
+    console.log('[AUTH] Generating JWT token...');
     const jwtToken = generateToken(userRes.data);
     
-    console.log('[AUTH] JWT token generated');
+    console.log('[AUTH] JWT token generated successfully');
     
     // Redirigir al frontend con el token
     const redirectUrl = `${frontendRedirect}?token=${encodeURIComponent(jwtToken)}`;
+    console.log('[AUTH] Redirecting to:', redirectUrl);
     
     res.status(200).send(`
       <html>
@@ -76,11 +83,17 @@ router.get('/callback', async (req, res) => {
     `);
     
   } catch (e) {
-    console.log('[AUTH] Error in OAuth2:', e.message);
+    console.error('[AUTH] Error in OAuth2:', e.message);
+    console.error('[AUTH] Error response:', e.response?.data);
+    console.error('[AUTH] Error status:', e.response?.status);
+    console.error('[AUTH] Error headers:', e.response?.headers);
+    
     let errorType = 'oauth_failed';
     if (e.response && e.response.status === 429) {
       errorType = 'oauth_rate_limit';
     }
+    
+    console.log('[AUTH] Redirecting with error:', errorType);
     res.redirect(frontendRedirect + '?error=' + errorType);
   }
 });
