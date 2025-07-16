@@ -769,17 +769,27 @@ function registerLegacyRoutes(app) {
     }
   });
 
-  // Ruta de test para setear una cookie simple
+  // Ruta de test para setear varias cookies de prueba
   app.get('/test-cookie', (req, res) => {
-    res.cookie('testcookie', '123', {
+    res.cookie('testcookie_default', '123', {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      // domain: 'syro-backend.onrender.com', // NO poner domain para test
       path: '/',
       maxAge: 24 * 60 * 60 * 1000
     });
-    res.send('Cookie set');
+    res.cookie('testcookie_lax', '456', {
+      httpOnly: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+    res.cookie('testcookie_none', '789', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+    res.send('Multiple test cookies set');
   });
 }
 
