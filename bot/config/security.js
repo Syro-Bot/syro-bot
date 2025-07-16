@@ -206,7 +206,7 @@ const SESSION_SECURITY = {
     secure: true, // obligatorio en producción HTTPS
     sameSite: 'none', // para cross-site cookies
     maxAge: 24 * 60 * 60 * 1000, // 1 day
-    domain: undefined, // solo para syro-backend.onrender.com
+    // domain: undefined, // solo para syro-backend.onrender.com (ELIMINADO)
     path: '/'
   },
   name: 'syro.sid', // Custom session name

@@ -768,6 +768,19 @@ function registerLegacyRoutes(app) {
       });
     }
   });
+
+  // Ruta de test para setear una cookie simple
+  app.get('/test-cookie', (req, res) => {
+    res.cookie('testcookie', '123', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      // domain: 'syro-backend.onrender.com', // NO poner domain para test
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+    res.send('Cookie set');
+  });
 }
 
 // Start the server
