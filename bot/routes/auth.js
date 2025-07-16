@@ -103,47 +103,27 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
   console.log('[AUTH] /me called for user:', req.user.username);
   
   try {
-    // Usar el token de Discord almacenado en el JWT o hacer una nueva petición
-    // Por ahora, vamos a hacer una petición a Discord para obtener datos actualizados
-    const discordTokenRes = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-      grant_type: 'client_credentials'
-    }), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-    });
+    // Los datos del usuario ya están en req.user (del JWT)
+    // No necesitamos hacer peticiones adicionales a Discord
+    const user = {
+      id: req.user.id,
+      username: req.user.username,
+      avatar: req.user.avatar,
+      discriminator: req.user.discriminator
+    };
     
-    // Obtener datos del usuario y guilds desde Discord usando el ID del JWT
-    const userRes = await axios.get(`https://discord.com/api/users/${req.user.id}`, {
-      headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` }
-    });
-    
-    const guildsRes = await axios.get('https://discord.com/api/users/@me/guilds', {
-      headers: { Authorization: `Bearer ${discordTokenRes.data.access_token}` }
-    });
-    
+    // Por ahora, devolvemos solo los datos del usuario del JWT
+    // Los guilds se pueden obtener en una petición separada si es necesario
     res.json({
-      user: {
-        ...userRes.data,
-        id: req.user.id,
-        username: req.user.username,
-        avatar: req.user.avatar,
-        discriminator: req.user.discriminator
-      },
-      guilds: guildsRes.data,
-      totalGuilds: guildsRes.data.length,
-      accessibleGuilds: guildsRes.data.filter(g => (g.permissions & 0x20) === 0x20).length // admin perms
+      user: user,
+      guilds: [], // Por ahora vacío, se puede implementar después
+      totalGuilds: 0,
+      accessibleGuilds: 0
     });
     
   } catch (e) {
     console.error('[AUTH] Error in /me:', e.message);
-    if (e.response?.status === 401) {
-      return res.status(401).json({ error: 'Invalid Discord token' });
-    }
-    if (e.response?.status === 429) {
-      return res.status(429).json({ error: 'Rate limit exceeded, please try again' });
-    }
-    res.status(500).json({ error: 'Discord API error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
