@@ -39,6 +39,7 @@ require('dotenv').config();
  * Creates and configures the authentication server
  */
 const app = express();
+app.set('trust proxy', 1); // Confía en el primer proxy (Render, Heroku, etc.)
 const PORT = process.env.AUTH_PORT || 3002;
 
 /**
