@@ -63,10 +63,23 @@ function createApp(discordClient) {
       store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
       cookie: {
         ...(SESSION_SECURITY.cookie || {}),
+        httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        domain: process.env.COOKIE_DOMAIN || undefined,
+        path: '/',
+        maxAge: 24 * 60 * 60 * 1000
       }
     }));
+
+    // Endpoint temporal para debug de sesión y cookies
+    app.get('/session-debug', (req, res) => {
+      res.json({
+        sessionID: req.sessionID,
+        session: req.session,
+        cookies: req.cookies
+      });
+    });
 
     // Static file serving with security headers
     const uploadsDir = path.join(__dirname, '..', 'uploads');
