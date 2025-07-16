@@ -180,7 +180,6 @@ app.get('/callback', async (req, res) => {
   const code = req.query.code;
   const frontendRedirect = process.env.FRONTEND_REDIRECT || 'http://localhost:5173/dashboard';
   if (!code) return res.status(400).send('No code provided');
-  
   try {
     // Exchange authorization code for access token
     const tokenRes = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
@@ -193,20 +192,30 @@ app.get('/callback', async (req, res) => {
     }), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
-    
     // Store access token in session
     req.session.token = tokenRes.data.access_token;
-    logger.info('✅ Token stored in session:', req.sessionID);
-    logger.debug('🔑 Session token length:', req.session.token ? req.session.token.length : 0);
-    
-    // Save session before redirect
+    logger.info('\u2705 Token stored in session:', req.sessionID);
+    logger.debug('\ud83d\udd11 Session token length:', req.session.token ? req.session.token.length : 0);
     req.session.save((err) => {
       if (err) {
-        logger.error('❌ Error saving session:', err);
+        logger.error('\u274c Error saving session:', err);
         res.status(500).send('Session save error');
       } else {
-        logger.info('✅ Session saved successfully');
-        res.redirect(frontendRedirect);
+        logger.info('\u2705 Session saved successfully');
+        // Página HTML intermedia para asegurar que la cookie se setee
+        res.status(200).send(`
+          <html>
+            <head>
+              <meta http-equiv="refresh" content="0;url=${frontendRedirect}" />
+              <script>
+                window.location.href = "${frontendRedirect}";
+              </script>
+            </head>
+            <body>
+              <p>Redirecting...</p>
+            </body>
+          </html>
+        `);
       }
     });
   } catch (e) {
