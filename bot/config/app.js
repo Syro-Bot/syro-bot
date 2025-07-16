@@ -31,6 +31,7 @@ function createApp(discordClient) {
     validateEnvironment();
 
     const app = express();
+    app.set('trust proxy', 1); // Confía en el primer proxy (Render, Heroku, etc.)
 
     // Make Discord client available to middleware and routes
     app.set('discordClient', discordClient);
@@ -79,56 +80,6 @@ function createApp(discordClient) {
         res.set('Cache-Control', 'public, max-age=86400'); // 24 hours
       }
     }));
-
-    // --- Discord OAuth2 Login/Callback ---
-    const axios = require('axios');
-    const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-    const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-    const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'http://localhost:3002/callback';
-
-    app.get('/login', (req, res) => {
-      const params = new URLSearchParams({
-        client_id: CLIENT_ID,
-        redirect_uri: REDIRECT_URI,
-        response_type: 'code',
-        scope: 'identify guilds'
-      });
-      res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
-    });
-
-    app.get('/callback', async (req, res) => {
-      const code = req.query.code;
-      const frontendRedirect = process.env.FRONTEND_REDIRECT || 'https://syro-web.vercel.app/dashboard';
-      if (!code) return res.redirect(frontendRedirect + '?error=no_code');
-      try {
-        const tokenRes = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
-          client_id: CLIENT_ID,
-          client_secret: CLIENT_SECRET,
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: REDIRECT_URI,
-          scope: 'identify guilds'
-        }), {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-        req.session.token = tokenRes.data.access_token;
-        req.session.save((err) => {
-          if (err) {
-            return res.redirect(frontendRedirect + '?error=session_save');
-          } else {
-            res.redirect(frontendRedirect);
-          }
-        });
-      } catch (e) {
-        // Manejo de rate limit y otros errores
-        let errorType = 'oauth_failed';
-        if (e.response && e.response.status === 429) {
-          errorType = 'oauth_rate_limit';
-        }
-        res.redirect(frontendRedirect + '?error=' + errorType);
-      }
-    });
-    // --- Fin Discord OAuth2 ---
 
     // Request logging middleware
     app.use((req, res, next) => {
