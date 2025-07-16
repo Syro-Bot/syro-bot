@@ -20,9 +20,15 @@ router.get('/login', (req, res) => {
 
 // Callback: recibe el code de Discord y guarda el token en sesión
 router.get('/callback', async (req, res) => {
+  console.log('[AUTH] /callback called');
+  console.log('[AUTH] Cookies:', req.cookies);
+  console.log('[AUTH] Session before:', req.session);
   const code = req.query.code;
   const frontendRedirect = process.env.FRONTEND_REDIRECT || 'http://localhost:5173/dashboard';
-  if (!code) return res.redirect(frontendRedirect + '?error=no_code');
+  if (!code) {
+    console.log('[AUTH] No code provided');
+    return res.redirect(frontendRedirect + '?error=no_code');
+  }
   try {
     const tokenRes = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
       client_id: CLIENT_ID,
@@ -37,9 +43,10 @@ router.get('/callback', async (req, res) => {
     req.session.token = tokenRes.data.access_token;
     req.session.save((err) => {
       if (err) {
+        console.log('[AUTH] Error saving session:', err);
         return res.redirect(frontendRedirect + '?error=session_save');
       } else {
-        // Responde una página HTML que redirige con JS para asegurar que la cookie se setee
+        console.log('[AUTH] Session after save:', req.session);
         res.status(200).send(`
           <html>
             <head>
@@ -56,6 +63,7 @@ router.get('/callback', async (req, res) => {
       }
     });
   } catch (e) {
+    console.log('[AUTH] Error in OAuth2:', e.message);
     let errorType = 'oauth_failed';
     if (e.response && e.response.status === 429) {
       errorType = 'oauth_rate_limit';
@@ -66,8 +74,12 @@ router.get('/callback', async (req, res) => {
 
 // /me: devuelve datos del usuario autenticado
 router.get('/me', async (req, res) => {
+  console.log('[AUTH] /me called');
+  console.log('[AUTH] Cookies:', req.cookies);
+  console.log('[AUTH] Session:', req.session);
   try {
     if (!req.session.token) {
+      console.log('[AUTH] No session token');
       return res.status(401).json({ error: 'Not authenticated' });
     }
     // Obtiene datos del usuario y guilds desde Discord
