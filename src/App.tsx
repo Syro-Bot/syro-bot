@@ -20,6 +20,7 @@ import { TemplateProvider, useTemplates } from "./contexts/TemplateContext";
 import { AutoModProvider } from "./contexts/AutoModContext";
 import { ModalProvider, useModal } from "./contexts/ModalContext";
 import { AnimationProvider } from "./contexts/AnimationContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import APIMonitor from "./components/shared/APIMonitor";
 import apiManager from "./utils/apiManager";
 import { API_CONFIG } from "./config/apiConfig";
@@ -79,7 +80,10 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
           const data = await apiManager.request({
             url: `${API_CONFIG.BASE_URL}/me`,
             options: {
-              credentials: 'include'
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('syro-jwt-token')}`
+              }
             },
             cacheTTL: API_CONFIG.CACHE.USER_DATA_TTL,
             throttleDelay: API_CONFIG.ENDPOINTS.ME.throttleDelay,
@@ -215,59 +219,6 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
 };
 
 /**
- * Authentication hook to get the current user and loading state.
- * Handles session logic, rate limiting, and login redirection.
- *
- * @returns {{ user: any, loading: boolean }}
- */
-const useAuth = () => {
-  const [user, setUser] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
-  
-  React.useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        setLoading(true);
-        // Usar fetch directo para debuggear
-        const response = await fetch(`${API_CONFIG.BASE_URL}/me`, {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        console.log('🔍 Status de respuesta:', response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('🔍 Respuesta de autenticación:', data);
-          
-          if (data && data.user) {
-            setUser(data.user);
-            console.log('✅ Usuario autenticado:', data.user.username);
-          } else {
-            console.log('❌ Usuario no autenticado - Data recibida:', data);
-            setUser(null);
-          }
-        } else {
-          console.log('❌ Error de respuesta:', response.status, response.statusText);
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('❌ Error de autenticación:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUser();
-  }, []);
-
-  return { user, loading };
-};
-
-/**
  * Protected route component that requires authentication.
  * Redirects to login if user is not authenticated.
  *
@@ -276,7 +227,7 @@ const useAuth = () => {
  * @param {Function} props.children - Function that receives the authenticated user
  */
 const ProtectedRoute: React.FC<{ children: (user: any) => React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
   const { isDarkMode } = useTheme();
 
   if (loading) {
@@ -287,7 +238,7 @@ const ProtectedRoute: React.FC<{ children: (user: any) => React.ReactNode }> = (
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
@@ -306,28 +257,30 @@ const App: React.FC = () => {
   return (
     <Router>
       <AnimationProvider>
-        <TemplateProvider>
-          <ModalProvider>
-            <Routes>
-              <Route path="/" element={<Login />} />
-              <Route
-                path="/*"
-                element={
-                  <ProtectedRoute>
-                    {(user) => (
-                      <MainLayout
-                        activeComponent={activeComponent}
-                        setActiveComponent={setActiveComponent}
-                        user={user}
-                      />
-                    )}
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-            <GlobalModals />
-          </ModalProvider>
-        </TemplateProvider>
+        <AuthProvider>
+          <TemplateProvider>
+            <ModalProvider>
+              <Routes>
+                <Route path="/" element={<Login />} />
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      {(user) => (
+                        <MainLayout
+                          activeComponent={activeComponent}
+                          setActiveComponent={setActiveComponent}
+                          user={user}
+                        />
+                      )}
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+              <GlobalModals />
+            </ModalProvider>
+          </TemplateProvider>
+        </AuthProvider>
       </AnimationProvider>
     </Router>
   );

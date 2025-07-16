@@ -1,5 +1,7 @@
 const express = require('express');
 const axios = require('axios');
+const { generateToken } = require('../utils/jwtUtils');
+const { jwtAuthMiddleware } = require('../middleware/jwtAuth');
 const router = express.Router();
 
 // Variables de entorno
@@ -18,18 +20,19 @@ router.get('/login', (req, res) => {
   res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
 });
 
-// Callback: recibe el code de Discord y guarda el token en sesión
+// Callback: recibe el code de Discord y genera JWT token
 router.get('/callback', async (req, res) => {
   console.log('[AUTH] /callback called');
-  console.log('[AUTH] Cookies:', req.cookies);
-  console.log('[AUTH] Session before:', req.session);
   const code = req.query.code;
   const frontendRedirect = process.env.FRONTEND_REDIRECT || 'http://localhost:5173/dashboard';
+  
   if (!code) {
     console.log('[AUTH] No code provided');
     return res.redirect(frontendRedirect + '?error=no_code');
   }
+  
   try {
+    // Intercambiar code por token de Discord
     const tokenRes = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
@@ -40,28 +43,38 @@ router.get('/callback', async (req, res) => {
     }), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
-    req.session.token = tokenRes.data.access_token;
-    req.session.save((err) => {
-      if (err) {
-        console.log('[AUTH] Error saving session:', err);
-        return res.redirect(frontendRedirect + '?error=session_save');
-      } else {
-        console.log('[AUTH] Session after save:', req.session);
-        res.status(200).send(`
-          <html>
-            <head>
-              <meta http-equiv="refresh" content="0;url=${frontendRedirect}" />
-              <script>
-                window.location.href = "${frontendRedirect}";
-              </script>
-            </head>
-            <body>
-              <p>Redirecting...</p>
-            </body>
-          </html>
-        `);
-      }
+    
+    console.log('[AUTH] Discord token received');
+    
+    // Obtener datos del usuario desde Discord
+    const userRes = await axios.get('https://discord.com/api/users/@me', {
+      headers: { Authorization: `Bearer ${tokenRes.data.access_token}` }
     });
+    
+    console.log('[AUTH] User data received:', userRes.data.username);
+    
+    // Generar JWT token
+    const jwtToken = generateToken(userRes.data);
+    
+    console.log('[AUTH] JWT token generated');
+    
+    // Redirigir al frontend con el token
+    const redirectUrl = `${frontendRedirect}?token=${encodeURIComponent(jwtToken)}`;
+    
+    res.status(200).send(`
+      <html>
+        <head>
+          <meta http-equiv="refresh" content="0;url=${redirectUrl}" />
+          <script>
+            window.location.href = "${redirectUrl}";
+          </script>
+        </head>
+        <body>
+          <p>Redirecting with token...</p>
+        </body>
+      </html>
+    `);
+    
   } catch (e) {
     console.log('[AUTH] Error in OAuth2:', e.message);
     let errorType = 'oauth_failed';
@@ -72,32 +85,46 @@ router.get('/callback', async (req, res) => {
   }
 });
 
-// /me: devuelve datos del usuario autenticado
-router.get('/me', async (req, res) => {
-  console.log('[AUTH] /me called');
-  console.log('[AUTH] Cookies:', req.cookies);
-  console.log('[AUTH] Session:', req.session);
+// /me: devuelve datos del usuario autenticado (ahora usa JWT)
+router.get('/me', jwtAuthMiddleware, async (req, res) => {
+  console.log('[AUTH] /me called for user:', req.user.username);
+  
   try {
-    if (!req.session.token) {
-      console.log('[AUTH] No session token');
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-    // Obtiene datos del usuario y guilds desde Discord
-    const userRes = await axios.get('https://discord.com/api/users/@me', {
-      headers: { Authorization: `Bearer ${req.session.token}` }
+    // Usar el token de Discord almacenado en el JWT o hacer una nueva petición
+    // Por ahora, vamos a hacer una petición a Discord para obtener datos actualizados
+    const discordTokenRes = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+      grant_type: 'client_credentials'
+    }), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
+    
+    // Obtener datos del usuario y guilds desde Discord usando el ID del JWT
+    const userRes = await axios.get(`https://discord.com/api/users/${req.user.id}`, {
+      headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` }
+    });
+    
     const guildsRes = await axios.get('https://discord.com/api/users/@me/guilds', {
-      headers: { Authorization: `Bearer ${req.session.token}` }
+      headers: { Authorization: `Bearer ${discordTokenRes.data.access_token}` }
     });
+    
     res.json({
-      user: userRes.data,
+      user: {
+        ...userRes.data,
+        id: req.user.id,
+        username: req.user.username,
+        avatar: req.user.avatar,
+        discriminator: req.user.discriminator
+      },
       guilds: guildsRes.data,
       totalGuilds: guildsRes.data.length,
       accessibleGuilds: guildsRes.data.filter(g => (g.permissions & 0x20) === 0x20).length // admin perms
     });
+    
   } catch (e) {
+    console.error('[AUTH] Error in /me:', e.message);
     if (e.response?.status === 401) {
-      req.session.destroy();
       return res.status(401).json({ error: 'Invalid Discord token' });
     }
     if (e.response?.status === 429) {
@@ -105,6 +132,14 @@ router.get('/me', async (req, res) => {
     }
     res.status(500).json({ error: 'Discord API error' });
   }
+});
+
+// Logout: endpoint para invalidar token (opcional, ya que JWT es stateless)
+router.post('/logout', (req, res) => {
+  console.log('[AUTH] Logout called');
+  // JWT es stateless, así que no hay nada que invalidar en el servidor
+  // El frontend debe eliminar el token del localStorage
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
 module.exports = router; 

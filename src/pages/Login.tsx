@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import { useRef } from "react";
+import { useAuth } from '../contexts/AuthContext';
 import { AUTH_BASE_URL } from '../config/constants';
 
 // Info icon SVG component
@@ -13,25 +14,19 @@ const InfoIcon = () => (
 );
 
 const Login: React.FC = () => {
-  const [checking, setChecking] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const [showInstructions, setShowInstructions] = useState(false);
   const navigate = useNavigate();
   const instructionsRef = useRef<HTMLDivElement>(null);
+  const { user, loading, login, logout, isAuthenticated } = useAuth();
 
   useEffect(() => {
     document.title = "Syro - Customization Bot";
-    // Check if already logged in
-    fetch(`${AUTH_BASE_URL}/me`, { credentials: 'include', cache: 'no-cache' })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data?.user) {
-          setUser(data.user);
-          navigate("/dashboard");
-        }
-        setChecking(false);
-      });
-  }, [navigate]);
+    
+    // Si ya está autenticado, redirigir al dashboard
+    if (isAuthenticated && user) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, user, navigate]);
 
   // Animar instrucciones con GSAP
   useEffect(() => {
@@ -45,19 +40,15 @@ const Login: React.FC = () => {
   }, [showInstructions]);
 
   const handleLogin = () => {
-    window.location.href = `${AUTH_BASE_URL}/login`;
+    login();
   };
 
   const handleLogout = async () => {
-    await fetch(`${AUTH_BASE_URL}/logout`, {
-      method: 'POST',
-      credentials: 'include'
-    });
-    setUser(null);
-    window.location.reload();
+    await logout();
+    // No necesitamos recargar la página, el contexto se encarga
   };
 
-  if (checking) {
+  if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
@@ -73,7 +64,7 @@ const Login: React.FC = () => {
       <span className="text-gray-400 text-xs md:text-sm mb-2 md:mb-4 tracking-wide uppercase z-10 text-center">Customize your Discord like never before</span>
       <h1 className="text-[6rem] md:text-[8rem] lg:text-[12rem] font-extrabold bg-gradient-to-r from-blue-400 via-blue-600 to-blue-900 bg-clip-text text-transparent uppercase leading-none mb-1 md:mb-2 z-10">Syro</h1>
       <h2 className="text-[6rem] md:text-[8rem] lg:text-[12rem] font-extrabold bg-gradient-to-r from-blue-400 via-blue-600 to-blue-900 bg-clip-text text-transparent uppercase tracking-widest leading-none z-10 mb-6 md:mb-12">Bot</h2>
-      {!user ? (
+      {!isAuthenticated ? (
         <>
           <div className="flex flex-col md:flex-row items-center gap-3 md:gap-4 z-10 mb-2">
             <button
