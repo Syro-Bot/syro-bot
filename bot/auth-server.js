@@ -179,9 +179,13 @@ app.get('/login', (req, res) => {
 app.get('/callback', async (req, res) => {
   const code = req.query.code;
   const frontendRedirect = process.env.FRONTEND_REDIRECT || 'http://localhost:5173/dashboard';
-  if (!code) return res.status(400).send('No code provided');
+  logger.info(`[CALLBACK] Iniciado. code: ${code}`);
+  if (!code) {
+    logger.error('[CALLBACK] No code provided');
+    return res.status(400).send('No code provided');
+  }
   try {
-    // Exchange authorization code for access token
+    logger.info('[CALLBACK] Intercambiando code por token...');
     const tokenRes = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
       client_id: CLIENT_ID,
       client_secret: CLIENT_SECRET,
@@ -192,17 +196,14 @@ app.get('/callback', async (req, res) => {
     }), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
-    // Store access token in session
+    logger.info('[CALLBACK] Token recibido. Guardando en sesión...');
     req.session.token = tokenRes.data.access_token;
-    logger.info('\u2705 Token stored in session:', req.sessionID);
-    logger.debug('\ud83d\udd11 Session token length:', req.session.token ? req.session.token.length : 0);
     req.session.save((err) => {
       if (err) {
-        logger.error('\u274c Error saving session:', err);
+        logger.error(`[CALLBACK] Error guardando sesión: ${err}`);
         res.status(500).send('Session save error');
       } else {
-        logger.info('\u2705 Session saved successfully');
-        // Página HTML intermedia para asegurar que la cookie se setee
+        logger.info('[CALLBACK] Sesión guardada. Enviando HTML intermedio para redirección.');
         res.status(200).send(`
           <html>
             <head>
@@ -219,6 +220,7 @@ app.get('/callback', async (req, res) => {
       }
     });
   } catch (e) {
+    logger.error(`[CALLBACK] Error en OAuth2: ${e.message}`);
     res.status(500).send('OAuth2 Error: ' + e.message);
   }
 });
