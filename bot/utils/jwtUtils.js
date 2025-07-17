@@ -1,10 +1,11 @@
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'your-secret-key';
-const JWT_EXPIRES_IN = '24h'; // 24 horas
+const JWT_EXPIRES_IN = '20m'; // 20 minutes for enhanced security
 
 /**
  * Generate JWT token for user
+ * The token expires in 20 minutes to minimize risk if stolen.
  * @param {Object} user - User object with id, username, etc.
  * @returns {string} JWT token
  */
@@ -14,13 +15,11 @@ function generateToken(user) {
     username: user.username,
     avatar: user.avatar,
     discriminator: user.discriminator,
-    // Guardar el access_token de Discord si está presente
-    discord_access_token: user.discord_access_token || undefined,
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+    // Store Discord access_token if present (consider encrypting for extra security)
+    discord_access_token: user.discord_access_token || undefined
   };
-  
-  return jwt.sign(payload, JWT_SECRET); // Removed expiresIn option
+  // Set expiration via jwt.sign options for reliability
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 }
 
 /**
