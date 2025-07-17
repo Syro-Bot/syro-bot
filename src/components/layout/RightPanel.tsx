@@ -112,6 +112,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ user, availableGuilds, guildId,
       <button
         onClick={async () => {
           await fetch(`${AUTH_BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
+          localStorage.removeItem('syro-jwt-token');
           window.location.reload();
         }}
         className={`w-full flex items-center gap-3 text-left px-4 py-3 text-sm rounded-xl transition-colors border-2

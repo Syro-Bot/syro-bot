@@ -86,19 +86,17 @@ const AutoModeration: React.FC = () => {
   // --- NUEVO: Rectángulo de roles excluidos ---
   const renderExcludedRolesBox = () => (
     <div
-      className={`flex flex-col gap-1 p-4 rounded-xl transition-all duration-200 shadow-md border-2 mb-8 max-w-xl min-w-[340px] w-full h-auto min-h-[72px] ${
-        isDarkMode
+      className={`flex flex-col gap-1 p-4 rounded-xl transition-all duration-200 shadow-md border-2 mb-8 max-w-xl min-w-[340px] w-full h-auto min-h-[72px] ${isDarkMode
           ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]'
           : 'bg-gradient-to-br from-white via-blue-50 to-blue-100 border-blue-100'
-      }`}
+        }`}
       style={{ minHeight: 0 }}
     >
       {/* Header: icono, título, + */}
       <div className="flex items-center justify-between w-full mb-1 gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className={`flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center ${
-            isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'
-          }`}>
+          <div className={`flex-shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-lg flex items-center justify-center ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'
+            }`}>
             <Shield className={`w-6 h-6 md:w-7 md:h-7 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
           </div>
           <span className="font-semibold text-base md:text-lg bg-gradient-to-r from-blue-500 via-blue-700 to-blue-900 bg-clip-text text-transparent tracking-tight truncate">
@@ -145,7 +143,7 @@ const AutoModeration: React.FC = () => {
   // --- FIN NUEVO ---
 
   return (
-    <div className={"w-full max-w-[90rem] mx-auto py-12   transition-colors duration-300"}>
+    <div className={"w-full max-w-[90rem] mx-auto transition-colors duration-300"}> 
       {/* Quitar el título "AutoModeration" */}
       {!selected ? (
         <div
