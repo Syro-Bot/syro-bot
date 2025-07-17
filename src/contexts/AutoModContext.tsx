@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { AutoModRule } from '../features/automoderation/types';
+import { API_CONFIG } from '../config/apiConfig';
 
 interface AutoModContextType {
   // Estado
@@ -67,10 +68,11 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
     setError(null);
     
     try {
-      const response = await fetch(`/api/servers/${guildId}/automod/rules`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/automod/servers/${guildId}/rules`, {
         credentials: 'include',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('syro-jwt-token')}`
         }
       });
       
@@ -115,9 +117,12 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
     setError(null);
     
     try {
-      const response = await fetch(`/api/servers/${guildId}/automod/rules`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/automod/servers/${guildId}/rules`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('syro-jwt-token')}`
+        },
         body: JSON.stringify({ automodRules: rules })
       });
       
@@ -215,9 +220,12 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
     setError(null);
 
     try {
-      const response = await fetch(`/api/servers/${guildId}/automod/rules`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/automod/servers/${guildId}/rules`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('syro-jwt-token')}`
+        },
         body: JSON.stringify({ automodRules: rulesToSave })
       });
 

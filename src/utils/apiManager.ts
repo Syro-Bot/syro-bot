@@ -8,6 +8,8 @@
  * @version 2.0.0
  */
 
+import { API_CONFIG } from '../config/apiConfig';
+
 interface RequestConfig {
   url: string;
   options?: RequestInit;
@@ -127,12 +129,16 @@ class APIManager {
     const { url, options = {}, cacheTTL, retryAttempts = 2, retryDelay = 1000 } = config;
     let lastError: Error;
 
+    // Build full URL with base URL
+    const fullUrl = url.startsWith('http') ? url : `${API_CONFIG.BASE_URL}${url}`;
+
     for (let attempt = 0; attempt <= retryAttempts; attempt++) {
       try {
-        const response = await fetch(url, {
+        const response = await fetch(fullUrl, {
           ...options,
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('syro-jwt-token')}`,
             ...options.headers,
           },
         });
