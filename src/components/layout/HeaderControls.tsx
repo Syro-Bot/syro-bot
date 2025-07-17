@@ -242,7 +242,7 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({
               >
                 {availableGuilds.map((guild: any) => (
                   <option key={guild.id} value={guild.id}>
-                    {guild.name}
+                    {guild.name} {guild.botPresent ? '✅' : '➕'}
                   </option>
                 ))}
               </select>

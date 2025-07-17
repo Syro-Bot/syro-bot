@@ -92,28 +92,21 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
 
           console.log('🏠 Servidores del usuario:', data);
           if (data.guilds && data.guilds.length > 0) {
-            // Filtrar solo servidores donde el usuario es admin o tiene permisos de administrador
-            const adminGuilds = data.guilds.filter((guild: any) => 
-              guild.permissions && (parseInt(guild.permissions) & 0x8) === 0x8 // ADMINISTRATOR permission
-            );
-            
-            console.log('👑 Servidores con permisos de admin:', adminGuilds);
-            setAvailableGuilds(adminGuilds);
-            
+            setAvailableGuilds(data.guilds);
             // Recordar último guild seleccionado
             const lastGuildId = localStorage.getItem('lastSelectedGuildId');
             let selectedGuildId = undefined;
-            if (lastGuildId && adminGuilds.some((g: any) => g.id === lastGuildId)) {
+            if (lastGuildId && data.guilds.some((g: any) => g.id === lastGuildId)) {
               selectedGuildId = lastGuildId;
-            } else if (adminGuilds.length > 0) {
-              selectedGuildId = adminGuilds[0].id;
+            } else if (data.guilds.length > 0) {
+              selectedGuildId = data.guilds[0].id;
             }
             if (selectedGuildId) {
               setGuildId(selectedGuildId);
               localStorage.setItem('lastSelectedGuildId', selectedGuildId);
               console.log('✅ GuildId seleccionado:', selectedGuildId);
             } else {
-              console.log('❌ No hay servidores con permisos de administrador');
+              console.log('❌ No hay servidores disponibles');
             }
           } else {
             console.log('❌ No hay servidores disponibles');

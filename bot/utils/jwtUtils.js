@@ -10,10 +10,12 @@ const JWT_EXPIRES_IN = '24h'; // 24 horas
  */
 function generateToken(user) {
   const payload = {
-    userId: user.id,
+    id: user.id,
     username: user.username,
     avatar: user.avatar,
     discriminator: user.discriminator,
+    // Guardar el access_token de Discord si está presente
+    discord_access_token: user.discord_access_token || undefined,
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
   };
@@ -57,10 +59,11 @@ function getUserFromToken(token) {
   if (!decoded) return null;
   
   return {
-    id: decoded.userId,
+    id: decoded.id,
     username: decoded.username,
     avatar: decoded.avatar,
-    discriminator: decoded.discriminator
+    discriminator: decoded.discriminator,
+    discord_access_token: decoded.discord_access_token
   };
 }
 

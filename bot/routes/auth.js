@@ -60,7 +60,10 @@ router.get('/callback', async (req, res) => {
     
     // Generar JWT token
     console.log('[AUTH] Generating JWT token...');
-    const jwtToken = generateToken(userRes.data);
+    const jwtToken = generateToken({
+      ...userRes.data,
+      discord_access_token: tokenRes.data.access_token
+    });
     
     console.log('[AUTH] JWT token generated successfully');
     
@@ -98,6 +101,10 @@ router.get('/callback', async (req, res) => {
   }
 });
 
+// Cache simple en memoria para los guilds del usuario
+const userGuildsCache = {};
+const CACHE_TTL_MS = 60 * 1000; // 60 segundos
+
 // /me: devuelve datos del usuario autenticado (ahora usa JWT)
 router.get('/me', jwtAuthMiddleware, async (req, res) => {
   console.log('[AUTH] /me called for user:', req.user.username);
@@ -111,61 +118,78 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
       discriminator: req.user.discriminator
     };
     
-    // Obtener los servidores del usuario desde Discord
-    // Para esto necesitamos el access_token de Discord
-    // Como no lo tenemos en el JWT, vamos a implementar una solución alternativa
-    
-    // Opción 1: Obtener guilds usando el bot client (si el usuario está en servidores donde está el bot)
-    const client = req.app.locals.client;
-    let userGuilds = [];
-    let totalGuilds = 0;
-    let accessibleGuilds = 0;
-    
-    if (client) {
-      try {
-        // Obtener todos los servidores donde está el bot
-        const botGuilds = client.guilds.cache;
-        
-        // Filtrar servidores donde el usuario es miembro y tiene permisos de administrador
-        for (const [guildId, guild] of botGuilds) {
-          try {
-            // Obtener el miembro del usuario en este servidor
-            const member = await guild.members.fetch(user.id);
-            
-            // Verificar si tiene permisos de administrador
-            if (member.permissions.has('Administrator')) {
-              userGuilds.push({
-                id: guild.id,
-                name: guild.name,
-                icon: guild.iconURL(),
-                permissions: member.permissions.bitfield.toString(),
-                owner: guild.ownerId === user.id,
-                botPresent: true
-              });
-              accessibleGuilds++;
-            }
-          } catch (memberError) {
-            // El usuario no es miembro de este servidor
-            console.log(`[AUTH] User ${user.username} is not a member of guild ${guild.name}`);
-          }
-        }
-        
-        totalGuilds = userGuilds.length;
-        
-        console.log(`[AUTH] Found ${userGuilds.length} accessible guilds for user ${user.username}`);
-        
-      } catch (error) {
-        console.error('[AUTH] Error fetching user guilds:', error);
-        // Si hay error, devolvemos array vacío pero no fallamos
-        userGuilds = [];
-      }
+    const discordAccessToken = req.user.discord_access_token;
+    if (!discordAccessToken) {
+      return res.status(401).json({ error: 'No Discord access token found in JWT.' });
     }
-    
+
+    // --- CACHE LOGIC ---
+    const cacheKey = user.id;
+    const now = Date.now();
+    if (
+      userGuildsCache[cacheKey] &&
+      (now - userGuildsCache[cacheKey].timestamp < CACHE_TTL_MS)
+    ) {
+      // Usar cache
+      console.log('[AUTH] Returning cached guilds for user:', user.username);
+      const allGuilds = userGuildsCache[cacheKey].guilds;
+      return res.json({
+        user: user,
+        guilds: allGuilds,
+        totalGuilds: allGuilds.length,
+        accessibleGuilds: allGuilds.filter(g => g.botPresent).length
+      });
+    }
+    // --- END CACHE LOGIC ---
+
+    // 1. Obtener todos los servidores del usuario desde Discord
+    let userGuilds = [];
+    try {
+      const guildsRes = await axios.get('https://discord.com/api/users/@me/guilds', {
+        headers: { Authorization: `Bearer ${discordAccessToken}` }
+      });
+      userGuilds = guildsRes.data;
+    } catch (err) {
+      if (err.response && err.response.status === 429) {
+        console.error('[AUTH] Rate limit hit when fetching user guilds from Discord API');
+        return res.status(429).json({ error: 'Rate limited by Discord. Please wait and try again.' });
+      }
+      if (err.response && err.response.status === 401) {
+        console.error('[AUTH] Invalid Discord access token');
+        return res.status(401).json({ error: 'Invalid Discord access token. Please log in again.' });
+      }
+      console.error('[AUTH] Error fetching user guilds from Discord API:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch user guilds from Discord.' });
+    }
+
+    // 2. Obtener los servidores donde está el bot
+    const client = req.app.locals.client;
+    const botGuildIds = client ? new Set(client.guilds.cache.map(g => g.id)) : new Set();
+
+    // 3. Marcar cuáles tienen al bot y filtrar solo los que el usuario es owner o tiene permisos de admin
+    const adminPerm = 0x8; // ADMINISTRATOR
+    const allGuilds = userGuilds
+      .filter(guild => (parseInt(guild.permissions) & adminPerm) === adminPerm)
+      .map(guild => ({
+        id: guild.id,
+        name: guild.name,
+        icon: guild.icon,
+        permissions: guild.permissions,
+        owner: guild.owner,
+        botPresent: botGuildIds.has(guild.id)
+      }));
+
+    // Guardar en cache
+    userGuildsCache[cacheKey] = {
+      guilds: allGuilds,
+      timestamp: now
+    };
+
     res.json({
       user: user,
-      guilds: userGuilds,
-      totalGuilds: totalGuilds,
-      accessibleGuilds: accessibleGuilds
+      guilds: allGuilds,
+      totalGuilds: allGuilds.length,
+      accessibleGuilds: allGuilds.filter(g => g.botPresent).length
     });
     
   } catch (e) {
