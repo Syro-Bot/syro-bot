@@ -25,6 +25,7 @@ const cards = [
   },
 ];
 
+// Recibe guildId como prop desde el layout principal
 interface WelcomeMessagesProps {
   guildId?: string;
 }

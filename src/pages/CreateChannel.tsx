@@ -8,6 +8,7 @@ import type { Channel } from '../features/channels/types';
 import { Hash } from 'lucide-react';
 import { API_BASE_URL } from '../config/constants';
 
+// Recibe guildId como prop desde el layout principal
 interface CreateChannelProps {
   guildId?: string;
 }

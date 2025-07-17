@@ -45,7 +45,7 @@ const Dashboard: React.FC<{
   const { isDarkMode } = useTheme();
   const { dashboardAnimationComplete, markDashboardAnimationComplete } = useAnimation();
   const textRef = useRef<HTMLDivElement>(null);
-  const [showChart, setShowChart] = useState(false);
+  const [showChart, setShowChart] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
   const [showBotMissingModal, setShowBotMissingModal] = useState(false);
@@ -172,14 +172,7 @@ const Dashboard: React.FC<{
     }
   }, [user, dashboardAnimationComplete, markDashboardAnimationComplete, isMobile]);
 
-  // Mostrar gráfico después de la animación
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowChart(true);
-    }, dashboardAnimationComplete ? 100 : (isMobile ? 800 : 2000));
-
-    return () => clearTimeout(timer);
-  }, [dashboardAnimationComplete, isMobile]);
+  // Eliminado el delay de showChart
 
   return (
     <div className="relative min-h-screen w-full">
