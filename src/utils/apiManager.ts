@@ -136,9 +136,9 @@ class APIManager {
       try {
         const response = await fetch(fullUrl, {
           ...options,
+          credentials: 'include', // Ensure cookies are sent with the request
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('syro-jwt-token')}`,
             ...options.headers,
           },
         });

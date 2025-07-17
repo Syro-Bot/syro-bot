@@ -15,6 +15,7 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path = require('path');
 const fs = require('fs');
+const cookieParser = require('cookie-parser');
 
 const logger = require('../utils/logger');
 const { validateEnvironment, getSecurityMiddleware, CORS_CONFIG, SESSION_SECURITY } = require('./security');
@@ -40,6 +41,12 @@ function createApp(discordClient) {
     // Security middleware
     const securityMiddleware = getSecurityMiddleware();
     securityMiddleware.forEach(middleware => app.use(middleware));
+
+    /**
+     * Cookie parser middleware
+     * Required for reading JWT from HttpOnly cookies in authentication
+     */
+    app.use(cookieParser());
 
     // CORS configuration
     app.use(cors(CORS_CONFIG));

@@ -71,8 +71,7 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/automod/servers/${guildId}/rules`, {
         credentials: 'include',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('syro-jwt-token')}`
+          'Content-Type': 'application/json'
         }
       });
       
@@ -120,8 +119,7 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/automod/servers/${guildId}/rules`, {
         method: 'PUT',
         headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('syro-jwt-token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ automodRules: rules })
       });
@@ -223,8 +221,7 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/automod/servers/${guildId}/rules`, {
         method: 'PUT',
         headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('syro-jwt-token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ automodRules: rulesToSave })
       });

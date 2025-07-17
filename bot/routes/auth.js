@@ -40,18 +40,28 @@ router.get('/login', (req, res) => {
   res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
 });
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production', // Set to true in production
+  sameSite: 'strict',
+  maxAge: 20 * 60 * 1000 // 20 minutes
+};
+
 // Callback: recibe el code de Discord y genera JWT token
 router.get('/callback', async (req, res) => {
   console.log('[AUTH] /callback called');
   console.log('[AUTH] Query params:', req.query);
   const code = req.query.code;
   const frontendRedirect = process.env.FRONTEND_REDIRECT || 'http://localhost:5173/dashboard';
-  
+  console.log('[AUTH] FRONTEND_REDIRECT:', process.env.FRONTEND_REDIRECT);
+  console.log('[AUTH] frontendRedirect variable:', frontendRedirect);
+
   if (!code) {
     console.log('[AUTH] No code provided');
+    console.log('[AUTH] Redirecting to:', frontendRedirect + '?error=no_code');
     return res.redirect(frontendRedirect + '?error=no_code');
   }
-  
+
   try {
     console.log('[AUTH] Starting OAuth2 token exchange...');
     // Intercambiar code por token de Discord
@@ -65,58 +75,48 @@ router.get('/callback', async (req, res) => {
     }), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     });
-    
+
     console.log('[AUTH] Discord token received successfully');
     console.log('[AUTH] Token response keys:', Object.keys(tokenRes.data));
-    
+
     // Obtener datos del usuario desde Discord
     console.log('[AUTH] Fetching user data from Discord...');
     const userRes = await axios.get('https://discord.com/api/users/@me', {
       headers: { Authorization: `Bearer ${tokenRes.data.access_token}` }
     });
-    
+
     console.log('[AUTH] User data received successfully:', userRes.data.username);
     console.log('[AUTH] User data keys:', Object.keys(userRes.data));
-    
+
     // Generar JWT token
     console.log('[AUTH] Generating JWT token...');
     const jwtToken = generateToken({
       ...userRes.data,
       discord_access_token: tokenRes.data.access_token
     });
-    
-    console.log('[AUTH] JWT token generated successfully');
-    
-    // Redirigir al frontend con el token
-    const redirectUrl = `${frontendRedirect}?token=${encodeURIComponent(jwtToken)}`;
-    console.log('[AUTH] Redirecting to:', redirectUrl);
-    
-    res.status(200).send(`
-      <html>
-        <head>
-          <meta http-equiv="refresh" content="0;url=${redirectUrl}" />
-          <script>
-            window.location.href = "${redirectUrl}";
-          </script>
-        </head>
-        <body>
-          <p>Redirecting with token...</p>
-        </body>
-      </html>
-    `);
-    
+    // Validar que el JWT es válido (tres partes separadas por punto)
+    if (!jwtToken || typeof jwtToken !== 'string' || jwtToken.split('.').length !== 3) {
+      console.error('[AUTH] JWT generado inválido:', jwtToken);
+      return res.redirect(frontendRedirect + '?error=invalid_jwt');
+    }
+    // Set JWT as HttpOnly, Secure cookie
+    res.cookie('syro-jwt-token', jwtToken, cookieOptions);
+    console.log('[AUTH] JWT cookie seteada correctamente. Redirecting to:', frontendRedirect);
+    // Redirect to frontend without token in URL
+    return res.redirect(frontendRedirect);
+
   } catch (e) {
     console.error('[AUTH] Error in OAuth2:', e.message);
     console.error('[AUTH] Error response:', e.response?.data);
     console.error('[AUTH] Error status:', e.response?.status);
     console.error('[AUTH] Error headers:', e.response?.headers);
-    
+
     let errorType = 'oauth_failed';
     if (e.response && e.response.status === 429) {
       errorType = 'oauth_rate_limit';
     }
-    
-    console.log('[AUTH] Redirecting with error:', errorType);
+
+    console.log('[AUTH] Redirecting with error:', errorType, 'to', frontendRedirect + '?error=' + errorType);
     res.redirect(frontendRedirect + '?error=' + errorType);
   }
 });
@@ -128,7 +128,7 @@ const CACHE_TTL_MS = 60 * 1000; // 60 segundos
 // /me: devuelve datos del usuario autenticado (ahora usa JWT)
 router.get('/me', jwtAuthMiddleware, async (req, res) => {
   console.log('[AUTH] /me called for user:', req.user.username);
-  
+
   try {
     // Los datos del usuario ya están en req.user (del JWT)
     const user = {
@@ -137,7 +137,7 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
       avatar: req.user.avatar,
       discriminator: req.user.discriminator
     };
-    
+
     const discordAccessToken = req.user.discord_access_token;
     if (!discordAccessToken) {
       return res.status(401).json({ error: 'No Discord access token found in JWT.' });
@@ -211,7 +211,7 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
       totalGuilds: allGuilds.length,
       accessibleGuilds: allGuilds.filter(g => g.botPresent).length
     });
-    
+
   } catch (e) {
     console.error('[AUTH] Error in /me:', e.message);
     res.status(500).json({ error: 'Internal server error' });
@@ -220,26 +220,25 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
 
 // Logout: endpoint para invalidar token (opcional, ya que JWT es stateless)
 router.post('/logout', (req, res) => {
-  console.log('[AUTH] Logout called');
-  // JWT es stateless, así que no hay nada que invalidar en el servidor
-  // El frontend debe eliminar el token del localStorage
+  // Clear the JWT cookie on logout for security
+  res.clearCookie('syro-jwt-token', cookieOptions);
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // /guilds: devuelve los servidores donde está el bot
 router.get('/guilds', (req, res) => {
   console.log('[AUTH] /guilds called');
-  
+
   try {
     const client = req.app.locals.client;
-    
+
     if (!client) {
       return res.status(500).json({
         success: false,
         error: 'Discord client not available'
       });
     }
-    
+
     // Obtener todos los servidores donde está el bot
     const botGuilds = Array.from(client.guilds.cache.values()).map(guild => ({
       id: guild.id,
@@ -248,15 +247,15 @@ router.get('/guilds', (req, res) => {
       memberCount: guild.memberCount,
       owner: guild.ownerId
     }));
-    
+
     console.log(`[AUTH] Bot is in ${botGuilds.length} guilds`);
-    
+
     res.json({
       success: true,
       guilds: botGuilds,
       totalGuilds: botGuilds.length
     });
-    
+
   } catch (error) {
     console.error('[AUTH] Error getting bot guilds:', error);
     res.status(500).json({
@@ -269,10 +268,10 @@ router.get('/guilds', (req, res) => {
 // /test: endpoint de prueba para verificar que el bot esté funcionando
 router.get('/test', (req, res) => {
   console.log('[AUTH] /test called');
-  
+
   try {
     const client = req.app.locals.client;
-    
+
     if (!client) {
       return res.json({
         success: false,
@@ -280,7 +279,7 @@ router.get('/test', (req, res) => {
         clientExists: false
       });
     }
-    
+
     const botInfo = {
       clientExists: true,
       botUser: client.user ? {
@@ -292,14 +291,14 @@ router.get('/test', (req, res) => {
       status: client.ws.status,
       uptime: client.uptime
     };
-    
+
     console.log('[AUTH] Bot info:', botInfo);
-    
+
     res.json({
       success: true,
       botInfo
     });
-    
+
   } catch (error) {
     console.error('[AUTH] Error in test endpoint:', error);
     res.status(500).json({

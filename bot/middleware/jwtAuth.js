@@ -2,14 +2,13 @@ const { extractTokenFromHeader, getUserFromToken } = require('../utils/jwtUtils'
 
 /**
  * JWT Authentication Middleware
- * Validates JWT token and adds user info to request object
+ * Validates JWT token from Authorization header or HttpOnly cookie and adds user info to request object
  */
 function jwtAuthMiddleware(req, res, next) {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
-    const token = extractTokenFromHeader(authHeader);
-    
+    // Solo obtener el token de la cookie segura
+    const token = req.cookies && req.cookies['syro-jwt-token'];
+
     if (!token) {
       console.log('[JWT] No token provided');
       return res.status(401).json({ 
@@ -17,7 +16,7 @@ function jwtAuthMiddleware(req, res, next) {
         error: 'No token provided' 
       });
     }
-    
+
     // Verify token and get user info
     const user = getUserFromToken(token);
     if (!user) {
@@ -27,14 +26,14 @@ function jwtAuthMiddleware(req, res, next) {
         error: 'Invalid token' 
       });
     }
-    
+
     // Add user info to request object 
     req.user = user;
     req.token = token;
-    
+
     console.log('[JWT] Authenticated user:', user.username);
     next();
-    
+
   } catch (error) {
     console.error('[JWT] Auth middleware error:', error);
     return res.status(500).json({ 

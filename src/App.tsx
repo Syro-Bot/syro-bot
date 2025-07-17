@@ -341,7 +341,6 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
  */
 const ProtectedRoute: React.FC<{ children: (user: any) => React.ReactNode }> = ({ children }) => {
   const { user, loading, isAuthenticated } = useAuth();
-  // const { isDarkMode } = useTheme(); // Eliminar si no se usa
 
   if (loading) {
     return (

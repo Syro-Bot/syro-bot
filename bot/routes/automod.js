@@ -23,7 +23,7 @@ const rateLimit = require('express-rate-limit');
  */
 const automodLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // limit each IP to 30 requests per windowMs
+  max: 500, // TEMPORAL: aumentar a 500 para pruebas. Volver a 30 después.
   standardHeaders: true,
   legacyHeaders: false,
   message: {

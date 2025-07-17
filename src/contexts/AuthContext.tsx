@@ -22,70 +22,32 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Cargar token desde localStorage al inicializar
+  // On mount, check authentication status via /api/me and cookie
   useEffect(() => {
-    const savedToken = localStorage.getItem('syro-jwt-token');
-    if (savedToken) {
-      setToken(savedToken);
-      // Validar token y obtener datos del usuario
-      validateToken(savedToken);
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  // Verificar si hay token en la URL (después del login)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get('token');
-    
-    if (tokenFromUrl) {
-      console.log('[AUTH] Token found in URL, saving to localStorage');
-      localStorage.setItem('syro-jwt-token', tokenFromUrl);
-      setToken(tokenFromUrl);
-      
-      // Limpiar la URL
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, newUrl);
-      
-      // Validar token y obtener datos del usuario
-      validateToken(tokenFromUrl);
-    }
-  }, []);
-
-  const validateToken = async (tokenToValidate: string) => {
-    try {
+    const checkAuth = async () => {
       setLoading(true);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/me`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokenToValidate}`
+      try {
+        const response = await fetch(`${API_CONFIG.BASE_URL}/api/me`, {
+          method: 'GET',
+          credentials: 'include', // Use cookie-based JWT
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+          console.log('[AUTH] Authenticated as:', data.user.username);
+        } else {
+          setUser(null);
         }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-        console.log('[AUTH] Token validated, user:', data.user.username);
-      } else {
-        console.log('[AUTH] Token validation failed, clearing token');
-        localStorage.removeItem('syro-jwt-token');
-        setToken(null);
+      } catch (error) {
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('[AUTH] Error validating token:', error);
-      localStorage.removeItem('syro-jwt-token');
-      setToken(null);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    checkAuth();
+  }, []);
 
   const login = () => {
     console.log('[AUTH] Redirecting to Discord login');
@@ -94,32 +56,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = async () => {
     try {
-      // Llamar al endpoint de logout (opcional, ya que JWT es stateless)
-      if (token) {
-        await fetch(`${API_CONFIG.BASE_URL}/api/logout`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-      }
+      await fetch(`${API_CONFIG.BASE_URL}/api/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
     } catch (error) {
       console.error('[AUTH] Error during logout:', error);
     } finally {
-      // Limpiar datos locales
-      localStorage.removeItem('syro-jwt-token');
-      setToken(null);
       setUser(null);
       console.log('[AUTH] Logged out successfully');
     }
   };
 
-  const isAuthenticated = !!user && !!token;
+  const isAuthenticated = !!user;
 
   const value: AuthContextType = {
     user,
-    token,
+    token: null, // No longer used
     loading,
     login,
     logout,
