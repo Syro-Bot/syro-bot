@@ -45,7 +45,6 @@ const Dashboard: React.FC<{
   const { isDarkMode } = useTheme();
   const { dashboardAnimationComplete, markDashboardAnimationComplete } = useAnimation();
   const textRef = useRef<HTMLDivElement>(null);
-  const [showChart, setShowChart] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
   const [showBotMissingModal, setShowBotMissingModal] = useState(false);
@@ -187,57 +186,56 @@ const Dashboard: React.FC<{
         </div>
       )}
       {/* Contenido principal */}
-      {showChart && (
+      {/* Eliminar la declaración de setShowChart si no se usa */}
+      {/* Grid de 2 columnas en desktop, 1 en móvil */}
+      <div className={`${
+        isMobile 
+          ? '' 
+          : ' '
+      }`}>
         <div className={`${
           isMobile 
-            ? '' 
-            : ' '
+            ? 'space-y-6' 
+            : 'grid grid-cols-2 gap-6'
         }`}>
-          {/* Grid de 2 columnas en desktop, 1 en móvil */}
-          <div className={`${
-            isMobile 
-              ? 'space-y-6' 
-              : 'grid grid-cols-2 gap-6'
-          }`}>
-            {/* Gráfico de estadísticas */}
-            <div className="w-full h-[23rem]">
-              <JoinsChart guildId={guildId} />
-            </div>
-            
-            {/* Panel de logs en tiempo real */}
-            <div className="w-full h-[23rem]">
-              <LiveLogs guildId={guildId} />
-            </div>
+          {/* Gráfico de estadísticas */}
+          <div className="w-full h-[23rem]">
+            <JoinsChart guildId={guildId} />
           </div>
           
-          {/* Segunda fila - Opciones generales y cuadrado vacío */}
-          <div className={`${
-            isMobile 
-              ? 'mt-6 space-y-6' 
-              : 'mt-6 grid grid-cols-2 gap-6'
+          {/* Panel de logs en tiempo real */}
+          <div className="w-full h-[23rem]">
+            <LiveLogs guildId={guildId} />
+          </div>
+        </div>
+        
+        {/* Segunda fila - Opciones generales y cuadrado vacío */}
+        <div className={`${
+          isMobile 
+            ? 'mt-6 space-y-6' 
+            : 'mt-6 grid grid-cols-2 gap-6'
+        }`}>
+          {/* Opciones generales */}
+          <div className="w-full h-[23rem]">
+            <GeneralOptions guildId={guildId} />
+          </div>
+          
+          {/* Cuadrado vacío - para futuras funcionalidades */}
+          <div className={`w-full h-[23rem] rounded-2xl border-2 border-dashed transition-colors ${
+            isDarkMode 
+              ? 'border-gray-700' 
+              : 'border-gray-300'
           }`}>
-            {/* Opciones generales */}
-            <div className="w-full h-[23rem]">
-              <GeneralOptions guildId={guildId} />
-            </div>
-            
-            {/* Cuadrado vacío - para futuras funcionalidades */}
-            <div className={`w-full h-[23rem] rounded-2xl border-2 border-dashed transition-colors ${
-              isDarkMode 
-                ? 'border-gray-700' 
-                : 'border-gray-300'
-            }`}>
-              <div className="flex items-center justify-center h-full">
-                <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}> 
-                  <div className="text-4xl mb-2">📦</div>
-                  <p className="text-sm font-medium">Nueva funcionalidad</p>
-                  <p className="text-xs mt-1">Próximamente</p>
-                </div>
+            <div className="flex items-center justify-center h-full">
+              <div className={`text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}> 
+                <div className="text-4xl mb-2">📦</div>
+                <p className="text-sm font-medium">Nueva funcionalidad</p>
+                <p className="text-xs mt-1">Próximamente</p>
               </div>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Announcement Warning */}
       <AnnouncementWarning 

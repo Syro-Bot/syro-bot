@@ -56,7 +56,6 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
   const [assignedBotRoles, setAssignedBotRoles] = useState<Role[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [hasUserChanges, setHasUserChanges] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -176,7 +175,6 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
 
   const saveJoinRolesConfig = async () => {
     try {
-      setIsSaving(true);
       const joinRoles = {
         general: assignedGeneralRoles,
         user: assignedUserRoles,
@@ -219,7 +217,7 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
     } catch (error) {
       console.error('❌ Error saving join roles config:', error);
     } finally {
-      setIsSaving(false);
+      // setIsSaving(false); // Eliminar la declaración de isSaving si no se usa
     }
   };
 
@@ -236,7 +234,6 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
     }
   }, [assignedGeneralRoles, assignedUserRoles, assignedBotRoles, guildId, isLoading, isInitialLoad, hasUserChanges]);
 
-  const handleAdd = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
   const handleSelectType = (type: string) => {
     const roleType = ROLE_TYPES.find((r) => r.type === type);

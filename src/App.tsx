@@ -341,11 +341,11 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
  */
 const ProtectedRoute: React.FC<{ children: (user: any) => React.ReactNode }> = ({ children }) => {
   const { user, loading, isAuthenticated } = useAuth();
-  const { isDarkMode } = useTheme();
+  // const { isDarkMode } = useTheme(); // Eliminar si no se usa
 
   if (loading) {
     return (
-      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${useTheme().isDarkMode ? 'bg-black' : 'bg-white'}`}>
         <LoadingSpinner />
       </div>
     );
