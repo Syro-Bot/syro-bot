@@ -12,6 +12,24 @@
 const express = require('express');
 const router = express.Router();
 const LogManager = require('../utils/logManager');
+const rateLimit = require('express-rate-limit');
+
+/**
+ * Rate limiter for announcement endpoint
+ * Prevents abuse and spam of announcements.
+ */
+const announcementLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // limit each IP to 10 announcements per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many announcements, please try again later.'
+  }
+});
+
+// Apply rate limiting to announcement endpoint
+router.use('/', announcementLimiter);
 
 /**
  * POST /api/announcement/:guildId

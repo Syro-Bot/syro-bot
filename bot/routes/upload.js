@@ -16,6 +16,21 @@ const fs = require('fs');
 const logger = require('../utils/logger');
 const { FILE_UPLOAD_SECURITY, RATE_LIMITS } = require('../config/security');
 const { sanitizeFileUploads } = require('../middleware/sanitizer');
+const rateLimit = require('express-rate-limit');
+
+/**
+ * Rate limiter for file upload endpoints
+ * Prevents abuse and DoS attacks by limiting upload frequency.
+ */
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 uploads per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many uploads, please try again later.'
+  }
+});
 
 /**
  * Configure multer storage with enhanced security
@@ -113,7 +128,7 @@ const upload = multer({
  * @returns {Object} JSON response with the uploaded file URL
  */
 router.post('/upload', 
-  RATE_LIMITS.upload,
+  uploadLimiter,
   sanitizeFileUploads(),
   upload.single('image'),
   (req, res) => {

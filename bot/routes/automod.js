@@ -15,6 +15,24 @@ const ServerConfig = require('../models/ServerConfig');
 const Joi = require('joi');
 const { validateDiscordPermissions, validateBotPresence, validateConditionally } = require('../middleware/auth');
 const { sanitizeAll, sanitizeAutomodRules } = require('../middleware/sanitizer');
+const rateLimit = require('express-rate-limit');
+
+/**
+ * Rate limiter for automod endpoints
+ * Prevents abuse and excessive requests.
+ */
+const automodLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // limit each IP to 30 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many automod requests, please try again later.'
+  }
+});
+
+// Apply rate limiting to all automod endpoints
+router.use('/', automodLimiter);
 
 /**
  * GET /servers/:guildId/automod/rules

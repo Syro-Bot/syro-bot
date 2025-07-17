@@ -2,7 +2,27 @@ const express = require('express');
 const axios = require('axios');
 const { generateToken } = require('../utils/jwtUtils');
 const { jwtAuthMiddleware } = require('../middleware/jwtAuth');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
+
+/**
+ * Rate limiter for authentication endpoints
+ * Limits excessive requests to prevent brute-force and abuse.
+ */
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the RateLimit-* headers
+  legacyHeaders: false, // Disable the X-RateLimit-* headers
+  message: {
+    error: 'Too many requests, please try again later.'
+  }
+});
+
+// Apply rate limiting to sensitive auth endpoints
+router.use('/login', authLimiter);
+router.use('/callback', authLimiter);
+router.use('/me', authLimiter);
 
 // Variables de entorno
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;

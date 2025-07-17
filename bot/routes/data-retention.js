@@ -14,6 +14,24 @@ const DataRetentionConfig = require('../models/DataRetentionConfig');
 const { validateDiscordPermissions } = require('../middleware/auth');
 const { sanitizeText } = require('../utils/sanitizer');
 const logger = require('../utils/logger');
+const rateLimit = require('express-rate-limit');
+
+/**
+ * Rate limiter for data retention endpoints
+ * Prevents abuse and excessive requests.
+ */
+const dataRetentionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many data retention requests, please try again later.'
+  }
+});
+
+// Apply rate limiting to all data retention endpoints
+router.use('/', dataRetentionLimiter);
 
 /**
  * GET /api/guild/:guildId/data-retention

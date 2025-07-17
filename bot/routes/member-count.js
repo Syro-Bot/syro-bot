@@ -13,6 +13,24 @@ const express = require('express');
 const router = express.Router();
 const MemberCountChannel = require('../models/MemberCountChannel');
 const { PermissionsBitField } = require('discord.js');
+const rateLimit = require('express-rate-limit');
+
+/**
+ * Rate limiter for member count endpoints
+ * Prevents abuse and excessive requests.
+ */
+const memberCountLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15, // limit each IP to 15 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many member count requests, please try again later.'
+  }
+});
+
+// Apply rate limiting to all member count endpoints
+router.use('/', memberCountLimiter);
 
 /**
  * GET /api/member-count/:guildId/info

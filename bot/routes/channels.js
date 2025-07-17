@@ -11,6 +11,24 @@
 
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
+
+/**
+ * Rate limiter for channels endpoints
+ * Prevents abuse and excessive requests.
+ */
+const channelsLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many channel requests, please try again later.'
+  }
+});
+
+// Apply rate limiting to all channels endpoints
+router.use('/', channelsLimiter);
 
 /**
  * GET /api/channels/:guildId

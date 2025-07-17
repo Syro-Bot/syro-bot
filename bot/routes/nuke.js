@@ -12,6 +12,24 @@
 const express = require('express');
 const router = express.Router();
 const LogManager = require('../utils/logManager');
+const rateLimit = require('express-rate-limit');
+
+/**
+ * Rate limiter for nuke endpoints
+ * Prevents abuse and excessive destructive actions.
+ */
+const nukeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // limit each IP to 5 nuke requests per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Too many nuke requests, please try again later.'
+  }
+});
+
+// Apply rate limiting to all nuke endpoints
+router.use('/', nukeLimiter);
 
 /**
  * POST /api/nuke/:guildId
