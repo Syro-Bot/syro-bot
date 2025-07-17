@@ -10,7 +10,7 @@ export const BOT_OWNER_ID = '590275518599921701';
 
 // API Endpoints - Use environment variables in production
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
-export const AUTH_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002';
+export const AUTH_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 // Discord API
 export const DISCORD_API_BASE = 'https://discord.com/api';

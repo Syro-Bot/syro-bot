@@ -111,7 +111,7 @@ const GlobalAnnouncementModal: React.FC<GlobalAnnouncementModalProps> = ({ isOpe
     setSending(true);
     try {
       // Get user ID from localStorage or session
-      const userResponse = await fetch(`${AUTH_BASE_URL}/me`, { 
+              const userResponse = await fetch(`${AUTH_BASE_URL}/api/me`, { 
         credentials: 'include',
         cache: 'no-cache'
       });

@@ -78,7 +78,7 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
       const fetchGuilds = async () => {
         try {
           const data = await apiManager.request({
-            url: `${API_CONFIG.BASE_URL}/me`,
+            url: `${API_CONFIG.BASE_URL}/api/me`,
             options: {
               headers: {
                 'Content-Type': 'application/json',

@@ -15,7 +15,7 @@ const PendingTemplatesModal: React.FC<PendingTemplatesModalProps> = ({ isOpen, o
 
   useEffect(() => {
     if (isOpen) {
-      fetch('/me', { credentials: 'include' })
+              fetch('/api/me', { credentials: 'include' })
         .then(res => res.ok ? res.json() : null)
         .then(data => setUser(data?.user || null));
     }

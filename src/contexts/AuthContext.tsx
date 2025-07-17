@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const validateToken = async (tokenToValidate: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/me`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/me`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -89,14 +89,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = () => {
     console.log('[AUTH] Redirecting to Discord login');
-    window.location.href = `${API_CONFIG.BASE_URL}/login`;
+    window.location.href = `${API_CONFIG.BASE_URL}/api/login`;
   };
 
   const logout = async () => {
     try {
       // Llamar al endpoint de logout (opcional, ya que JWT es stateless)
       if (token) {
-        await fetch(`${API_CONFIG.BASE_URL}/logout`, {
+        await fetch(`${API_CONFIG.BASE_URL}/api/logout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -104,7 +104,6 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
   
   try {
     // Los datos del usuario ya están en req.user (del JWT)
-    // No necesitamos hacer peticiones adicionales a Discord
     const user = {
       id: req.user.id,
       username: req.user.username,
@@ -112,13 +111,61 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
       discriminator: req.user.discriminator
     };
     
-    // Por ahora, devolvemos solo los datos del usuario del JWT
-    // Los guilds se pueden obtener en una petición separada si es necesario
+    // Obtener los servidores del usuario desde Discord
+    // Para esto necesitamos el access_token de Discord
+    // Como no lo tenemos en el JWT, vamos a implementar una solución alternativa
+    
+    // Opción 1: Obtener guilds usando el bot client (si el usuario está en servidores donde está el bot)
+    const client = req.app.locals.client;
+    let userGuilds = [];
+    let totalGuilds = 0;
+    let accessibleGuilds = 0;
+    
+    if (client) {
+      try {
+        // Obtener todos los servidores donde está el bot
+        const botGuilds = client.guilds.cache;
+        
+        // Filtrar servidores donde el usuario es miembro y tiene permisos de administrador
+        for (const [guildId, guild] of botGuilds) {
+          try {
+            // Obtener el miembro del usuario en este servidor
+            const member = await guild.members.fetch(user.id);
+            
+            // Verificar si tiene permisos de administrador
+            if (member.permissions.has('Administrator')) {
+              userGuilds.push({
+                id: guild.id,
+                name: guild.name,
+                icon: guild.iconURL(),
+                permissions: member.permissions.bitfield.toString(),
+                owner: guild.ownerId === user.id,
+                botPresent: true
+              });
+              accessibleGuilds++;
+            }
+          } catch (memberError) {
+            // El usuario no es miembro de este servidor
+            console.log(`[AUTH] User ${user.username} is not a member of guild ${guild.name}`);
+          }
+        }
+        
+        totalGuilds = userGuilds.length;
+        
+        console.log(`[AUTH] Found ${userGuilds.length} accessible guilds for user ${user.username}`);
+        
+      } catch (error) {
+        console.error('[AUTH] Error fetching user guilds:', error);
+        // Si hay error, devolvemos array vacío pero no fallamos
+        userGuilds = [];
+      }
+    }
+    
     res.json({
       user: user,
-      guilds: [], // Por ahora vacío, se puede implementar después
-      totalGuilds: 0,
-      accessibleGuilds: 0
+      guilds: userGuilds,
+      totalGuilds: totalGuilds,
+      accessibleGuilds: accessibleGuilds
     });
     
   } catch (e) {
@@ -133,6 +180,89 @@ router.post('/logout', (req, res) => {
   // JWT es stateless, así que no hay nada que invalidar en el servidor
   // El frontend debe eliminar el token del localStorage
   res.json({ success: true, message: 'Logged out successfully' });
+});
+
+// /guilds: devuelve los servidores donde está el bot
+router.get('/guilds', (req, res) => {
+  console.log('[AUTH] /guilds called');
+  
+  try {
+    const client = req.app.locals.client;
+    
+    if (!client) {
+      return res.status(500).json({
+        success: false,
+        error: 'Discord client not available'
+      });
+    }
+    
+    // Obtener todos los servidores donde está el bot
+    const botGuilds = Array.from(client.guilds.cache.values()).map(guild => ({
+      id: guild.id,
+      name: guild.name,
+      icon: guild.iconURL(),
+      memberCount: guild.memberCount,
+      owner: guild.ownerId
+    }));
+    
+    console.log(`[AUTH] Bot is in ${botGuilds.length} guilds`);
+    
+    res.json({
+      success: true,
+      guilds: botGuilds,
+      totalGuilds: botGuilds.length
+    });
+    
+  } catch (error) {
+    console.error('[AUTH] Error getting bot guilds:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+// /test: endpoint de prueba para verificar que el bot esté funcionando
+router.get('/test', (req, res) => {
+  console.log('[AUTH] /test called');
+  
+  try {
+    const client = req.app.locals.client;
+    
+    if (!client) {
+      return res.json({
+        success: false,
+        error: 'Discord client not available',
+        clientExists: false
+      });
+    }
+    
+    const botInfo = {
+      clientExists: true,
+      botUser: client.user ? {
+        id: client.user.id,
+        username: client.user.username,
+        tag: client.user.tag
+      } : null,
+      guildCount: client.guilds.cache.size,
+      status: client.ws.status,
+      uptime: client.uptime
+    };
+    
+    console.log('[AUTH] Bot info:', botInfo);
+    
+    res.json({
+      success: true,
+      botInfo
+    });
+    
+  } catch (error) {
+    console.error('[AUTH] Error in test endpoint:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
 });
 
 module.exports = router; 
