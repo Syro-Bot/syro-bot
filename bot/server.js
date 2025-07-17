@@ -82,7 +82,7 @@ async function startServer() {
     app.use('/api/announcement-config', announcementConfigRoutes);
     app.use('/api/member-count', memberCountRoutes);
     app.use('/api/guild', dataRetentionRoutes);
-    app.use('/api', authRoutes); // <-- Registro rutas de auth bajo /api
+    app.use('/', authRoutes); // <-- Registro rutas de auth en la raíz para exponer /callback
     app.use('/api', devDummyRoutes); // <-- Registro rutas reales bajo /api
     
     // Legacy routes (to be migrated to modules)
