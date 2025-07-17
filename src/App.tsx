@@ -366,7 +366,6 @@ const ProtectedRoute: React.FC<{ children: (user: any) => React.ReactNode }> = (
  */
 const App: React.FC = () => {
   const [activeComponent, setActiveComponent] = React.useState('dashboard');
-  const { isDarkMode } = useTheme();
 
   return (
     <Router>
