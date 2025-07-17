@@ -132,15 +132,6 @@ const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
 
   return (
     <div className="w-full max-w-[90rem] mx-auto py-6 transition-colors duration-300">
-      {/* Banner Header */}
-      <div className="bg-gradient-to-r from-blue-400 via-blue-600 to-blue-900 rounded-3xl p-10 md:p-24 mb-8 md:mb-10 max-w-[80rem] mx-auto">
-        <h1 className="text-3xl md:text-6xl font-extrabold text-white uppercase leading-none text-center">
-          Create New Channel
-        </h1>
-        <p className="text-blue-100 text-center text-base md:text-xl mt-4 font-medium">
-          Build your server's communication structure
-        </p>
-      </div>
       {/* Responsive layout: mobile vertical, desktop grid */}
       <div className="flex flex-col gap-8 md:grid md:grid-cols-3 md:gap-8 max-w-[80rem] mx-auto">
         {/* Server Channels */}

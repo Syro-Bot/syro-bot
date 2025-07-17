@@ -43,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, activeComponent }) => {
   ];
 
   return (
-    <div className={`w-64 h-screen flex flex-col items-start justify-start space-y-3 px-[1rem] pt-[1.5rem] ${isDarkMode ? 'bg-black' : 'bg-white'}`}>
+    <div className={`w-64 h-screen flex flex-col items-start justify-start space-y-3 px-[1rem] pt-[1.5rem]`}>
       <div className="w-full mb-[0.5rem] flex items-center gap-3">
         <img
           src={isDarkMode ? "/syro-icon.png" : "/syro-icon.png"}
@@ -51,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, activeComponent }) => {
           className="h-10 w-auto select-none"
           draggable={false}
         />
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-300 via-blue-400 to-blue-500 bg-clip-text text-transparent uppercase">
+        <h1 className={`text-2xl font-bold uppercase ${isDarkMode ? 'text-white' : 'text-gray-800'}` }>
           Syro Bot
         </h1>
       </div>
@@ -65,11 +65,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, activeComponent }) => {
               onClick={() => onNavigate(item.id)}
               className={`relative w-full h-12 rounded-xl flex items-center gap-2 px-[1rem] cursor-pointer transition-colors duration-200 ${
                 activeComponent === item.id
-                  ? 'bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white'
                   : isDarkMode 
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-800'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-              }`}
+                    ? 'text-gray-400 hover:text-white'
+                    : 'text-gray-600 hover:text-gray-800'
+              } bg-transparent shadow-none`}
               title={item.label}
             >
               <IconComponent size={20} strokeWidth={2.75} />
@@ -92,11 +92,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, activeComponent }) => {
               onClick={() => onNavigate(item.id)}
               className={`relative w-full h-12 rounded-xl flex items-center gap-4 px-[1rem] cursor-pointer transition-colors duration-200  ${
                 activeComponent === item.id
-                  ? 'bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white'
                   : isDarkMode 
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-800'
-                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-              }`}
+                    ? 'text-gray-400 hover:text-white'
+                    : 'text-gray-600 hover:text-gray-800'
+              } bg-transparent shadow-none`}
               title={item.label}
             >
               <IconComponent size={20} strokeWidth={2.75} />

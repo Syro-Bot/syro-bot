@@ -295,27 +295,6 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
 
   return (
     <div className="w-full">
-      {/* Banner Header */}
-      <div className="bg-gradient-to-r from-blue-400 via-blue-600 to-blue-900 rounded-3xl p-24 mb-10 max-w-[80rem] mx-auto relative">
-        <button
-          onClick={handleAdd}
-          className="absolute top-4 right-6 px-3 py-1 text-xs font-bold uppercase rounded-md bg-white/30 text-white hover:bg-white/50 transition-colors"
-        >
-          Add
-        </button>
-        {isSaving && (
-          <div className="absolute top-4 left-6 px-3 py-1 text-xs font-bold uppercase rounded-md bg-white/30 text-white">
-            💾 Saving...
-          </div>
-        )}
-        <h1 className="text-6xl font-extrabold text-white uppercase leading-none text-center">
-          Join Roles
-        </h1>
-        <p className="text-blue-100 text-center text-xl mt-4 font-medium">
-          Assign roles automatically to users when they join your server
-        </p>
-      </div>
-
       {isLoading ? (
         <div className="max-w-[80rem] mx-auto flex items-center justify-center h-64">
           <div className="text-center">
