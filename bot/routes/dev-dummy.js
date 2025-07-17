@@ -13,7 +13,7 @@ router.get('/logs/:guildId', async (req, res) => {
     console.log(`[LOGS] Logs requested for guild: ${guildId}, limit: ${limit}`);
     
     // Get logs from MongoDB using LogManager
-    const logs = await LogManager.getLogs(guildId, parseInt(limit));
+    const logs = await LogManager.getRecentLogs(guildId, parseInt(limit));
     
     res.json({ 
       success: true, 
@@ -49,15 +49,15 @@ router.get('/stats/joins', async (req, res) => {
 
     const recentJoins = await Join.find({
       guildId: guildId,
-      joinedAt: { $gte: fifteenDaysAgo }
-    }).sort({ joinedAt: 1 });
+      timestamp: { $gte: fifteenDaysAgo }
+    }).sort({ timestamp: 1 });
 
     // Group joins by date
     const joinsByDate = {};
     let totalJoins = 0;
 
     recentJoins.forEach(join => {
-      const dateKey = join.joinedAt.toISOString().split('T')[0];
+      const dateKey = join.timestamp.toISOString().split('T')[0];
       if (!joinsByDate[dateKey]) {
         joinsByDate[dateKey] = 0;
       }
