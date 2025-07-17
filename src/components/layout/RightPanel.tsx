@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe, Sun, Moon, LogOut } from 'lucide-react';
+import { Globe, Sun, Moon, LogOut, CheckCircle2, PlusCircle } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { AUTH_BASE_URL } from '../../config/constants';
 
@@ -30,9 +30,13 @@ const RightPanel: React.FC<RightPanelProps> = ({ user, availableGuilds, guildId,
   const GuildsBlock = () => (
     <div className={`${isDarkMode ? 'bg-black' : 'bg-white'} rounded-2xl shadow-md p-6 flex flex-col items-center flex-1`}>
       <div className={`font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Your Servers</div>
-      <div className="w-full flex flex-col gap-2">
+      <div className="w-full flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
         {availableGuilds && availableGuilds.length > 0 ? (
-          availableGuilds.map((guild: any) => {
+          // Ordenar: primero los que tienen el bot, luego los que no
+          [...availableGuilds].sort((a, b) => {
+            if (a.botPresent === b.botPresent) return 0;
+            return a.botPresent ? -1 : 1;
+          }).map((guild: any) => {
             const selected = guildId === guild.id;
             return (
               <button
@@ -47,10 +51,24 @@ const RightPanel: React.FC<RightPanelProps> = ({ user, availableGuilds, guildId,
                       ? 'hover:bg-gray-800/50 text-gray-300'
                       : 'hover:bg-blue-50 text-gray-700'}
                 `}
-                style={{ outline: selected ? '2px solid #3b82f6' : 'none' }}
+                style={selected ? undefined : { outline: 'none' }}
               >
                 <span className="truncate text-left">{guild.name}</span>
-                <span className="ml-2">{guild.botPresent ? '✅' : '➕'}</span>
+                <span className="ml-2">
+                  {guild.botPresent ? (
+                    <div className={`flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center shadow-md
+                      ${isDarkMode ? 'bg-gradient-to-r from-green-500/20 to-green-600/20' : 'bg-gradient-to-r from-green-50 to-green-100'}`}
+                    >
+                      <CheckCircle2 className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                    </div>
+                  ) : (
+                    <div className={`flex-shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-lg flex items-center justify-center shadow-md
+                      ${isDarkMode ? 'bg-gradient-to-r from-orange-500/20 to-orange-600/20' : 'bg-gradient-to-r from-orange-50 to-orange-100'}`}
+                    >
+                      <PlusCircle className={`w-5 h-5 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+                    </div>
+                  )}
+                </span>
               </button>
             );
           })
