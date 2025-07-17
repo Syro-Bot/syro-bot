@@ -44,7 +44,7 @@ router.get('/health', (req, res) => {
  */
 router.get('/status', (req, res) => {
   try {
-    const discordClient = req.app.get('discordClient');
+    const discordClient = req.app.locals.client;
     
     res.json({
       status: 'online',
@@ -69,7 +69,7 @@ router.get('/status', (req, res) => {
  */
 router.get('/bot-guilds', (req, res) => {
   try {
-    const discordClient = req.app.get('discordClient');
+    const discordClient = req.app.locals.client;
     
     const botGuilds = discordClient?.guilds?.cache?.map(guild => ({
       id: guild.id,

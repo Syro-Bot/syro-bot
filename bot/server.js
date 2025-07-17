@@ -69,6 +69,7 @@ async function startServer() {
     const memberCountRoutes = require('./routes/member-count');
     const dataRetentionRoutes = require('./routes/data-retention');
     const authRoutes = require('./routes/auth'); // <-- Agrego rutas de autenticación
+    const devDummyRoutes = require('./routes/dev-dummy'); // <-- Agrego rutas dummy para desarrollo
     
     // Register API routes
     app.use('/api', healthRoutes);
@@ -82,6 +83,7 @@ async function startServer() {
     app.use('/api/member-count', memberCountRoutes);
     app.use('/api/guild', dataRetentionRoutes);
     app.use('/api', authRoutes); // <-- Registro rutas de auth bajo /api
+    app.use('/api', devDummyRoutes); // <-- Registro rutas dummy bajo /api
     
     // Legacy routes (to be migrated to modules)
     registerLegacyRoutes(app);

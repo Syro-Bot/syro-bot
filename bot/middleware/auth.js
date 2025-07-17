@@ -405,7 +405,7 @@ function validateBotPresence() {
       }
 
       // Get Discord client from app
-      const client = req.app.get('discordClient');
+      const client = req.app.locals.client;
       
       if (!client) {
         logger.error('Discord client not available', {
@@ -491,7 +491,7 @@ function validateConditionally(permissionType = 'admin') {
         }
 
         // Get Discord client from app
-        const client = req.app.get('discordClient');
+        const client = req.app.locals.client;
         
         if (!client) {
           logger.error('Discord client not available', {
