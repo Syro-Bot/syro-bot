@@ -90,6 +90,22 @@ const Dashboard: React.FC<{
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Mostrar mensaje gigante en consola con degradado en las letras
+  useEffect(() => {
+    if (
+      window.location.pathname === "/dashboard" ||
+      window.location.pathname === "/dashboard/"
+    ) {
+      console.log(
+        "%cS%cY%cR%cO",
+        "font-size: 160px; font-weight: bold; color: #00c6ff;", // S
+        "font-size: 160px; font-weight: bold; color: #0099ff;", // Y
+        "font-size: 160px; font-weight: bold; color: #0050c8;", // R
+        "font-size: 160px; font-weight: bold; color: #003366;"  // O
+      );
+    }
+  }, []);
+
   useEffect(() => {
     document.title = "Syro - Dashboard";
     
