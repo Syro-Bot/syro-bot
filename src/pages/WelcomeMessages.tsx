@@ -5,39 +5,56 @@ import LeaveMessages from "../features/welcome/LeaveMessages";
 import BoostMessages from "../features/welcome/BoostMessages";
 import { useTheme } from "../contexts/ThemeContext";
 
-type WelcomeView = "main" | "join" | "leave" | "boost";
+/**
+ * Type for the welcome message card
+ */
+interface WelcomeCard {
+  label: string;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  view: WelcomeView;
+}
 
-const cards = [
-  {
-    label: "Join Messages",
-    icon: UserPlus,
-    view: "join" as WelcomeView,
-  },
-  {
-    label: "Leave Messages",
-    icon: UserMinus,
-    view: "leave" as WelcomeView,
-  },
-  {
-    label: "Boost Messages",
-    icon: Rocket,
-    view: "boost" as WelcomeView,
-  },
-];
-
-// Recibe guildId como prop desde el layout principal
+/**
+ * Props for WelcomeMessages and its children
+ */
 interface WelcomeMessagesProps {
   guildId: string;
 }
 
+// Add WelcomeView type
+type WelcomeView = "main" | "join" | "leave" | "boost";
+
+/**
+ * Main WelcomeMessages page for Syro dashboard.
+ * Allows navigation between join, leave, and boost message configs.
+ */
 const WelcomeMessages: React.FC<WelcomeMessagesProps> = ({ guildId }) => {
   const { isDarkMode } = useTheme();
   const [currentView, setCurrentView] = useState<WelcomeView>("main");
 
+  // Card definitions for navigation
+  const cards: WelcomeCard[] = [
+    {
+      label: "Join Messages",
+      icon: UserPlus,
+      view: "join",
+    },
+    {
+      label: "Leave Messages",
+      icon: UserMinus,
+      view: "leave",
+    },
+    {
+      label: "Boost Messages",
+      icon: Rocket,
+      view: "boost",
+    },
+  ];
+
+  // Handlers for navigation
   const handleCardClick = (view: WelcomeView) => {
     setCurrentView(view);
   };
-
   const handleBack = () => {
     setCurrentView("main");
   };
@@ -46,23 +63,27 @@ const WelcomeMessages: React.FC<WelcomeMessagesProps> = ({ guildId }) => {
   if (currentView === "join") {
     return <JoinMessages onBack={handleBack} guildId={guildId} />;
   }
-
   if (currentView === "leave") {
     return <LeaveMessages onBack={handleBack} guildId={guildId} />;
   }
-
   if (currentView === "boost") {
     return <BoostMessages onBack={handleBack} guildId={guildId} />;
   }
 
-  // Main view with cards
+  // Main view with accessible cards
   return (
     <div className="flex h-full w-full items-center justify-center">
       <div className="flex gap-x-8">
         {cards.map(({ label, icon: Icon, view }) => (
           <div
             key={label}
+            role="button"
+            tabIndex={0}
+            aria-label={label}
             onClick={() => handleCardClick(view)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') handleCardClick(view);
+            }}
             className={`relative w-64 h-64 rounded-2xl flex items-center justify-center overflow-hidden cursor-pointer transition-all duration-300
               group border-2
               ${isDarkMode

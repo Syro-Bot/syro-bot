@@ -10,7 +10,7 @@ import { API_BASE_URL } from '../../config/constants';
 interface WelcomeMessageConfigProps {
   type: "join" | "leave" | "boost";
   onBack: () => void;
-  guildId?: string;
+  guildId: string;
 }
 
 const typeLabels = {
@@ -122,6 +122,7 @@ const WelcomeMessageConfig: React.FC<WelcomeMessageConfigProps> = ({ type, onBac
         <button
           onClick={showImageConfig ? handleBackToChannels : onBack}
           className={`p-2 rounded-lg hover:bg-white/10 transition-colors ${isDarkMode ? 'text-white' : 'text-black'}`}
+          aria-label="Go back"
         >
           <ArrowLeft size={20} />
         </button>
@@ -143,6 +144,12 @@ const WelcomeMessageConfig: React.FC<WelcomeMessageConfigProps> = ({ type, onBac
                     <div
                       key={channel.id}
                       onClick={channel.type === 2 ? undefined : () => setSelectedChannel(channel)}
+                      role="button"
+                      tabIndex={channel.type === 2 ? -1 : 0}
+                      aria-label={channel.type === 2 ? `${channel.name} (voice channel)` : `Select channel ${channel.name}`}
+                      onKeyDown={e => {
+                        if ((e.key === 'Enter' || e.key === ' ') && channel.type !== 2) setSelectedChannel(channel);
+                      }}
                       className={`rounded-2xl p-3 border-2 shadow-md transition-all duration-300 flex items-center gap-3 mx-2
                         ${isDarkMode
                           ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f] hover:shadow-blue-900/30'
@@ -176,6 +183,12 @@ const WelcomeMessageConfig: React.FC<WelcomeMessageConfigProps> = ({ type, onBac
                     <div
                       key={channel.id}
                       onClick={channel.type === 2 ? undefined : () => setSelectedChannel(channel)}
+                      role="button"
+                      tabIndex={channel.type === 2 ? -1 : 0}
+                      aria-label={channel.type === 2 ? `${channel.name} (voice channel)` : `Select channel ${channel.name}`}
+                      onKeyDown={e => {
+                        if ((e.key === 'Enter' || e.key === ' ') && channel.type !== 2) setSelectedChannel(channel);
+                      }}
                       className={`rounded-2xl p-3 border-2 shadow-md transition-all duration-300 flex items-center gap-3 mx-2
                         ${isDarkMode
                           ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f] hover:shadow-blue-900/30'

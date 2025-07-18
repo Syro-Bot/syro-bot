@@ -4,12 +4,18 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { API_CONFIG } from '../../config/apiConfig';
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
+/**
+ * Type definition for a Discord channel (minimal for welcome config)
+ */
+interface Channel {
+  id: string;
+  name: string;
+  type?: number;
+}
+
 interface ImageConfigProps {
   onBack: () => void;
-  selectedChannel: {
-    id: string;
-    name: string;
-  } | null;
+  selectedChannel: Channel | null;
 }
 
 interface WelcomeImageConfig {
@@ -35,6 +41,7 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
     mentionUser: true,
     customMessage: ''
   });
+  const [saving, setSaving] = useState(false);
 
   // Cargar configuración guardada cuando el componente se monta
   useEffect(() => {
@@ -98,6 +105,7 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
 
   const handleSave = async () => {
     if (!selectedChannel) return;
+    setSaving(true);
     const channelId = selectedChannel.id;
     const configToSend = {
       ...config,
@@ -111,10 +119,11 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
         config: configToSend
       })
     });
+    setSaving(false);
     if (response.ok) {
-      alert('Configuración guardada correctamente');
+      alert('Configuration saved successfully');
     } else {
-      alert('Error al guardar la configuración');
+      alert('Error saving configuration');
     }
   };
 
@@ -137,6 +146,7 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
                   ? 'bg-gradient-to-r from-gray-700/50 to-gray-800/50 hover:from-gray-600/50 hover:to-gray-700/50 text-white border border-gray-600/30' 
                   : 'bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-900 border border-gray-300'
               }`}
+              aria-label="Go back"
             >
               <ArrowLeft size={20} />
             </button>
@@ -181,6 +191,7 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
                       : 'bg-gradient-to-r from-white to-gray-50 border-gray-300 text-gray-900 focus:border-blue-500 focus:shadow-blue-500/20'
                   } focus:shadow-lg`}
                   placeholder="Welcome"
+                  aria-label="Welcome text"
                 />
               </div>
 
@@ -198,6 +209,7 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
                       : 'bg-gradient-to-r from-white to-gray-50 border-gray-300 text-gray-900 focus:border-blue-500 focus:shadow-blue-500/20'
                   } focus:shadow-lg`}
                   placeholder="User"
+                  aria-label="User text"
                 />
               </div>
             </div>
@@ -229,6 +241,7 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
                     value={config.backgroundColor}
                     onChange={(e) => handleConfigChange('backgroundColor', e.target.value)}
                     className="w-12 h-12 rounded-xl border-2 border-gray-300 dark:border-gray-600 cursor-pointer shadow-md"
+                    aria-label="Background color"
                   />
                   <input
                     type="text"
@@ -239,6 +252,7 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
                         ? 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 border-gray-600/50 text-white focus:border-purple-500/50 focus:shadow-purple-500/20' 
                         : 'bg-gradient-to-r from-white to-gray-50 border-gray-300 text-gray-900 focus:border-purple-500 focus:shadow-purple-500/20'
                     } focus:shadow-lg`}
+                    aria-label="Background color hex"
                   />
                 </div>
               </div>
@@ -253,6 +267,7 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
                     value={config.textColor}
                     onChange={(e) => handleConfigChange('textColor', e.target.value)}
                     className="w-12 h-12 rounded-xl border-2 border-gray-300 dark:border-gray-600 cursor-pointer shadow-md"
+                    aria-label="Text color"
                   />
                   <input
                     type="text"
@@ -263,6 +278,7 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
                         ? 'bg-gradient-to-r from-gray-800/50 to-gray-700/50 border-gray-600/50 text-white focus:border-purple-500/50 focus:shadow-purple-500/20' 
                         : 'bg-gradient-to-r from-white to-gray-50 border-gray-300 text-gray-900 focus:border-purple-500 focus:shadow-purple-500/20'
                     } focus:shadow-lg`}
+                    aria-label="Text color hex"
                   />
                 </div>
               </div>
@@ -407,10 +423,17 @@ const ImageConfig: React.FC<ImageConfigProps> = ({ onBack, selectedChannel }) =>
         <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={handleSave}
-            className="flex-1 bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-blue-500 hover:via-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+            className={`w-full mt-6 py-3 rounded-xl font-bold text-lg transition-all duration-200 shadow-md
+              bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white
+            `}
+            aria-label="Save configuration"
+            disabled={saving}
           >
-            <Save className="w-4 h-4" />
-            Save Configuration
+            {saving ? (
+              <span className="flex items-center justify-center"><Save className="inline-block w-5 h-5 mr-2 animate-spin" /> Saving...</span>
+            ) : (
+              <><Save className="inline-block w-5 h-5 mr-2" /> Save</>
+            )}
           </button>
           <button
             onClick={handleDownload}
