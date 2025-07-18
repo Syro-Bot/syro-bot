@@ -9,6 +9,7 @@
  */
 
 import { API_CONFIG } from '../config/apiConfig';
+import { getSyroToken } from '../contexts/AuthContext';
 
 interface RequestConfig {
   url: string;
@@ -134,13 +135,23 @@ class APIManager {
 
     for (let attempt = 0; attempt <= retryAttempts; attempt++) {
       try {
+        // Type guard para asegurarnos de que customHeaders es un objeto plano
+        function isPlainObject(obj: any): obj is Record<string, string> {
+          return obj && typeof obj === 'object' && !Array.isArray(obj);
+        }
+        const baseHeaders: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        const customHeaders = (options.headers && isPlainObject(options.headers)) ? options.headers : {};
+        const headers: Record<string, string> = { ...baseHeaders, ...customHeaders };
+        if (!headers['Authorization']) {
+          const token = getSyroToken();
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+        }
         const response = await fetch(fullUrl, {
           ...options,
           credentials: 'include', // Ensure cookies are sent with the request
-          headers: {
-            'Content-Type': 'application/json',
-            ...options.headers,
-          },
+          headers,
         });
 
         // Handle rate limiting

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { AutoModRule } from '../features/automoderation/types';
 import { API_CONFIG } from '../config/apiConfig';
+import { getAuthHeaders } from './AuthContext';
 
 interface AutoModContextType {
   // Estado
@@ -71,6 +72,7 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/automod/servers/${guildId}/rules`, {
         credentials: 'include',
         headers: {
+          ...getAuthHeaders(),
           'Content-Type': 'application/json'
         }
       });
@@ -119,6 +121,7 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/automod/servers/${guildId}/rules`, {
         method: 'PUT',
         headers: { 
+          ...getAuthHeaders(),
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ automodRules: rules })
@@ -221,6 +224,7 @@ export const AutoModProvider: React.FC<AutoModProviderProps> = ({ children, guil
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/automod/servers/${guildId}/rules`, {
         method: 'PUT',
         headers: { 
+          ...getAuthHeaders(),
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ automodRules: rulesToSave })

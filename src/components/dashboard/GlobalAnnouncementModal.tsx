@@ -13,6 +13,7 @@ import React, { useState, useEffect } from "react";
 import { X, Megaphone, Plus, Trash2, ChevronDown, ChevronUp, Globe } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { API_BASE_URL, AUTH_BASE_URL } from '../../config/constants';
+import { getAuthHeaders } from '../../contexts/AuthContext';
 
 interface Embed {
   id: string;
@@ -121,6 +122,7 @@ const GlobalAnnouncementModal: React.FC<GlobalAnnouncementModalProps> = ({ isOpe
       const response = await fetch(`${API_BASE_URL}/api/global-announcement`, {
         method: 'POST',
         headers: {
+          ...getAuthHeaders(),
           'Content-Type': 'application/json',
           'user-id': userId || 'unknown'
         },

@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     if (token) {
       // Store token in sessionStorage (more secure than localStorage)
-      sessionStorage.setItem('syro-jwt-token', token);
+      sessionStorage.setItem('syro-jwt-token', decodeURIComponent(token));
       // Remove token from URL
       window.history.replaceState({}, document.title, window.location.pathname);
       console.log('[AUTH] Token stored in sessionStorage from URL');
@@ -43,16 +43,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const checkAuth = async () => {
       setLoading(true);
       try {
-        // Try to get token from sessionStorage first (more secure than localStorage)
-        const token = sessionStorage.getItem('syro-jwt-token');
-        
         const headers: HeadersInit = {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         };
-        
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
         
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/me`, {
           method: 'GET',
@@ -89,6 +83,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await fetch(`${API_CONFIG.BASE_URL}/api/logout`, {
         method: 'POST',
         credentials: 'include',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json',
+        },
       });
     } catch (error) {
       console.error('[AUTH] Error during logout:', error);
@@ -125,3 +123,14 @@ export const useAuth = () => {
   }
   return context;
 }; 
+
+// Utilidad para obtener el token JWT de sessionStorage
+export function getSyroToken() {
+  return sessionStorage.getItem('syro-jwt-token');
+}
+
+// Devuelve las cabeceras Authorization para fetch
+export function getAuthHeaders(): Record<string, string> {
+  const token = getSyroToken();
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+} 

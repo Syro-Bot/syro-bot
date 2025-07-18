@@ -19,7 +19,7 @@ import { TemplateProvider, useTemplates } from "./contexts/TemplateContext";
 import { AutoModProvider } from "./contexts/AutoModContext";
 import { ModalProvider, useModal } from "./contexts/ModalContext";
 import { AnimationProvider } from "./contexts/AnimationContext";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider, useAuth, getSyroToken } from "./contexts/AuthContext";
 import apiManager from "./utils/apiManager";
 import { API_CONFIG } from "./config/apiConfig";
 
@@ -103,7 +103,7 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
             options: {
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('syro-jwt-token')}`
+                'Authorization': `Bearer ${getSyroToken()}`
               }
             },
             cacheTTL: API_CONFIG.CACHE.USER_DATA_TTL,

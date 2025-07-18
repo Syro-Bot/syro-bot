@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Users, User, Bot } from "lucide-react";
 import RoleSelectorButton from "./RoleSelectorButton";
 import { useTheme } from "../../contexts/ThemeContext";
+import { getAuthHeaders } from '../../contexts/AuthContext';
 
 interface JoinRolesSetupProps {
   guildId?: string;
@@ -111,6 +112,7 @@ const JoinRolesSetup: React.FC<JoinRolesSetupProps> = ({ guildId }) => {
       const response = await fetch(`/api/join-roles/${guildId}`, {
         credentials: 'include',
         headers: {
+          ...getAuthHeaders(),
           'Content-Type': 'application/json'
         }
       });

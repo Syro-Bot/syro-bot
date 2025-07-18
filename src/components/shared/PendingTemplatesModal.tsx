@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTemplates } from '../../contexts/TemplateContext';
 import { Check, X, Clock, User, Tag, ExternalLink, X as CloseIcon } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { getAuthHeaders } from '../../contexts/AuthContext';
 
 interface PendingTemplatesModalProps {
   isOpen: boolean;
@@ -15,7 +16,7 @@ const PendingTemplatesModal: React.FC<PendingTemplatesModalProps> = ({ isOpen, o
 
   useEffect(() => {
     if (isOpen) {
-              fetch('/api/me', { credentials: 'include' })
+              fetch('/api/me', { credentials: 'include', headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' } })
         .then(res => res.ok ? res.json() : null)
         .then(data => setUser(data?.user || null));
     }

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { getAuthHeaders } from './AuthContext';
 
 interface Template {
   _id: string;
@@ -64,6 +65,7 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const response = await fetch('/api/templates/pending', {
         method: 'POST',
         headers: {
+          ...getAuthHeaders(),
           'Content-Type': 'application/json',
         },
         credentials: 'include',
@@ -159,6 +161,7 @@ export const TemplateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const response = await fetch('/api/templates', {
         method: 'POST',
         headers: {
+          ...getAuthHeaders(),
           'Content-Type': 'application/json',
         },
         credentials: 'include',
