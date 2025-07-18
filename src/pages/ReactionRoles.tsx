@@ -1,7 +1,7 @@
 import React from "react";
 
 interface ReactionRolesProps {
-  guildId?: string;
+  guildId: string;
 }
 
 const ReactionRoles: React.FC<ReactionRolesProps> = ({ guildId }) => (

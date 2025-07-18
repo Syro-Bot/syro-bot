@@ -27,7 +27,7 @@ const cards = [
 
 // Recibe guildId como prop desde el layout principal
 interface WelcomeMessagesProps {
-  guildId?: string;
+  guildId: string;
 }
 
 const WelcomeMessages: React.FC<WelcomeMessagesProps> = ({ guildId }) => {

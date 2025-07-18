@@ -161,7 +161,7 @@ function getGridClass(isMobile: boolean, base: string, mobile: string) {
  */
 const Dashboard: React.FC<{ 
   user: User; 
-  guildId?: string;
+  guildId: string;
   availableGuilds?: Guild[];
   onGuildChange?: (guildId: string) => void;
 }> = ({ user, guildId, availableGuilds = [], onGuildChange }) => {

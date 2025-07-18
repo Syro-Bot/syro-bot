@@ -10,7 +10,7 @@ import { API_BASE_URL } from '../config/constants';
 
 // Recibe guildId como prop desde el layout principal
 interface CreateChannelProps {
-  guildId?: string;
+  guildId: string;
 }
 
 const CreateChannel: React.FC<CreateChannelProps> = ({ guildId }) => {
