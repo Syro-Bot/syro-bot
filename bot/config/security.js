@@ -218,12 +218,16 @@ const SESSION_SECURITY = {
  * CORS Configuration
  * Enhanced CORS settings for security
  */
-const allowedOrigins = [
-  'https://syro-web.vercel.app',
-  'https://syro-web-rnp.vercel.app',
-  'https://syro-ql8b2dqf5-rnp.vercel.app',
-  'http://localhost:5173'
-];
+// Get allowed origins from environment variable or use defaults
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : [
+      'https://syro-web.vercel.app',
+      'https://syro-web-rnp.vercel.app',
+      'https://syro-ql8b2dqf5-rnp.vercel.app',
+      'https://syro-nuancpid8-rnp.vercel.app',
+      'http://localhost:5173'
+    ];
 
 const CORS_CONFIG = {
   origin: function(origin, callback) {
@@ -235,8 +239,8 @@ const CORS_CONFIG = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Set-Cookie', 'X-Total-Count'], // <-- Añadido 'Set-Cookie'
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie'],
+  exposedHeaders: ['Set-Cookie', 'X-Total-Count'],
   maxAge: 86400 // 24 hours
 };
 

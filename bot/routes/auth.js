@@ -43,8 +43,10 @@ router.get('/login', (req, res) => {
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production', // Set to true in production
-  sameSite: 'strict',
-  maxAge: 20 * 60 * 1000 // 20 minutes
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-domain in production
+  maxAge: 20 * 60 * 1000, // 20 minutes
+  path: '/',
+  domain: process.env.NODE_ENV === 'production' ? undefined : undefined // No domain restriction for cross-domain
 };
 
 // Callback: recibe el code de Discord y genera JWT token
@@ -102,6 +104,17 @@ router.get('/callback', async (req, res) => {
     // Set JWT as HttpOnly, Secure cookie
     res.cookie('syro-jwt-token', jwtToken, cookieOptions);
     console.log('[AUTH] JWT cookie seteada correctamente. Redirecting to:', frontendRedirect);
+    console.log('[AUTH] Cookie options:', {
+      httpOnly: cookieOptions.httpOnly,
+      secure: cookieOptions.secure,
+      sameSite: cookieOptions.sameSite,
+      maxAge: cookieOptions.maxAge,
+      path: cookieOptions.path,
+      domain: cookieOptions.domain,
+      NODE_ENV: process.env.NODE_ENV,
+      FRONTEND_REDIRECT: process.env.FRONTEND_REDIRECT,
+      ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS
+    });
     // Redirect to frontend without token in URL
     return res.redirect(frontendRedirect);
 
@@ -216,6 +229,24 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
     console.error('[AUTH] Error in /me:', e.message);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Debug endpoint para verificar cookies
+router.get('/debug-cookies', (req, res) => {
+  console.log('[AUTH] Debug cookies endpoint called');
+  console.log('[AUTH] Request cookies:', req.cookies);
+  console.log('[AUTH] Request headers:', req.headers);
+  
+  res.json({
+    success: true,
+    cookies: req.cookies,
+    headers: {
+      'user-agent': req.headers['user-agent'],
+      'origin': req.headers['origin'],
+      'referer': req.headers['referer']
+    },
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Logout: endpoint para invalidar token (opcional, ya que JWT es stateless)
