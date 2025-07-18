@@ -46,7 +46,7 @@ const cookieOptions = {
   sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-domain in production
   maxAge: 20 * 60 * 1000, // 20 minutes
   path: '/',
-  domain: process.env.NODE_ENV === 'production' ? undefined : undefined // No domain restriction for cross-domain
+  domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined // Use .onrender.com for cross-subdomain
 };
 
 // Callback: recibe el code de Discord y genera JWT token
@@ -101,7 +101,7 @@ router.get('/callback', async (req, res) => {
       console.error('[AUTH] JWT generado inválido:', jwtToken);
       return res.redirect(frontendRedirect + '?error=invalid_jwt');
     }
-    // Set JWT as HttpOnly, Secure cookie
+    // Set JWT as HttpOnly, Secure cookie AND as URL parameter for cross-domain
     res.cookie('syro-jwt-token', jwtToken, cookieOptions);
     console.log('[AUTH] JWT cookie seteada correctamente. Redirecting to:', frontendRedirect);
     console.log('[AUTH] Cookie options:', {
@@ -115,8 +115,10 @@ router.get('/callback', async (req, res) => {
       FRONTEND_REDIRECT: process.env.FRONTEND_REDIRECT,
       ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS
     });
-    // Redirect to frontend without token in URL
-    return res.redirect(frontendRedirect);
+    
+    // For cross-domain, also pass token as URL parameter (temporary solution)
+    const redirectUrl = `${frontendRedirect}?token=${encodeURIComponent(jwtToken)}`;
+    return res.redirect(redirectUrl);
 
   } catch (e) {
     console.error('[AUTH] Error in OAuth2:', e.message);

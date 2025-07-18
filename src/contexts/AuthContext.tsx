@@ -24,23 +24,53 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount, check authentication status via /api/me and cookie
+  // Check for token in URL on mount (for OAuth callback)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    if (token) {
+      // Store token in localStorage
+      localStorage.setItem('syro-jwt-token', token);
+      // Remove token from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      console.log('[AUTH] Token stored from URL');
+    }
+  }, []);
+
+  // On mount, check authentication status via /api/me
   useEffect(() => {
     const checkAuth = async () => {
       setLoading(true);
       try {
+        // Try to get token from localStorage first
+        const token = localStorage.getItem('syro-jwt-token');
+        
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+        };
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
         const response = await fetch(`${API_CONFIG.BASE_URL}/api/me`, {
           method: 'GET',
-          credentials: 'include', // Use cookie-based JWT
+          credentials: 'include', // Still try cookies as fallback
+          headers,
         });
+        
         if (response.ok) {
           const data = await response.json();
           setUser(data.user);
           console.log('[AUTH] Authenticated as:', data.user.username);
         } else {
+          // If token is invalid, remove it
+          localStorage.removeItem('syro-jwt-token');
           setUser(null);
         }
       } catch (error) {
+        localStorage.removeItem('syro-jwt-token');
         setUser(null);
       } finally {
         setLoading(false);
@@ -63,6 +93,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('[AUTH] Error during logout:', error);
     } finally {
+      // Clear token from localStorage
+      localStorage.removeItem('syro-jwt-token');
       setUser(null);
       console.log('[AUTH] Logged out successfully');
     }

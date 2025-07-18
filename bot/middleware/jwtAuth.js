@@ -6,8 +6,16 @@ const { extractTokenFromHeader, getUserFromToken } = require('../utils/jwtUtils'
  */
 function jwtAuthMiddleware(req, res, next) {
   try {
-    // Solo obtener el token de la cookie segura
-    const token = req.cookies && req.cookies['syro-jwt-token'];
+    // Try to get token from cookie first, then from Authorization header
+    let token = req.cookies && req.cookies['syro-jwt-token'];
+    
+    if (!token) {
+      // Try Authorization header
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
 
     if (!token) {
       console.log('[JWT] No token provided');
