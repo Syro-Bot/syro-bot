@@ -83,6 +83,7 @@ function useGuilds(user: User | null) {
     if (user) {
       const fetchGuilds = async () => {
         try {
+          // Fetch user guilds
           const data = await apiManager.request({
             url: `${API_CONFIG.BASE_URL}/api/me`,
             options: {
@@ -95,14 +96,25 @@ function useGuilds(user: User | null) {
             throttleDelay: API_CONFIG.ENDPOINTS.ME.throttleDelay,
             priority: API_CONFIG.ENDPOINTS.ME.priority
           });
+
+          // Fetch bot guilds
+          const botGuildsRes = await fetch('/api/guilds');
+          const botGuildsData = botGuildsRes.ok ? await botGuildsRes.json() : { guilds: [] };
+          const botGuildIds = new Set((botGuildsData.guilds || []).map((g: any) => g.id));
+
           if (data.guilds && data.guilds.length > 0) {
-            setAvailableGuilds(data.guilds);
+            // Merge: add botPresent property
+            const mergedGuilds = data.guilds.map((guild: any) => ({
+              ...guild,
+              botPresent: botGuildIds.has(guild.id)
+            }));
+            setAvailableGuilds(mergedGuilds);
             const lastGuildId = localStorage.getItem('lastSelectedGuildId');
-            let selectedGuildId = undefined;
-            if (lastGuildId && data.guilds.some((g: Guild) => g.id === lastGuildId)) {
+            let selectedGuildId = '';
+            if (lastGuildId && mergedGuilds.some((g: any) => g.id === lastGuildId)) {
               selectedGuildId = lastGuildId;
-            } else if (data.guilds.length > 0) {
-              selectedGuildId = data.guilds[0].id;
+            } else if (mergedGuilds.length > 0) {
+              selectedGuildId = mergedGuilds[0].id;
             }
             if (selectedGuildId) {
               setGuildId(selectedGuildId);
