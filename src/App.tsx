@@ -52,6 +52,7 @@ export interface Guild {
   name: string;
   icon?: string;
   permissions: string;
+  botPresent: boolean;
 }
 
 /**

@@ -6,15 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { AUTH_BASE_URL } from '../config/constants';
 
 /**
- * Type definition for a Discord user (minimal for login context)
- */
-interface User {
-  id: string;
-  username: string;
-  avatar?: string;
-}
-
-/**
  * Type definition for the bot invite API response
  */
 interface InviteResponse {
