@@ -101,9 +101,13 @@ router.get('/callback', async (req, res) => {
       console.error('[AUTH] JWT generado inválido:', jwtToken);
       return res.redirect(frontendRedirect + '?error=invalid_jwt');
     }
-    // Set JWT as HttpOnly, Secure cookie AND as URL parameter for cross-domain
-    res.cookie('syro-jwt-token', jwtToken, cookieOptions);
-    console.log('[AUTH] JWT cookie seteada correctamente. Redirecting to:', frontendRedirect);
+    // Set JWT as URL parameter for cross-domain (no cookie needed in production)
+    if (process.env.NODE_ENV !== 'production') {
+      // Only set cookie in development for testing
+      res.cookie('syro-jwt-token', jwtToken, cookieOptions);
+      console.log('[AUTH] JWT cookie seteada correctamente (development only)');
+    }
+    console.log('[AUTH] Redirecting to frontend with token parameter');
     console.log('[AUTH] Cookie options:', {
       httpOnly: cookieOptions.httpOnly,
       secure: cookieOptions.secure,
