@@ -30,11 +30,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const token = urlParams.get('token');
     
     if (token) {
-      // Store token in localStorage
-      localStorage.setItem('syro-jwt-token', token);
+      // Store token in sessionStorage (more secure than localStorage)
+      sessionStorage.setItem('syro-jwt-token', token);
       // Remove token from URL
       window.history.replaceState({}, document.title, window.location.pathname);
-      console.log('[AUTH] Token stored from URL');
+      console.log('[AUTH] Token stored in sessionStorage from URL');
     }
   }, []);
 
@@ -43,8 +43,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const checkAuth = async () => {
       setLoading(true);
       try {
-        // Try to get token from localStorage first
-        const token = localStorage.getItem('syro-jwt-token');
+        // Try to get token from sessionStorage first (more secure than localStorage)
+        const token = sessionStorage.getItem('syro-jwt-token');
         
         const headers: HeadersInit = {
           'Content-Type': 'application/json',
@@ -66,11 +66,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           console.log('[AUTH] Authenticated as:', data.user.username);
         } else {
           // If token is invalid, remove it
-          localStorage.removeItem('syro-jwt-token');
+          sessionStorage.removeItem('syro-jwt-token');
           setUser(null);
         }
       } catch (error) {
-        localStorage.removeItem('syro-jwt-token');
+        sessionStorage.removeItem('syro-jwt-token');
         setUser(null);
       } finally {
         setLoading(false);
@@ -93,8 +93,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('[AUTH] Error during logout:', error);
     } finally {
-      // Clear token from localStorage
-      localStorage.removeItem('syro-jwt-token');
+      // Clear token from sessionStorage
+      sessionStorage.removeItem('syro-jwt-token');
       setUser(null);
       console.log('[AUTH] Logged out successfully');
     }
