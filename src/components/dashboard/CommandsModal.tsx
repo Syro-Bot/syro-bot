@@ -197,7 +197,7 @@ const CATEGORIES = {
  * @param {boolean} isOpen - Estado del modal
  * @param {function} onClose - Función para cerrar el modal
  */
-const CommandsModal: React.FC<CommandsModalProps> = ({ guildId, isOpen, onClose }) => {
+const CommandsModal: React.FC<CommandsModalProps> = ({ isOpen, onClose }) => {
   const { isDarkMode } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
