@@ -11,6 +11,7 @@
  */
 
 const TextCommand = require('../../templates/TextCommand');
+const logger = require('../../../utils/logger');
 
 /**
  * Ping Command Class

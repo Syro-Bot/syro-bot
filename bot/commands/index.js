@@ -104,14 +104,22 @@ class CommandsSystem {
     let totalCommands = 0;
     
     for (const [categoryName, category] of this.categories) {
+      console.log(`🔍 Processing category: ${categoryName}`);
+      console.log(`📁 Category keys: ${Object.keys(category).join(', ')}`);
+      
       const categoryMetadata = category.metadata;
       
       for (const [commandName, command] of Object.entries(category)) {
         if (commandName === 'metadata') continue;
         
+        console.log(`🔍 Processing command: ${commandName}`);
+        console.log(`📝 Command type: ${typeof command}`);
+        console.log(`📝 Command constructor: ${command.constructor.name}`);
+        
         try {
           // Get command metadata
           const metadata = command.getMetadata();
+          console.log(`✅ Got metadata for ${commandName}:`, metadata.name);
           
           // Create command object with execute method
           const commandObject = {
@@ -120,24 +128,27 @@ class CommandsSystem {
           };
           
           // Register command
-          this.commandRegistry.register(commandName, commandObject);
+          this.commandRegistry.register(commandObject);
+          console.log(`✅ Registered command: ${commandName} (${categoryName})`);
           
           // Register aliases
           if (metadata.aliases && metadata.aliases.length > 0) {
             for (const alias of metadata.aliases) {
-              this.commandRegistry.registerAlias(alias, commandName);
+              this.commandRegistry.addAlias(commandName, alias);
+              console.log(`📝 Registered alias: ${alias} -> ${commandName}`);
             }
           }
           
           totalCommands++;
-          logger.debug(`📝 Registered command: ${commandName} (${categoryName})`);
           
         } catch (error) {
+          console.error(`❌ Failed to register command ${commandName}:`, error);
           logger.error(`❌ Failed to register command ${commandName}:`, error);
         }
       }
     }
     
+    console.log(`✅ Registered ${totalCommands} commands total`);
     logger.info(`✅ Registered ${totalCommands} commands`);
   }
 
@@ -330,6 +341,27 @@ class CommandsSystem {
     const newCommands = Array.from(this.commandRegistry.getAll().keys());
     const legacyCommands = Array.from(this.legacyCommands.keys());
     return [...new Set([...newCommands, ...legacyCommands])];
+  }
+
+  /**
+   * Debug: List all registered commands
+   * 
+   * @returns {Object} Debug information
+   */
+  debugCommands() {
+    const newCommands = Array.from(this.commandRegistry.getAll().keys());
+    const legacyCommands = Array.from(this.legacyCommands.keys());
+    
+    logger.info('🔍 DEBUG: Registered Commands');
+    logger.info(`📝 New System Commands: ${newCommands.join(', ')}`);
+    logger.info(`🔄 Legacy Commands: ${legacyCommands.join(', ')}`);
+    
+    return {
+      newCommands,
+      legacyCommands,
+      totalNew: newCommands.length,
+      totalLegacy: legacyCommands.length
+    };
   }
 
   /**

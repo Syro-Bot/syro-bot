@@ -80,8 +80,15 @@ class TextCommand extends BaseCommand {
     if (options.title) embed.setTitle(options.title);
     if (options.description) embed.setDescription(options.description);
     if (options.color) embed.setColor(options.color);
-    if (options.footer) embed.setFooter({ text: options.footer });
+    if (options.footer) {
+      if (typeof options.footer === 'string') {
+        embed.setFooter({ text: options.footer });
+      } else if (typeof options.footer === 'object' && options.footer.text) {
+        embed.setFooter(options.footer);
+      }
+    }
     if (options.thumbnail) embed.setThumbnail(options.thumbnail);
+    if (options.image) embed.setImage(options.image.url);
     if (options.fields) embed.addFields(options.fields);
     
     // Set default timestamp

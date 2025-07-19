@@ -11,7 +11,10 @@
  */
 
 const TextCommand = require('../../templates/TextCommand');
-const { PermissionsBitField } = require('discord.js');
+const logger = require('../../../utils/logger');
+const { PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const path = require('path');
+const projectRoot = path.resolve(__dirname, '../../../..');
 
 /**
  * Nuke Command Class
@@ -41,7 +44,7 @@ class NukeCommand extends TextCommand {
           index: 0,
           type: 'string',
           required: false,
-          default: 'No reason provided',
+          default: '',
           description: 'Reason for nuking the channel'
         }
       },
@@ -80,60 +83,61 @@ class NukeCommand extends TextCommand {
         return false;
       }
 
-      // Send confirmation message
-      const confirmEmbed = this.createWarningEmbed(
-        'Channel Nuke Confirmation',
-        `Are you sure you want to nuke **${channel.name}**?\n\nThis will:\n• Delete all messages in the channel\n• Create a new channel with the same settings\n• Delete the old channel\n\n**Reason:** ${reason}\n\nThis action cannot be undone!`,
-        {
-          fields: [
-            { name: 'Channel', value: channel.name, inline: true },
-            { name: 'Messages', value: 'All messages will be deleted', inline: true },
-            { name: 'Executor', value: executor.user.tag, inline: true }
-          ]
+      // Create title with reason if provided
+      const title = reason ? `Nuke / ${reason}` : 'Nuke';
+
+      // Create confirmation embed with new design
+      const confirmEmbed = this.createEmbed({
+        title: title,
+        description: `Are you sure you want to nuke **${channel.name}**?\n\nThis will:\n• Delete all messages in the channel\n• Create a new channel with the same settings\n• Delete the old channel`,
+        color: '#ff4444',
+        image: {
+          url: 'attachment://mcskelet.gif'
         }
-      );
+      });
 
-      const confirmMessage = await this.sendResponse(message, confirmEmbed);
+      // Create buttons
+      const confirmButton = new ButtonBuilder()
+        .setCustomId('nuke_confirm')
+        .setLabel('Confirm')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('✅');
 
-      // Add reaction for confirmation
-      await confirmMessage.react('✅');
-      await confirmMessage.react('❌');
+      const cancelButton = new ButtonBuilder()
+        .setCustomId('nuke_cancel')
+        .setLabel('Cancel')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('❌');
 
-      // Wait for confirmation (30 seconds)
-      const filter = (reaction, user) => 
-        ['✅', '❌'].includes(reaction.emoji.name) && 
-        user.id === executor.id;
+      const buttonRow = new ActionRowBuilder()
+        .addComponents(confirmButton, cancelButton);
 
-      const collected = await confirmMessage.awaitReactions({
+      // Send confirmation message with buttons
+      const confirmMessage = await message.reply({
+        embeds: [confirmEmbed],
+        components: [buttonRow],
+        files: [path.join(projectRoot, 'public', 'mcskelet.gif')]
+      });
+
+      // Wait for button interaction (30 seconds)
+      const filter = (interaction) => 
+        interaction.isButton() && 
+        interaction.user.id === executor.id &&
+        ['nuke_confirm', 'nuke_cancel'].includes(interaction.customId);
+
+      const collected = await confirmMessage.awaitMessageComponent({
         filter,
-        max: 1,
         time: 30000
       });
 
       // Clean up confirmation message
       await confirmMessage.delete().catch(() => {});
 
-      // Check if user confirmed
-      const reaction = collected.first();
-      if (!reaction || reaction.emoji.name === '❌') {
+      // Check if user cancelled
+      if (collected.customId === 'nuke_cancel') {
         await this.sendInfo(message, 'Nuke Cancelled', 'Channel nuke operation was cancelled.');
         return true;
       }
-
-      // Start nuke process
-      const processingEmbed = this.createInfoEmbed(
-        'Nuking Channel',
-        'Processing channel nuke...\nThis may take a few moments.',
-        {
-          fields: [
-            { name: 'Status', value: '🔄 Processing...', inline: true },
-            { name: 'Channel', value: channel.name, inline: true },
-            { name: 'Executor', value: executor.user.tag, inline: true }
-          ]
-        }
-      );
-
-      const processingMessage = await this.sendResponse(message, processingEmbed);
 
       // Store channel settings
       const channelSettings = {
@@ -176,7 +180,7 @@ class NukeCommand extends TextCommand {
         defaultThreadRateLimitPerUser: channelSettings.defaultThreadRateLimitPerUser,
         defaultSortOrder: channelSettings.defaultSortOrder,
         defaultForumLayout: channelSettings.defaultForumLayout,
-        reason: `Channel nuked by ${executor.user.tag} - ${reason}`
+        reason: `Channel nuked by ${executor.user.tag} - ${reason || 'No reason provided'}`
       });
 
       // Copy permission overwrites
@@ -185,25 +189,10 @@ class NukeCommand extends TextCommand {
       }
 
       // Delete old channel
-      await channel.delete(`Channel nuked by ${executor.user.tag} - ${reason}`);
+      await channel.delete(`Channel nuked by ${executor.user.tag} - ${reason || 'No reason provided'}`);
 
       // Send success message in new channel
-      const successEmbed = this.createSuccessEmbed(
-        'Channel Nuked Successfully',
-        `The channel has been successfully nuked and recreated.`,
-        {
-          fields: [
-            { name: 'Old Channel', value: channel.name, inline: true },
-            { name: 'New Channel', value: newChannel.name, inline: true },
-            { name: 'Executor', value: executor.user.tag, inline: true },
-            { name: 'Reason', value: reason, inline: false },
-            { name: 'Timestamp', value: new Date().toLocaleString(), inline: false }
-          ],
-          footer: { text: 'Channel nuke completed' }
-        }
-      );
-
-      await newChannel.send({ embeds: [successEmbed] });
+      await newChannel.send(':boom: **Channel Nuked Successfully**');
 
       // Log the action
       this._logNukeAction(guild, executor, channel.name, newChannel.name, reason);

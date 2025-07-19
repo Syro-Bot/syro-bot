@@ -86,6 +86,10 @@ client.once('ready', async () => {
     categoryStats: Object.keys(commandStats.categoryStats)
   });
   
+  // Debug: List all registered commands
+  const debugInfo = commandsSystem.debugCommands();
+  console.log('🔍 DEBUG: Command Registration:', debugInfo);
+  
   console.log('✅ All systems initialized successfully');
   console.log('🎯 Bot is ready to handle events!');
 });

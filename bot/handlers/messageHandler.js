@@ -91,16 +91,22 @@ async function processCommand(message) {
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
     
+    console.log(`🔍 Processing command: ${commandName} with args: [${args.join(', ')}]`);
+    
     // Check if command exists in new system
     if (commandsSystem.hasCommand(commandName)) {
+      console.log(`✅ Command found in new system: ${commandName}`);
       // Execute command using new system
       return await commandsSystem.executeCommand(message, commandName, args);
+    } else {
+      console.log(`❌ Command not found in new system: ${commandName}`);
+      console.log(`📝 Available commands: ${commandsSystem.getAllCommandNames().join(', ')}`);
     }
     
     return false;
     
   } catch (error) {
-    logger.error('❌ Error processing command:', error);
+    console.error('❌ Error processing command:', error);
     return false;
   }
 }
@@ -171,103 +177,96 @@ async function registerLegacyCommands() {
   try {
     logger.info('🔄 Registering legacy commands with new command system...');
     
-    // Register avatar command
-    commandsSystem.registerCommand({
-      name: 'avatar',
-      description: 'Get user avatar',
-      category: 'utility',
-      permissions: [],
-      cooldown: 5000, // 5 seconds
-      aliases: ['av'],
-      execute: async (message, args) => {
-        await adminCommands.handleAvatarCommand(message);
-        return true;
+    // Create legacy command objects
+    const legacyCommands = {
+      avatar: {
+        name: 'avatar',
+        description: 'Get user avatar',
+        category: 'utility',
+        permissions: [],
+        cooldown: 5000,
+        aliases: ['av'],
+        execute: async (message, args) => {
+          await adminCommands.handleAvatarCommand(message);
+          return true;
+        }
+      },
+      unlock: {
+        name: 'unlock',
+        description: 'Unlock all channels',
+        category: 'admin',
+        permissions: ['Administrator'],
+        cooldown: 10000,
+        aliases: [],
+        execute: async (message, args) => {
+          await adminCommands.handleUnlockCommand(message);
+          return true;
+        }
+      },
+      nuke: {
+        name: 'nuke',
+        description: 'Delete all messages in channel',
+        category: 'admin',
+        permissions: ['Administrator'],
+        cooldown: 30000,
+        aliases: [],
+        execute: async (message, args) => {
+          await adminCommands.handleNukeCommand(message);
+          return true;
+        }
+      },
+      purge: {
+        name: 'purge',
+        description: 'Delete specified number of messages',
+        category: 'admin',
+        permissions: ['Administrator'],
+        cooldown: 15000,
+        aliases: ['clear'],
+        execute: async (message, args) => {
+          await adminCommands.handlePurgeCommand(message);
+          return true;
+        }
+      },
+      cleanraid: {
+        name: 'cleanraid',
+        description: 'Clean raid messages',
+        category: 'admin',
+        permissions: ['Administrator'],
+        cooldown: 20000,
+        aliases: ['raidclean'],
+        execute: async (message, args) => {
+          await adminCommands.handleCleanRaidCommand(message);
+          return true;
+        }
+      },
+      raidstatus: {
+        name: 'raidstatus',
+        description: 'Check raid status',
+        category: 'admin',
+        permissions: ['Administrator'],
+        cooldown: 5000,
+        aliases: ['raid'],
+        execute: async (message, args) => {
+          await adminCommands.handleRaidStatusCommand(message);
+          return true;
+        }
+      },
+      perms: {
+        name: 'perms',
+        description: 'Check bot permissions',
+        category: 'admin',
+        permissions: ['Administrator'],
+        cooldown: 10000,
+        aliases: ['permissions'],
+        execute: async (message, args) => {
+          await adminCommands.handlePermissionsCommand(message);
+          return true;
+        }
       }
-    });
+    };
     
-    // Register unlock command
-    commandsSystem.registerCommand({
-      name: 'unlock',
-      description: 'Unlock all channels',
-      category: 'admin',
-      permissions: ['Administrator'],
-      cooldown: 10000, // 10 seconds
-      aliases: [],
-      execute: async (message, args) => {
-        await adminCommands.handleUnlockCommand(message);
-        return true;
-      }
-    });
-    
-    // Register nuke command
-    commandsSystem.registerCommand({
-      name: 'nuke',
-      description: 'Delete all messages in channel',
-      category: 'admin',
-      permissions: ['Administrator'],
-      cooldown: 30000, // 30 seconds
-      aliases: [],
-      execute: async (message, args) => {
-        await adminCommands.handleNukeCommand(message);
-        return true;
-      }
-    });
-    
-    // Register purge command
-    commandsSystem.registerCommand({
-      name: 'purge',
-      description: 'Delete specified number of messages',
-      category: 'admin',
-      permissions: ['Administrator'],
-      cooldown: 15000, // 15 seconds
-      aliases: ['clear'],
-      execute: async (message, args) => {
-        await adminCommands.handlePurgeCommand(message);
-        return true;
-      }
-    });
-    
-    // Register cleanraid command
-    commandsSystem.registerCommand({
-      name: 'cleanraid',
-      description: 'Clean raid messages',
-      category: 'admin',
-      permissions: ['Administrator'],
-      cooldown: 20000, // 20 seconds
-      aliases: ['raidclean'],
-      execute: async (message, args) => {
-        await adminCommands.handleCleanRaidCommand(message);
-        return true;
-      }
-    });
-    
-    // Register raidstatus command
-    commandsSystem.registerCommand({
-      name: 'raidstatus',
-      description: 'Check raid status',
-      category: 'admin',
-      permissions: ['Administrator'],
-      cooldown: 5000, // 5 seconds
-      aliases: ['raid'],
-      execute: async (message, args) => {
-        await adminCommands.handleRaidStatusCommand(message);
-        return true;
-      }
-    });
-    
-    // Register permissions command
-    commandsSystem.registerCommand({
-      name: 'perms',
-      description: 'Check bot permissions',
-      category: 'admin',
-      permissions: ['Administrator'],
-      cooldown: 10000, // 10 seconds
-      aliases: ['permissions'],
-      execute: async (message, args) => {
-        await adminCommands.handlePermissionsCommand(message);
-        return true;
-      }
-    });
+    // Register legacy commands using the correct method
+    commandsSystem.registerLegacyCommands(legacyCommands);
     
     logger.info('✅ Legacy commands registered successfully');
     

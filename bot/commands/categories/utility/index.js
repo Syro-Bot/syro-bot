@@ -12,6 +12,8 @@
 
 const PingCommand = require('./ping');
 const UserInfoCommand = require('./userinfo');
+const DebugCommand = require('./debug');
+const TestCommand = require('./test');
 
 /**
  * Utility Commands Category
@@ -27,6 +29,12 @@ const UtilityCommands = {
   
   // User Information
   userinfo: new UserInfoCommand(),
+  
+  // Debug
+  debug: new DebugCommand(),
+  
+  // Test
+  test: new TestCommand(),
   
   // Category metadata
   metadata: {
