@@ -12,6 +12,7 @@
 
 const TextCommand = require('../../templates/TextCommand');
 const logger = require('../../../utils/logger');
+const LogManager = require('../../../utils/logManager');
 const { PermissionsBitField } = require('discord.js');
 
 /**
@@ -86,106 +87,63 @@ class BanCommand extends TextCommand {
     try {
       // Check if user has permission to ban members
       if (!this.hasPermission(executor)) {
-        await this.sendError(message, 'Permission Denied', 'You do not have permission to ban members.');
+        await message.reply('❌ You do not have permission to ban members.');
         return false;
       }
 
       // Check if bot has permission to ban members
       if (!this.botHasPermissions(guild)) {
-        await this.sendError(message, 'Bot Permission Error', 'I do not have permission to ban members.');
+        await message.reply('❌ I do not have permission to ban members.');
         return false;
       }
 
       // Validate user
       const targetUser = await this.validateUser(userId, guild);
       if (!targetUser) {
-        await this.sendError(message, 'User Not Found', 'The specified user was not found in this server.');
+        await message.reply('❌ The specified user was not found in this server.');
         return false;
       }
 
       // Check if user can be banned
       if (!this._canBanUser(executor, targetUser)) {
-        await this.sendError(message, 'Cannot Ban User', 'You cannot ban this user due to role hierarchy.');
+        await message.reply('❌ You cannot ban this user due to role hierarchy.');
         return false;
       }
 
       // Check if user is already banned
       const banList = await guild.bans.fetch();
       if (banList.has(targetUser.id)) {
-        await this.sendWarning(message, 'User Already Banned', `${targetUser.user.tag} is already banned from this server.`);
+        await message.reply(`${targetUser.user.tag} is already banned from this server.`);
         return true;
       }
 
-      // Send confirmation message
-      const confirmEmbed = this.createWarningEmbed(
-        'Ban Confirmation',
-        `Are you sure you want to ban **${targetUser.user.tag}**?\n\n**User:** ${targetUser.user.tag} (${targetUser.id})\n**Delete Messages:** ${days} day(s)\n**Reason:** ${reason}\n\nThis action cannot be undone!`,
-        {
-          fields: [
-            { name: 'User', value: targetUser.user.tag, inline: true },
-            { name: 'User ID', value: targetUser.id, inline: true },
-            { name: 'Executor', value: executor.user.tag, inline: true },
-            { name: 'Delete Messages', value: `${days} day(s)`, inline: true },
-            { name: 'Reason', value: reason, inline: false }
-          ]
-        }
-      );
-
-      const confirmMessage = await this.sendResponse(message, confirmEmbed);
-
-      // Add reaction for confirmation
-      await confirmMessage.react('✅');
-      await confirmMessage.react('❌');
-
-      // Wait for confirmation (30 seconds)
-      const filter = (reaction, user) => 
-        ['✅', '❌'].includes(reaction.emoji.name) && 
-        user.id === executor.id;
-
-      const collected = await confirmMessage.awaitReactions({
-        filter,
-        max: 1,
-        time: 30000
-      });
-
-      // Clean up confirmation message
-      await confirmMessage.delete().catch(() => {});
-
-      // Check if user confirmed
-      const reaction = collected.first();
-      if (!reaction || reaction.emoji.name === '❌') {
-        await this.sendInfo(message, 'Ban Cancelled', 'User ban operation was cancelled.');
-        return true;
-      }
-
-      // Execute ban
+      // Ejecutar el ban directamente, sin confirmación
       const banReason = `Banned by ${executor.user.tag} - ${reason}`;
       await guild.members.ban(targetUser, {
         deleteMessageDays: days,
         reason: banReason
       });
 
-      // Send success message
-      const successEmbed = this.createSuccessEmbed(
-        'User Banned Successfully',
-        `${targetUser.user.tag} has been banned from the server.`,
-        {
-          fields: [
-            { name: 'User', value: targetUser.user.tag, inline: true },
-            { name: 'User ID', value: targetUser.id, inline: true },
-            { name: 'Executor', value: executor.user.tag, inline: true },
-            { name: 'Delete Messages', value: `${days} day(s)`, inline: true },
-            { name: 'Reason', value: reason, inline: false },
-            { name: 'Timestamp', value: new Date().toLocaleString(), inline: false }
-          ],
-          footer: { text: 'User ban completed' }
+      // Mensaje de éxito simple
+      await message.reply(`${targetUser.user.tag} has been banned from the server.`);
+
+      // Log para dashboard
+      await LogManager.createLog({
+        guildId: guild.id,
+        type: 'member_banned',
+        title: 'User Banned',
+        description: `${targetUser.user.tag} was banned by ${executor.user.tag}`,
+        userId: executor.id,
+        username: executor.user.tag,
+        channelId: message.channel.id,
+        channelName: message.channel.name,
+        severity: 'success',
+        metadata: {
+          bannedUser: targetUser.user.tag,
+          bannedUserId: targetUser.id,
+          reason: reason || 'No reason provided'
         }
-      );
-
-      await this.sendResponse(message, successEmbed);
-
-      // Send DM to banned user
-      await this._sendBanDM(targetUser, guild, reason, executor);
+      });
 
       // Log the action
       this._logBanAction(guild, executor, targetUser, days, reason);
@@ -194,13 +152,7 @@ class BanCommand extends TextCommand {
 
     } catch (error) {
       logger.error(`❌ Error in ban command:`, error);
-      
-      await this.sendError(
-        message, 
-        'Ban Failed', 
-        'An error occurred while banning the user. Please try again or contact an administrator.'
-      );
-      
+      await message.reply('❌ Could not ban user.');
       return false;
     }
   }

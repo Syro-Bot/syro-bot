@@ -15,6 +15,7 @@ const logger = require('../../../utils/logger');
 const { PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const path = require('path');
 const projectRoot = path.resolve(__dirname, '../../../..');
+const LogManager = require('../../../utils/logManager');
 
 /**
  * Nuke Command Class
@@ -193,6 +194,24 @@ class NukeCommand extends TextCommand {
 
       // Send success message in new channel
       await newChannel.send(':boom: **Channel Nuked Successfully**');
+
+      // Log para dashboard
+      await LogManager.createLog({
+        guildId: guild.id,
+        type: 'channel_nuke',
+        title: 'Channel Nuked',
+        description: `Channel #${channel.name} nuked by ${executor.user.tag}`,
+        userId: executor.id,
+        username: executor.user.tag,
+        channelId: channel.id,
+        channelName: channel.name,
+        severity: 'success',
+        metadata: {
+          oldChannel: channel.name,
+          newChannel: newChannel.name,
+          reason: reason || 'No reason provided'
+        }
+      });
 
       // Log the action
       this._logNukeAction(guild, executor, channel.name, newChannel.name, reason);

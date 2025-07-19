@@ -13,6 +13,7 @@
 const NukeCommand = require('./nuke');
 const PurgeCommand = require('./purge');
 const BanCommand = require('./ban');
+const KickCommand = require('./kick');
 
 /**
  * Admin Commands Category
@@ -29,6 +30,7 @@ const AdminCommands = {
   
   // Member Management
   ban: new BanCommand(),
+  kick: new KickCommand(),
   
   // Category metadata
   metadata: {
