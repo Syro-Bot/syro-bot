@@ -34,6 +34,7 @@ import NukeModal from './NukeModal';
 import AnnouncementModal from './AnnouncementModal';
 import MemberCountModal from './MemberCountModal';
 import DataRetentionModal from './DataRetentionModal';
+import CommandsModal from './CommandsModal';
 
 /**
  * Interface for GeneralOptions component props
@@ -130,14 +131,14 @@ const OPTIONS_CONFIG: OptionConfig[] = [
   {
     id: 'commands',
     title: 'Commands',
-    description: 'Configure bot commands, prefix, and permissions.',
+    description: 'View all available bot commands and their usage.',
     icon: Command,
     color: {
       light: 'from-yellow-50 to-yellow-100 hover:from-yellow-100 hover:to-yellow-200 border-yellow-200 hover:border-yellow-300',
       dark: 'from-yellow-500/20 to-yellow-600/20 hover:from-yellow-500/30 hover:to-yellow-600/30 border-yellow-500/30 hover:border-yellow-400/50',
       gradient: 'from-yellow-500 to-yellow-600'
     },
-    isPlaceholder: true
+    modalComponent: CommandsModal
   }
 ];
 
@@ -353,17 +354,14 @@ const GeneralOptions: React.FC<GeneralOptionsProps> = React.memo(({ guildId }) =
                   <div>
                     <h3 className="text-xl font-bold">{option.title}</h3>
                     <p className={`text-${colorName}-100 text-sm`}>
-                      {option.id === 'channelLogs' ? 'Configure logging channels' : 'Manage bot commands'}
+                      Configure logging channels
                     </p>
                   </div>
                 </div>
               </div>
               <div className="p-6">
                 <p className={`text-sm leading-relaxed mb-6 ${textClasses.description}`}>
-                  {option.id === 'channelLogs' 
-                    ? 'Configure which channel will receive logs for member joins, leaves, channel changes, and other server events.'
-                    : 'Configure bot commands, change prefix, and manage command permissions. Available commands: xnuke, xpurge, xavatar, and more.'
-                  }
+                  Configure which channel will receive logs for member joins, leaves, channel changes, and other server events.
                 </p>
                 <div className="space-y-3">
                   <button
