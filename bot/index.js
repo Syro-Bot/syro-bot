@@ -17,6 +17,9 @@ const memberHandler = require('./handlers/memberHandler');
 const channelHandler = require('./handlers/channelHandler');
 const roleHandler = require('./handlers/roleHandler');
 
+// Import command system
+const commandsSystem = require('./commands');
+
 /**
  * Discord Client Configuration
  * Sets up the bot with necessary intents to monitor server activity
@@ -45,7 +48,7 @@ const client = new Client({
  * Bot Ready Event
  * Fired when the bot successfully connects to Discord
  */
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`✅ Bot logged in as ${client.user.tag}`);
   console.log(`📊 Bot is in ${client.guilds.cache.size} guilds`);
   
@@ -66,6 +69,18 @@ client.once('ready', () => {
   // Update all member count channels on startup
   console.log('📊 Updating member count channels...');
   updateAllMemberCountChannels(client);
+  
+  // Register legacy commands with new command system
+  console.log('🔄 Registering legacy commands...');
+  await messageHandler.registerLegacyCommands();
+  
+  // Log command system statistics
+  const commandStats = commandsSystem.getStats();
+  console.log('📈 Command System Statistics:', {
+    totalCommands: commandStats.commandManager.totalCommands,
+    totalCategories: commandStats.commandManager.totalCategories,
+    totalAliases: commandStats.commandManager.totalAliases
+  });
   
   console.log('✅ All systems initialized successfully');
   console.log('🎯 Bot is ready to handle events!');
