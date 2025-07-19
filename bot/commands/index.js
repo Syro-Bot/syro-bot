@@ -113,8 +113,14 @@ class CommandsSystem {
           // Get command metadata
           const metadata = command.getMetadata();
           
+          // Create command object with execute method
+          const commandObject = {
+            ...metadata,
+            execute: (message, args) => command.execute(message, args)
+          };
+          
           // Register command
-          this.commandRegistry.register(commandName, metadata);
+          this.commandRegistry.register(commandName, commandObject);
           
           // Register aliases
           if (metadata.aliases && metadata.aliases.length > 0) {
@@ -142,17 +148,11 @@ class CommandsSystem {
    * @private
    */
   async _initializeManagers(client) {
-    // Initialize command manager
-    await this.commandManager.initialize(client, this.commandRegistry);
-    
-    // Initialize permission manager
-    await this.permissionManager.initialize(client);
-    
-    // Initialize cooldown manager
-    await this.cooldownManager.initialize();
-    
-    // Initialize command executor
-    await this.commandExecutor.initialize(client, this.commandManager);
+    // Set client references for all managers
+    this.commandManager.client = client;
+    this.permissionManager.client = client;
+    this.cooldownManager.client = client;
+    this.commandExecutor.client = client;
     
     logger.info('✅ Command managers initialized');
   }
@@ -167,11 +167,16 @@ class CommandsSystem {
    */
   async executeCommand(message, commandName, args) {
     try {
+      logger.debug(`🔍 Looking for command: ${commandName}`);
+      
       // Find command in registry
-      const command = this.commandRegistry.getCommand(commandName);
+      const command = this.commandRegistry.get(commandName);
       if (!command) {
+        logger.debug(`❌ Command not found: ${commandName}`);
         return false;
       }
+      
+      logger.debug(`✅ Command found: ${commandName}, executing...`);
       
       // Execute command
       return await this.commandExecutor.execute(message, command, args);
@@ -227,7 +232,7 @@ class CommandsSystem {
   getHelp(category = null, command = null) {
     if (command) {
       // Get specific command help
-      const cmd = this.commandRegistry.getCommand(command);
+      const cmd = this.commandRegistry.get(command);
       return cmd ? cmd.getHelp() : null;
     }
     
@@ -313,7 +318,7 @@ class CommandsSystem {
    * @returns {boolean} Command exists
    */
   hasCommand(commandName) {
-    return this.commandRegistry.hasCommand(commandName) || this.legacyCommands.has(commandName);
+    return this.commandRegistry.has(commandName) || this.legacyCommands.has(commandName);
   }
 
   /**
@@ -322,7 +327,7 @@ class CommandsSystem {
    * @returns {Array} Command names
    */
   getAllCommandNames() {
-    const newCommands = this.commandRegistry.getAllCommandNames();
+    const newCommands = Array.from(this.commandRegistry.getAll().keys());
     const legacyCommands = Array.from(this.legacyCommands.keys());
     return [...new Set([...newCommands, ...legacyCommands])];
   }
