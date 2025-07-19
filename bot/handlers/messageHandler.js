@@ -11,7 +11,7 @@
  * - Comprehensive error handling and logging
  * 
  * @author Syro Backend Team
- * @version 1.0.0
+ * @version 2.0.0
  * @since 2024
  * @license MIT
  */
@@ -55,11 +55,11 @@ async function handleMessageCreate(message) {
     
     // ===== COMMAND PROCESSING =====
     // Try new command system first
-    const newCommandResult = await commandsSystem.executeCommand(message);
+    const commandResult = await processCommand(message);
     
-    if (newCommandResult) {
-      // Command was handled by new system
-      logger.debug(`✅ Command executed by new system: ${message.content.split(' ')[0]}`);
+    if (commandResult) {
+      // Command was handled successfully
+      logger.debug(`✅ Command processed: ${message.content.split(' ')[0]}`);
       return;
     }
     
@@ -68,6 +68,40 @@ async function handleMessageCreate(message) {
     
   } catch (error) {
     handleError(error, 'message handler');
+  }
+}
+
+/**
+ * Process command using the new command system
+ * 
+ * @param {Message} message - Discord message object
+ * @returns {Promise<boolean>} Whether command was processed
+ */
+async function processCommand(message) {
+  try {
+    // Get prefix from config (default to 'x')
+    const prefix = 'x';
+    
+    // Check if message starts with prefix
+    if (!message.content.startsWith(prefix)) {
+      return false;
+    }
+    
+    // Parse command and arguments
+    const args = message.content.slice(prefix.length).trim().split(/ +/);
+    const commandName = args.shift().toLowerCase();
+    
+    // Check if command exists in new system
+    if (commandsSystem.hasCommand(commandName)) {
+      // Execute command using new system
+      return await commandsSystem.executeCommand(message, commandName, args);
+    }
+    
+    return false;
+    
+  } catch (error) {
+    logger.error('❌ Error processing command:', error);
+    return false;
   }
 }
 

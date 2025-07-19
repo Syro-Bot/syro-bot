@@ -1,353 +1,394 @@
 /**
  * @fileoverview Commands System - Main Entry Point
  * 
- * Main entry point for the Syro bot command system.
- * Integrates all core components: CommandManager, CommandRegistry,
- * PermissionManager, CooldownManager, and CommandExecutor.
+ * Main entry point for the bot's command system. Integrates all command
+ * categories and provides a unified interface for command management.
  * 
- * Provides a unified interface for command management and execution.
+ * Features:
+ * - Automatic category loading
+ * - Command registration and management
+ * - Legacy command integration
+ * - Statistics and monitoring
  * 
  * @author Syro Backend Team
- * @version 1.0.0
+ * @version 2.0.0
  * @since 2024
  * @license MIT
  */
 
 const CommandManager = require('./core/CommandManager');
+const CommandRegistry = require('./core/CommandRegistry');
+const PermissionManager = require('./core/PermissionManager');
+const CooldownManager = require('./core/CooldownManager');
+const CommandExecutor = require('./core/CommandExecutor');
 const logger = require('../utils/logger');
+
+// Import command categories
+const AdminCommands = require('./categories/admin');
+const UtilityCommands = require('./categories/utility');
 
 /**
  * Commands System Class
  * 
- * Main orchestrator for the entire command system.
- * Provides high-level interface for command management and execution.
+ * Main orchestrator for the bot's command system.
+ * Manages all command categories and provides unified access.
  * 
  * @class CommandsSystem
  */
 class CommandsSystem {
-  /**
-   * Initialize the Commands System
-   * 
-   * @param {Object} options - Configuration options
-   * @param {Object} options.commandManager - CommandManager options
-   * @param {Object} options.permissionManager - PermissionManager options
-   * @param {Object} options.cooldownManager - CooldownManager options
-   * @param {Object} options.commandExecutor - CommandExecutor options
-   */
-  constructor(options = {}) {
-    this.options = options;
+  constructor() {
+    this.commandManager = new CommandManager();
+    this.commandRegistry = new CommandRegistry();
+    this.permissionManager = new PermissionManager();
+    this.cooldownManager = new CooldownManager();
+    this.commandExecutor = new CommandExecutor();
     
-    // Initialize core components
-    this.commandManager = new CommandManager(options.commandManager || {});
+    this.categories = new Map();
+    this.legacyCommands = new Map();
     
-    // Store references to sub-components for direct access
-    this.registry = this.commandManager.registry;
-    this.permissionManager = this.commandManager.permissionManager;
-    this.cooldownManager = this.commandManager.cooldownManager;
-    this.executor = this.commandManager.executor;
-    
-    // Initialize the system
-    this._initialize();
+    logger.info('🚀 Commands system initialized');
   }
 
   /**
    * Initialize the commands system
    * 
-   * @private
+   * @param {Client} client - Discord client
+   * @returns {Promise<void>}
    */
-  _initialize() {
+  async initialize(client) {
     try {
-      logger.info('🚀 Initializing Commands System...');
+      // Load command categories
+      await this._loadCategories();
       
-      // Load default commands
-      this._loadDefaultCommands();
+      // Register all commands
+      await this._registerCommands();
       
-      logger.info('✅ Commands System initialized successfully');
+      // Initialize managers
+      await this._initializeManagers(client);
+      
+      logger.info('✅ Commands system fully initialized');
+      
     } catch (error) {
-      logger.error('❌ Failed to initialize Commands System:', error);
+      logger.error('❌ Failed to initialize commands system:', error);
       throw error;
     }
   }
 
   /**
-   * Load default commands
+   * Load all command categories
    * 
    * @private
    */
-  _loadDefaultCommands() {
-    // TODO: Load commands from categories when they are implemented
-    logger.info('📦 Default commands will be loaded in Phase 2');
+  async _loadCategories() {
+    logger.info('📦 Loading command categories...');
+    
+    // Load admin commands
+    this.categories.set('admin', AdminCommands);
+    logger.debug(`📁 Loaded admin category with ${Object.keys(AdminCommands).filter(key => key !== 'metadata').length} commands`);
+    
+    // Load utility commands
+    this.categories.set('utility', UtilityCommands);
+    logger.debug(`📁 Loaded utility category with ${Object.keys(UtilityCommands).filter(key => key !== 'metadata').length} commands`);
+    
+    logger.info(`✅ Loaded ${this.categories.size} command categories`);
   }
 
   /**
-   * Execute a command from a message
+   * Register all commands with the system
    * 
-   * @param {Message} message - Discord message object
-   * @returns {Promise<boolean>} Execution success status
+   * @private
    */
-  async executeCommand(message) {
-    return await this.commandManager.executeCommand(message);
-  }
-
-  /**
-   * Register a new command
-   * 
-   * @param {Object} command - Command configuration object
-   * @returns {boolean} Registration success status
-   */
-  registerCommand(command) {
-    return this.commandManager.registerCommand(command);
-  }
-
-  /**
-   * Unregister a command
-   * 
-   * @param {string} commandName - Command name to unregister
-   * @returns {boolean} Unregistration success status
-   */
-  unregisterCommand(commandName) {
-    return this.commandManager.unregisterCommand(commandName);
-  }
-
-  /**
-   * Get command by name or alias
-   * 
-   * @param {string} identifier - Command name or alias
-   * @returns {Object|null} Command object or null if not found
-   */
-  getCommand(identifier) {
-    return this.registry.get(identifier);
-  }
-
-  /**
-   * Get all commands
-   * 
-   * @returns {Collection} All registered commands
-   */
-  getAllCommands() {
-    return this.registry.getAll();
-  }
-
-  /**
-   * Get commands by category
-   * 
-   * @param {string} category - Category name
-   * @returns {Collection} Commands in category
-   */
-  getCommandsByCategory(category) {
-    return this.commandManager.getCommandsByCategory(category);
-  }
-
-  /**
-   * Get all categories
-   * 
-   * @returns {Collection} All categories
-   */
-  getAllCategories() {
-    return this.commandManager.getAllCategories();
-  }
-
-  /**
-   * Set server prefix
-   * 
-   * @param {string} guildId - Guild ID
-   * @param {string} prefix - New prefix
-   * @returns {Promise<boolean>} Success status
-   */
-  async setServerPrefix(guildId, prefix) {
-    return await this.commandManager.setServerPrefix(guildId, prefix);
-  }
-
-  /**
-   * Get server prefix
-   * 
-   * @param {string} guildId - Guild ID
-   * @returns {Promise<string>} Server prefix
-   */
-  async getServerPrefix(guildId) {
-    return await this.commandManager.getServerPrefix(guildId);
-  }
-
-  /**
-   * Set role permission for a command
-   * 
-   * @param {string} guildId - Guild ID
-   * @param {string} commandName - Command name
-   * @param {string} roleId - Role ID
-   * @param {boolean} allowed - Whether the role is allowed
-   * @returns {Promise<boolean>} Success status
-   */
-  async setRolePermission(guildId, commandName, roleId, allowed) {
-    return await this.permissionManager.setRolePermission(guildId, commandName, roleId, allowed);
-  }
-
-  /**
-   * Remove role permission for a command
-   * 
-   * @param {string} guildId - Guild ID
-   * @param {string} commandName - Command name
-   * @param {string} roleId - Role ID
-   * @returns {Promise<boolean>} Success status
-   */
-  async removeRolePermission(guildId, commandName, roleId) {
-    return await this.permissionManager.removeRolePermission(guildId, commandName, roleId);
-  }
-
-  /**
-   * Get guild permissions
-   * 
-   * @param {string} guildId - Guild ID
-   * @returns {Object} Guild permissions
-   */
-  getGuildPermissions(guildId) {
-    return this.permissionManager.getGuildPermissions(guildId);
-  }
-
-  /**
-   * Set cooldown for a user and command
-   * 
-   * @param {string} userId - User ID
-   * @param {string} commandName - Command name
-   * @param {number} cooldown - Cooldown time in milliseconds
-   * @returns {boolean} Success status
-   */
-  setCooldown(userId, commandName, cooldown) {
-    return this.cooldownManager.setCooldown(userId, commandName, cooldown);
-  }
-
-  /**
-   * Set global cooldown for a command
-   * 
-   * @param {string} commandName - Command name
-   * @param {number} cooldown - Cooldown time in milliseconds
-   * @returns {boolean} Success status
-   */
-  setGlobalCooldown(commandName, cooldown) {
-    return this.cooldownManager.setGlobalCooldown(commandName, cooldown);
-  }
-
-  /**
-   * Get cooldown information
-   * 
-   * @param {string} userId - User ID
-   * @param {string} commandName - Command name
-   * @returns {Object|null} Cooldown information
-   */
-  getCooldown(userId, commandName) {
-    return this.cooldownManager.getCooldown(userId, commandName);
-  }
-
-  /**
-   * Get user cooldowns
-   * 
-   * @param {string} userId - User ID
-   * @returns {Object} User cooldowns
-   */
-  getUserCooldowns(userId) {
-    return this.cooldownManager.getUserCooldowns(userId);
-  }
-
-  /**
-   * Get commands for web dashboard
-   * 
-   * @param {string} guildId - Guild ID
-   * @returns {Object} Command information
-   */
-  async getCommandsForDashboard(guildId) {
-    return await this.commandManager.getCommandsForDashboard(guildId);
-  }
-
-  /**
-   * Get system statistics
-   * 
-   * @returns {Object} System statistics
-   */
-  getStats() {
-    return {
-      commandManager: this.commandManager.getCommandStats(),
-      registry: this.registry.getStats(),
-      permissions: this.permissionManager.getStats(),
-      cooldowns: this.cooldownManager.getStats(),
-      executor: this.executor.getStats()
-    };
-  }
-
-  /**
-   * Get execution history
-   * 
-   * @param {Object} filters - Filter options
-   * @returns {Array} Execution history
-   */
-  getExecutionHistory(filters = {}) {
-    return this.executor.getExecutionHistory(filters);
-  }
-
-  /**
-   * Get active executions
-   * 
-   * @returns {Array} Active executions
-   */
-  getActiveExecutions() {
-    return this.executor.getActiveExecutions();
-  }
-
-  /**
-   * Get permission audit log
-   * 
-   * @param {Object} filters - Filter options
-   * @returns {Array} Audit log entries
-   */
-  getPermissionAuditLog(filters = {}) {
-    return this.permissionManager.getAuditLog(filters);
-  }
-
-  /**
-   * Reload all commands
-   * 
-   * @returns {Promise<boolean>} Success status
-   */
-  async reloadCommands() {
-    return await this.commandManager.reloadCommands();
-  }
-
-  /**
-   * Clear all data
-   * 
-   * @returns {boolean} Success status
-   */
-  clearAllData() {
-    try {
-      this.commandManager.clearAllCooldowns();
-      this.executor.clearAllData();
-      this.permissionManager.clearAuditLog();
+  async _registerCommands() {
+    logger.info('📝 Registering commands...');
+    
+    let totalCommands = 0;
+    
+    for (const [categoryName, category] of this.categories) {
+      const categoryMetadata = category.metadata;
       
-      logger.info('🗑️ All commands system data cleared');
-      return true;
+      for (const [commandName, command] of Object.entries(category)) {
+        if (commandName === 'metadata') continue;
+        
+        try {
+          // Get command metadata
+          const metadata = command.getMetadata();
+          
+          // Register command
+          this.commandRegistry.register(commandName, metadata);
+          
+          // Register aliases
+          if (metadata.aliases && metadata.aliases.length > 0) {
+            for (const alias of metadata.aliases) {
+              this.commandRegistry.registerAlias(alias, commandName);
+            }
+          }
+          
+          totalCommands++;
+          logger.debug(`📝 Registered command: ${commandName} (${categoryName})`);
+          
+        } catch (error) {
+          logger.error(`❌ Failed to register command ${commandName}:`, error);
+        }
+      }
+    }
+    
+    logger.info(`✅ Registered ${totalCommands} commands`);
+  }
+
+  /**
+   * Initialize command managers
+   * 
+   * @param {Client} client - Discord client
+   * @private
+   */
+  async _initializeManagers(client) {
+    // Initialize command manager
+    await this.commandManager.initialize(client, this.commandRegistry);
+    
+    // Initialize permission manager
+    await this.permissionManager.initialize(client);
+    
+    // Initialize cooldown manager
+    await this.cooldownManager.initialize();
+    
+    // Initialize command executor
+    await this.commandExecutor.initialize(client, this.commandManager);
+    
+    logger.info('✅ Command managers initialized');
+  }
+
+  /**
+   * Execute a command
+   * 
+   * @param {Message} message - Discord message
+   * @param {string} commandName - Command name
+   * @param {Array} args - Command arguments
+   * @returns {Promise<boolean>} Execution success
+   */
+  async executeCommand(message, commandName, args) {
+    try {
+      // Find command in registry
+      const command = this.commandRegistry.getCommand(commandName);
+      if (!command) {
+        return false;
+      }
+      
+      // Execute command
+      return await this.commandExecutor.execute(message, command, args);
+      
     } catch (error) {
-      logger.error('❌ Failed to clear all data:', error);
+      logger.error(`❌ Error executing command ${commandName}:`, error);
       return false;
     }
   }
 
   /**
-   * Get system health status
+   * Get command statistics
    * 
-   * @returns {Object} Health status
+   * @returns {Object} Command statistics
    */
-  getHealthStatus() {
-    return {
-      status: 'healthy',
-      components: {
-        commandManager: 'operational',
-        registry: 'operational',
-        permissionManager: 'operational',
-        cooldownManager: 'operational',
-        executor: 'operational'
-      },
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      timestamp: new Date()
+  getStats() {
+    const stats = {
+      categories: this.categories.size,
+      totalCommands: 0,
+      categoryStats: {},
+      systemStats: {
+        registry: this.commandRegistry.getStats(),
+        permissions: this.permissionManager.getStats(),
+        cooldowns: this.cooldownManager.getStats(),
+        executor: this.commandExecutor.getStats()
+      }
     };
+    
+    // Calculate category statistics
+    for (const [categoryName, category] of this.categories) {
+      const commandCount = Object.keys(category).filter(key => key !== 'metadata').length;
+      stats.totalCommands += commandCount;
+      
+      stats.categoryStats[categoryName] = {
+        name: category.metadata.name,
+        description: category.metadata.description,
+        commandCount,
+        color: category.metadata.color,
+        icon: category.metadata.icon
+      };
+    }
+    
+    return stats;
+  }
+
+  /**
+   * Get help information for commands
+   * 
+   * @param {string} category - Category filter (optional)
+   * @param {string} command - Command filter (optional)
+   * @returns {Object} Help information
+   */
+  getHelp(category = null, command = null) {
+    if (command) {
+      // Get specific command help
+      const cmd = this.commandRegistry.getCommand(command);
+      return cmd ? cmd.getHelp() : null;
+    }
+    
+    if (category) {
+      // Get category help
+      const cat = this.categories.get(category);
+      if (!cat) return null;
+      
+      const commands = [];
+      for (const [commandName, command] of Object.entries(cat)) {
+        if (commandName === 'metadata') continue;
+        commands.push(command.getHelp());
+      }
+      
+      return {
+        category: cat.metadata,
+        commands
+      };
+    }
+    
+    // Get all help
+    const categories = [];
+    for (const [categoryName, category] of this.categories) {
+      const commands = [];
+      for (const [commandName, command] of Object.entries(category)) {
+        if (commandName === 'metadata') continue;
+        commands.push(command.getHelp());
+      }
+      
+      categories.push({
+        category: category.metadata,
+        commands
+      });
+    }
+    
+    return { categories };
+  }
+
+  /**
+   * Register legacy commands for backward compatibility
+   * 
+   * @param {Object} legacyCommands - Legacy command objects
+   */
+  registerLegacyCommands(legacyCommands) {
+    logger.info('🔄 Registering legacy commands...');
+    
+    for (const [commandName, command] of Object.entries(legacyCommands)) {
+      this.legacyCommands.set(commandName, command);
+      logger.debug(`🔄 Registered legacy command: ${commandName}`);
+    }
+    
+    logger.info(`✅ Registered ${this.legacyCommands.size} legacy commands`);
+  }
+
+  /**
+   * Execute legacy command
+   * 
+   * @param {Message} message - Discord message
+   * @param {string} commandName - Command name
+   * @param {Array} args - Command arguments
+   * @returns {Promise<boolean>} Execution success
+   */
+  async executeLegacyCommand(message, commandName, args) {
+    const legacyCommand = this.legacyCommands.get(commandName);
+    if (!legacyCommand) {
+      return false;
+    }
+    
+    try {
+      // Execute legacy command
+      await legacyCommand.execute(message, args);
+      return true;
+    } catch (error) {
+      logger.error(`❌ Error executing legacy command ${commandName}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if command exists (new or legacy)
+   * 
+   * @param {string} commandName - Command name
+   * @returns {boolean} Command exists
+   */
+  hasCommand(commandName) {
+    return this.commandRegistry.hasCommand(commandName) || this.legacyCommands.has(commandName);
+  }
+
+  /**
+   * Get all command names
+   * 
+   * @returns {Array} Command names
+   */
+  getAllCommandNames() {
+    const newCommands = this.commandRegistry.getAllCommandNames();
+    const legacyCommands = Array.from(this.legacyCommands.keys());
+    return [...new Set([...newCommands, ...legacyCommands])];
+  }
+
+  /**
+   * Reload command categories
+   * 
+   * @returns {Promise<void>}
+   */
+  async reloadCategories() {
+    logger.info('🔄 Reloading command categories...');
+    
+    // Clear existing categories
+    this.categories.clear();
+    this.commandRegistry.clear();
+    
+    // Reload categories
+    await this._loadCategories();
+    await this._registerCommands();
+    
+    logger.info('✅ Command categories reloaded');
+  }
+
+  /**
+   * Get command manager instance
+   * 
+   * @returns {CommandManager} Command manager
+   */
+  getCommandManager() {
+    return this.commandManager;
+  }
+
+  /**
+   * Get command registry instance
+   * 
+   * @returns {CommandRegistry} Command registry
+   */
+  getCommandRegistry() {
+    return this.commandRegistry;
+  }
+
+  /**
+   * Get permission manager instance
+   * 
+   * @returns {PermissionManager} Permission manager
+   */
+  getPermissionManager() {
+    return this.permissionManager;
+  }
+
+  /**
+   * Get cooldown manager instance
+   * 
+   * @returns {CooldownManager} Cooldown manager
+   */
+  getCooldownManager() {
+    return this.cooldownManager;
+  }
+
+  /**
+   * Get command executor instance
+   * 
+   * @returns {CommandExecutor} Command executor
+   */
+  getCommandExecutor() {
+    return this.commandExecutor;
   }
 }
 

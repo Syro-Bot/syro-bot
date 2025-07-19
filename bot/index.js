@@ -70,6 +70,10 @@ client.once('ready', async () => {
   console.log('📊 Updating member count channels...');
   updateAllMemberCountChannels(client);
   
+  // Initialize new command system
+  console.log('🚀 Initializing command system...');
+  await commandsSystem.initialize(client);
+  
   // Register legacy commands with new command system
   console.log('🔄 Registering legacy commands...');
   await messageHandler.registerLegacyCommands();
@@ -77,9 +81,9 @@ client.once('ready', async () => {
   // Log command system statistics
   const commandStats = commandsSystem.getStats();
   console.log('📈 Command System Statistics:', {
-    totalCommands: commandStats.commandManager.totalCommands,
-    totalCategories: commandStats.commandManager.totalCategories,
-    totalAliases: commandStats.commandManager.totalAliases
+    categories: commandStats.categories,
+    totalCommands: commandStats.totalCommands,
+    categoryStats: Object.keys(commandStats.categoryStats)
   });
   
   console.log('✅ All systems initialized successfully');
