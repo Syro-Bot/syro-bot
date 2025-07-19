@@ -425,7 +425,7 @@ const CommandsModal: React.FC<CommandsModalProps> = ({ guildId, isOpen, onClose 
                             Aliases:
                           </span>
                           <div className="flex gap-1">
-                            {command.aliases.map((alias, index) => (
+                            {command.aliases.map((alias) => (
                               <span
                                 key={alias}
                                 className={`px-2 py-1 rounded text-xs ${
