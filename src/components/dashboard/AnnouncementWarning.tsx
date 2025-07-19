@@ -122,7 +122,7 @@ const AnnouncementWarning: React.FC<AnnouncementWarningProps> = ({
 
   const checkBotPresence = async (guildId: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/guilds`);
+      const response = await fetch(`${API_BASE_URL}/guilds`);
       if (response.ok) {
         const data = await response.json();
         const botGuilds = data.guilds || [];

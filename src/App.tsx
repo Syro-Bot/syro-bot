@@ -98,8 +98,8 @@ function useGuilds(user: User | null) {
             priority: API_CONFIG.ENDPOINTS.ME.priority
           });
 
-          // Fetch bot guilds
-          const botGuildsRes = await fetch('/api/guilds');
+          // Fetch bot guilds - CORREGIDO: usar la ruta correcta
+          const botGuildsRes = await fetch(`${API_CONFIG.BASE_URL}/guilds`);
           const botGuildsData = botGuildsRes.ok ? await botGuildsRes.json() : { guilds: [] };
           const botGuildIds = new Set((botGuildsData.guilds || []).map((g: any) => g.id));
 
@@ -142,7 +142,7 @@ function useGuilds(user: User | null) {
   // Handler for changing guild, with bot presence verification
   const handleGuildChange = useCallback(async (newGuildId: string) => {
     try {
-      const response = await fetch(`/api/guilds`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/guilds`);
       if (response.ok) {
         const data = await response.json();
         const botGuilds = data.guilds || [];
@@ -199,7 +199,7 @@ const BotMissingModal: React.FC<{
   // Handler for switching to a guild where the bot is present
   const handleSwitchGuild = useCallback(() => {
     onClose();
-    fetch('/api/guilds')
+    fetch(`${API_CONFIG.BASE_URL}/guilds`)
       .then(res => res.json())
       .then(data => {
         const botGuilds = data.guilds || [];

@@ -18,6 +18,7 @@ import LiveLogs from '../components/dashboard/LiveLogs';
 import GeneralOptions from '../components/dashboard/GeneralOptions';
 import AnnouncementWarning from '../components/dashboard/AnnouncementWarning';
 import { useLocation } from 'react-router-dom';
+import { API_CONFIG } from '../config/apiConfig';
 
 /**
  * Type definition for a Discord guild/server.
@@ -74,7 +75,7 @@ const BotMissingModal: React.FC<{
   // Handler for switching to a guild where the bot is present
   const handleSwitchGuild = useCallback(() => {
     onClose();
-    fetch('/api/guilds')
+    fetch(`${API_CONFIG.BASE_URL}/guilds`)
       .then(res => res.json())
       .then(data => {
         const botGuilds = data.guilds || [];
@@ -176,7 +177,7 @@ const Dashboard: React.FC<{
   // Handler for changing guild, with bot presence verification
   const handleGuildChange = useCallback(async (newGuildId: string) => {
     try {
-      const response = await fetch(`/api/guilds`);
+      const response = await fetch(`${API_CONFIG.BASE_URL}/guilds`);
       if (response.ok) {
         const data = await response.json();
         const botGuilds = data.guilds || [];

@@ -17,6 +17,7 @@ import PendingTemplatesModal from '../shared/PendingTemplatesModal';
 import GlobalAnnouncementModal from '../dashboard/GlobalAnnouncementModal';
 import MobileMenuButton from './MobileMenuButton';
 import { BOT_OWNER_ID, BOT_CLIENT_ID, AUTH_BASE_URL } from '../../config/constants';
+import { API_CONFIG } from '../../config/apiConfig';
 
 /**
  * Props para HeaderControls
@@ -155,7 +156,7 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({
     if (onGuildChange) {
       // Verificar si el bot está en el servidor seleccionado
       try {
-        const response = await fetch(`/api/guilds`);
+        const response = await fetch(`${API_CONFIG.BASE_URL}/guilds`);
         if (response.ok) {
           const data = await response.json();
           const botGuilds = data.guilds || [];
@@ -192,7 +193,7 @@ const HeaderControls: React.FC<HeaderControlsProps> = ({
   const handleSwitchToGuildWithBot = () => {
     // Buscar un servidor donde sí esté el bot
     if (availableGuilds && availableGuilds.length > 0) {
-      fetch('/api/guilds')
+      fetch(`${API_CONFIG.BASE_URL}/guilds`)
         .then(res => res.json())
         .then(data => {
           const botGuilds = data.guilds || [];

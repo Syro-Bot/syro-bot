@@ -147,6 +147,8 @@ const CACHE_TTL_MS = 60 * 1000; // 60 segundos
 // /me: devuelve datos del usuario autenticado (ahora usa JWT)
 router.get('/me', jwtAuthMiddleware, async (req, res) => {
   console.log('[AUTH] /me called for user:', req.user.username);
+  console.log('[AUTH] Request headers:', req.headers);
+  console.log('[AUTH] JWT token present:', !!req.user.discord_access_token);
 
   try {
     // Los datos del usuario ya están en req.user (del JWT)
@@ -159,6 +161,7 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
 
     const discordAccessToken = req.user.discord_access_token;
     if (!discordAccessToken) {
+      console.error('[AUTH] No Discord access token found in JWT');
       return res.status(401).json({ error: 'No Discord access token found in JWT.' });
     }
 
@@ -184,11 +187,20 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
     // 1. Obtener todos los servidores del usuario desde Discord
     let userGuilds = [];
     try {
+      console.log('[AUTH] Fetching user guilds from Discord API...');
       const guildsRes = await axios.get('https://discord.com/api/users/@me/guilds', {
         headers: { Authorization: `Bearer ${discordAccessToken}` }
       });
       userGuilds = guildsRes.data;
+      console.log('[AUTH] Successfully fetched', userGuilds.length, 'guilds from Discord API');
     } catch (err) {
+      console.error('[AUTH] Error details:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message
+      });
+      
       if (err.response && err.response.status === 429) {
         console.error('[AUTH] Rate limit hit when fetching user guilds from Discord API');
         return res.status(429).json({ error: 'Rate limited by Discord. Please wait and try again.' });
@@ -203,6 +215,9 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
 
     // 2. Obtener los servidores donde está el bot
     const client = req.app.locals.client;
+    console.log('[AUTH] Discord client available:', !!client);
+    console.log('[AUTH] Bot guilds count:', client ? client.guilds.cache.size : 0);
+    
     const botGuildIds = client ? new Set(client.guilds.cache.map(g => g.id)) : new Set();
 
     // 3. Marcar cuáles tienen al bot y filtrar solo los que el usuario es owner o tiene permisos de admin
@@ -217,6 +232,9 @@ router.get('/me', jwtAuthMiddleware, async (req, res) => {
         owner: guild.owner,
         botPresent: botGuildIds.has(guild.id)
       }));
+
+    console.log('[AUTH] Filtered guilds with admin permissions:', allGuilds.length);
+    console.log('[AUTH] Guilds with bot present:', allGuilds.filter(g => g.botPresent).length);
 
     // Guardar en cache
     userGuildsCache[cacheKey] = {
@@ -265,16 +283,20 @@ router.post('/logout', (req, res) => {
 // /guilds: devuelve los servidores donde está el bot
 router.get('/guilds', (req, res) => {
   console.log('[AUTH] /guilds called');
+  console.log('[AUTH] Request headers:', req.headers);
 
   try {
     const client = req.app.locals.client;
 
     if (!client) {
+      console.error('[AUTH] Discord client not available');
       return res.status(500).json({
         success: false,
         error: 'Discord client not available'
       });
     }
+
+    console.log('[AUTH] Discord client available, guilds count:', client.guilds.cache.size);
 
     // Obtener todos los servidores donde está el bot
     const botGuilds = Array.from(client.guilds.cache.values()).map(guild => ({
@@ -286,6 +308,7 @@ router.get('/guilds', (req, res) => {
     }));
 
     console.log(`[AUTH] Bot is in ${botGuilds.length} guilds`);
+    console.log('[AUTH] Guild names:', botGuilds.map(g => g.name));
 
     res.json({
       success: true,
