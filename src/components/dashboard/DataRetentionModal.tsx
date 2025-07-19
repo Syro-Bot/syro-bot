@@ -108,52 +108,31 @@ const DataRetentionModal: React.FC<DataRetentionModalProps> = ({ guildId, isOpen
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      {/* Modal */}
-      <div className={`relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl transition-all duration-300 ${
-        isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className={`relative rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border-2 ${
+        isDarkMode 
+          ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]' 
+          : 'bg-gradient-to-br from-white via-orange-50 to-orange-100 border-orange-100'
       }`}>
-        {/* Header */}
-        <div className={`flex items-center justify-between p-6 border-b ${
-          isDarkMode ? 'border-gray-700' : 'border-gray-200'
-        }`}>
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${
-              isDarkMode ? 'bg-orange-500/20' : 'bg-orange-100'
-            }`}>
-              <Database className={`w-5 h-5 ${
-                isDarkMode ? 'text-orange-400' : 'text-orange-600'
-              }`} />
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+              <Database className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Data Retention Settings</h2>
-              <p className={`text-sm ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`}>
-                Configure data deletion policies when Syro leaves the server
-              </p>
+              <h3 className="text-xl font-bold">Data Retention</h3>
+              <p className="text-orange-100 text-sm">Configure data deletion policies</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className={`p-2 rounded-lg transition-colors duration-200 ${
-              isDarkMode 
-                ? 'hover:bg-gray-800 text-gray-400 hover:text-white' 
-                : 'hover:bg-gray-100 text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
-
+        
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6">
+          <p className={`text-sm leading-relaxed mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            Configure how Syro handles your server data when it leaves. By default, all data is automatically deleted 3 days after removal.
+          </p>
+
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
@@ -161,20 +140,20 @@ const DataRetentionModal: React.FC<DataRetentionModalProps> = ({ guildId, isOpen
           ) : (
             <>
               {/* Warning Banner */}
-              <div className={`p-4 rounded-lg border ${
+              <div className={`p-4 rounded-xl mb-6 ${
                 isDarkMode 
-                  ? 'bg-orange-500/10 border-orange-500/30' 
-                  : 'bg-orange-50 border-orange-200'
+                  ? 'bg-orange-500/10 border border-orange-500/20' 
+                  : 'bg-orange-50 border border-orange-200'
               }`}>
                 <div className="flex items-start gap-3">
                   <AlertTriangle className={`w-5 h-5 mt-0.5 ${
                     isDarkMode ? 'text-orange-400' : 'text-orange-600'
                   }`} />
                   <div>
-                    <h3 className="font-semibold mb-1">Important Notice</h3>
-                    <p className={`text-sm ${
-                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                    }`}>
+                    <h4 className={`font-semibold mb-1 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                      Important Notice
+                    </h4>
+                    <p className={`text-sm ${isDarkMode ? 'text-orange-300' : 'text-orange-700'}`}>
                       By default, Syro automatically deletes all server data 3 days after being removed from the server. 
                       These settings allow you to customize this behavior.
                     </p>
@@ -183,8 +162,8 @@ const DataRetentionModal: React.FC<DataRetentionModalProps> = ({ guildId, isOpen
               </div>
 
               {/* Immediate Deletion Toggle */}
-              <div className={`p-4 rounded-lg border ${
-                isDarkMode ? 'border-gray-700' : 'border-gray-200'
+              <div className={`p-4 rounded-xl mb-6 ${
+                isDarkMode ? 'bg-gray-800/50 border border-gray-600' : 'bg-gray-50 border border-gray-200'
               }`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -192,11 +171,11 @@ const DataRetentionModal: React.FC<DataRetentionModalProps> = ({ guildId, isOpen
                       isDarkMode ? 'text-red-400' : 'text-red-600'
                     }`} />
                     <div>
-                      <h3 className="font-semibold">Immediate Data Deletion</h3>
-                      <p className={`text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        Delete all data immediately when Syro leaves the server
+                      <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        Immediate Data Deletion
+                      </h4>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        Delete all data immediately when Syro leaves
                       </p>
                     </div>
                   </div>
@@ -219,9 +198,7 @@ const DataRetentionModal: React.FC<DataRetentionModalProps> = ({ guildId, isOpen
                   <div className={`p-3 rounded-lg ${
                     isDarkMode ? 'bg-red-500/10' : 'bg-red-50'
                   }`}>
-                    <p className={`text-sm ${
-                      isDarkMode ? 'text-red-300' : 'text-red-700'
-                    }`}>
+                    <p className={`text-sm ${isDarkMode ? 'text-red-300' : 'text-red-700'}`}>
                       ⚠️ <strong>Warning:</strong> This will permanently delete all server data immediately when Syro is removed. 
                       This action cannot be undone.
                     </p>
@@ -231,113 +208,138 @@ const DataRetentionModal: React.FC<DataRetentionModalProps> = ({ guildId, isOpen
 
               {/* Retention Period */}
               {!settings.immediateDeletion && (
-                <div className={`p-4 rounded-lg border ${
-                  isDarkMode ? 'border-gray-700' : 'border-gray-200'
+                <div className={`p-4 rounded-xl mb-6 ${
+                  isDarkMode ? 'bg-gray-800/50 border border-gray-600' : 'bg-gray-50 border border-gray-200'
                 }`}>
                   <div className="flex items-center gap-3 mb-3">
                     <Clock className={`w-5 h-5 ${
                       isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`} />
                     <div>
-                      <h3 className="font-semibold">Data Retention Period</h3>
-                      <p className={`text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        How long to keep data after Syro leaves the server
+                      <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        Data Retention Period
+                      </h4>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        How long to keep data after Syro leaves
                       </p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-4">
-                    <input
-                      type="range"
-                      min="1"
-                      max="7"
-                      value={settings.retentionDays}
-                      onChange={(e) => handleRetentionDaysChange(parseInt(e.target.value))}
-                      className={`flex-1 h-2 rounded-lg appearance-none cursor-pointer ${
-                        isDarkMode 
-                          ? 'bg-gray-700 slider-orange' 
-                          : 'bg-gray-200 slider-orange'
+                    <button
+                      onClick={() => handleRetentionDaysChange(settings.retentionDays - 1)}
+                      disabled={settings.retentionDays <= 1}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                        settings.retentionDays <= 1
+                          ? 'opacity-50 cursor-not-allowed bg-gray-300 dark:bg-gray-600'
+                          : 'bg-orange-500 hover:bg-orange-600 text-white'
                       }`}
-                    />
-                    <span className={`font-semibold min-w-[3rem] text-center ${
-                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                    >
+                      -
+                    </button>
+                    <span className={`text-lg font-semibold min-w-[3rem] text-center ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
                     }`}>
-                      {settings.retentionDays} {settings.retentionDays === 1 ? 'day' : 'days'}
+                      {settings.retentionDays}
+                    </span>
+                    <button
+                      onClick={() => handleRetentionDaysChange(settings.retentionDays + 1)}
+                      disabled={settings.retentionDays >= 7}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                        settings.retentionDays >= 7
+                          ? 'opacity-50 cursor-not-allowed bg-gray-300 dark:bg-gray-600'
+                          : 'bg-orange-500 hover:bg-orange-600 text-white'
+                      }`}
+                    >
+                      +
+                    </button>
+                    <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      days
                     </span>
                   </div>
                 </div>
               )}
 
-              {/* Data Type Selection */}
-              <div className={`p-4 rounded-lg border ${
-                isDarkMode ? 'border-gray-700' : 'border-gray-200'
+              {/* Data Type Options */}
+              <div className={`p-4 rounded-xl mb-6 ${
+                isDarkMode ? 'bg-gray-800/50 border border-gray-600' : 'bg-gray-50 border border-gray-200'
               }`}>
                 <div className="flex items-center gap-3 mb-4">
                   <Shield className={`w-5 h-5 ${
                     isDarkMode ? 'text-green-400' : 'text-green-600'
                   }`} />
-                  <h3 className="font-semibold">Data Types to Delete</h3>
+                  <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Data Types to Delete
+                  </h4>
                 </div>
                 
                 <div className="space-y-3">
                   {[
                     { key: 'deleteLogs', label: 'Server Logs', description: 'Activity logs and audit trails' },
-                    { key: 'deleteStats', label: 'Statistics', description: 'Member counts, join/leave data' },
+                    { key: 'deleteStats', label: 'Statistics', description: 'Member counts and usage statistics' },
                     { key: 'deleteConfig', label: 'Configuration', description: 'Bot settings and preferences' }
                   ].map(({ key, label, description }) => (
-                    <label key={key} className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={settings[key as keyof DataRetentionSettings] as boolean}
-                        onChange={() => handleToggle(key as keyof DataRetentionSettings)}
-                        className={`w-4 h-4 rounded ${
-                          isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-300'
-                        }`}
-                      />
+                    <div key={key} className="flex items-center justify-between">
                       <div>
-                        <span className="font-medium">{label}</span>
-                        <p className={`text-sm ${
-                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {label}
+                        </span>
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                           {description}
                         </p>
                       </div>
-                    </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={settings[key as keyof DataRetentionSettings] as boolean}
+                          onChange={() => handleToggle(key as keyof DataRetentionSettings)}
+                          className="sr-only peer"
+                        />
+                        <div className={`w-10 h-5 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all ${
+                          settings[key as keyof DataRetentionSettings] as boolean
+                            ? 'bg-orange-600' 
+                            : isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+                        }`}></div>
+                      </label>
+                    </div>
                   ))}
                 </div>
               </div>
             </>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className={`flex items-center justify-end gap-3 p-6 border-t ${
-          isDarkMode ? 'border-gray-700' : 'border-gray-200'
-        }`}>
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className={`px-4 py-2 rounded-lg transition-colors duration-200 ${
-              isDarkMode 
-                ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-            }`}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
-              saving
-                ? 'opacity-50 cursor-not-allowed bg-gray-500'
-                : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl'
-            }`}
-          >
-            {saving ? 'Saving...' : 'Save Settings'}
-          </button>
+          
+          {/* Action buttons */}
+          <div className="space-y-3">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3 px-4 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center justify-center gap-2">
+                {saving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Database className="w-5 h-5" />
+                    Save Settings
+                  </>
+                )}
+              </div>
+            </button>
+            <button
+              onClick={onClose}
+              className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 border-2 ${
+                isDarkMode
+                  ? 'border-gray-600 text-gray-300 hover:border-orange-500 hover:text-orange-400'
+                  : 'border-gray-300 text-gray-600 hover:border-orange-500 hover:text-orange-600'
+              }`}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>

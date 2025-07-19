@@ -175,58 +175,58 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ guildId, isOpen, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className={`w-[90vw] max-w-[1400px] h-[90vh] rounded-2xl transition-colors duration-300 ${
-        isDarkMode ? 'bg-[#181c24] border border-gray-700' : 'bg-white border border-gray-200'
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className={`relative rounded-3xl shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-hidden border-2 ${
+        isDarkMode 
+          ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]' 
+          : 'bg-gradient-to-br from-white via-blue-50 to-blue-100 border-blue-100'
       }`}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-              isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'
-            }`}>
-              <Megaphone className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <Megaphone className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">Send Announcement</h3>
+                <p className="text-blue-100 text-sm">Create and send formatted announcements with embeds</p>
+              </div>
             </div>
-            <div>
-              <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Send Announcement</h2>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Create and send formatted announcements with embeds</p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSend}
+                disabled={selectedChannels.length === 0 || sending}
+                className={`px-6 py-3 rounded-xl transition-colors flex items-center gap-2 font-semibold ${
+                  selectedChannels.length === 0 || sending
+                    ? 'bg-gray-500/50 text-gray-300 cursor-not-allowed'
+                    : 'bg-white/20 hover:bg-white/30 text-white border border-white/30'
+                }`}
+              >
+                {sending ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Megaphone className="w-4 h-4" />
+                    Send Announcement
+                  </>
+                )}
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl hover:bg-white/20 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleSend}
-              disabled={selectedChannels.length === 0 || sending}
-              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                selectedChannels.length === 0 || sending
-                  ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              {sending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Megaphone className="w-4 h-4" />
-                  Send Announcement
-                </>
-              )}
-            </button>
-            <button
-              onClick={onClose}
-              className={`p-2 rounded-lg transition-colors ${
-                isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-              }`}
-            >
-              <X className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-            </button>
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex h-[calc(90vh-120px)]">
+        <div className="flex h-[calc(95vh-120px)]">
           {/* Left Panel - Form */}
           <div className="w-1/2 p-6 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
             {/* Channel Selection */}
@@ -246,21 +246,18 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ guildId, isOpen, 
                         key={channel.id}
                         type="button"
                         onClick={() => handleChannelToggle(channel.id)}
-                        className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors border text-sm min-w-[120px] max-w-full truncate
+                        className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-colors border text-sm min-w-[120px] max-w-full truncate
                           ${selected
-                            ? isDarkMode
-                              ? 'bg-blue-600 text-white border-blue-500'
-                              : 'bg-blue-100 text-blue-900 border-blue-400'
-                            : isDarkMode
-                              ? 'bg-gray-800 text-gray-300 border-gray-700 hover:bg-gray-700'
-                              : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'}
-                        `}
-                        style={{ cursor: 'pointer' }}
+                            ? isDarkMode 
+                              ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' 
+                              : 'bg-blue-100 border-blue-300 text-blue-700'
+                            : isDarkMode 
+                              ? 'bg-gray-800/50 border-gray-600 text-gray-300 hover:bg-gray-700/50' 
+                              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                          }`}
                       >
-                        <span className="truncate">#{channel.name}</span>
-                        {channel.parent && (
-                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>({channel.parent})</span>
-                        )}
+                        <div className={`w-2 h-2 rounded-full ${selected ? 'bg-blue-500' : 'bg-gray-400'}`}></div>
+                        #{channel.name}
                       </button>
                     );
                   })
@@ -268,19 +265,17 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ guildId, isOpen, 
               </div>
             </div>
 
-            {/* Content */}
+            {/* Message Content */}
             <div className="mb-6">
-              <h3 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                Message Content
-              </h3>
+              <h3 className={`font-semibold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Message Content</h3>
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Enter your announcement message..."
-                className={`w-full h-24 p-3 rounded-lg border resize-none ${
+                className={`w-full h-32 p-3 rounded-xl border resize-none transition-colors ${
                   isDarkMode 
-                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
-                    : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500'
+                    ? 'bg-gray-800/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
                 }`}
               />
             </div>
@@ -288,28 +283,27 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ guildId, isOpen, 
             {/* Embeds */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
-                <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Embeds ({embeds.length}/3)
-                </h3>
-                {embeds.length < 3 && (
-                  <button
-                    onClick={addEmbed}
-                    className={`px-3 py-1 rounded-lg text-sm flex items-center gap-1 ${
-                      isDarkMode 
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                        : 'bg-blue-500 hover:bg-blue-600 text-white'
-                    }`}
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Embed
-                  </button>
-                )}
+                <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Embeds</h3>
+                <button
+                  onClick={addEmbed}
+                  disabled={embeds.length >= 3}
+                  className={`px-3 py-1 rounded-lg text-sm transition-colors flex items-center gap-1 ${
+                    embeds.length >= 3
+                      ? 'bg-gray-500/50 text-gray-400 cursor-not-allowed'
+                      : isDarkMode 
+                        ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' 
+                        : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                  }`}
+                >
+                  <Plus className="w-3 h-3" />
+                  Add Embed
+                </button>
               </div>
-
+              
               <div className="space-y-4">
                 {embeds.map((embed, index) => (
-                  <div key={embed.id} className={`border rounded-lg p-4 ${
-                    isDarkMode ? 'border-gray-600 bg-gray-800' : 'border-gray-300 bg-gray-50'
+                  <div key={embed.id} className={`p-4 rounded-xl border ${
+                    isDarkMode ? 'bg-gray-800/50 border-gray-600' : 'bg-gray-50 border-gray-200'
                   }`}>
                     <div className="flex items-center justify-between mb-3">
                       <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -318,7 +312,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ guildId, isOpen, 
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => toggleEmbedExpansion(embed.id)}
-                          className={`p-1 rounded ${
+                          className={`p-1 rounded transition-colors ${
                             isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
                           }`}
                         >
@@ -331,103 +325,78 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ guildId, isOpen, 
                         {embeds.length > 1 && (
                           <button
                             onClick={() => removeEmbed(embed.id)}
-                            className={`p-1 rounded text-red-500 hover:bg-red-500/10`}
+                            className={`p-1 rounded transition-colors ${
+                              isDarkMode ? 'hover:bg-red-500/20 text-red-400' : 'hover:bg-red-100 text-red-600'
+                            }`}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         )}
                       </div>
                     </div>
-
-                    {embed.isExpanded && (
-                      <div className="space-y-3">
-                        {/* Author Section */}
-                        <div className="grid grid-cols-2 gap-3">
+                    
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={embed.title}
+                        onChange={(e) => updateEmbed(embed.id, 'title', e.target.value)}
+                        placeholder="Embed title..."
+                        className={`w-full px-3 py-2 rounded-lg border text-sm transition-colors ${
+                          isDarkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+                        }`}
+                      />
+                      
+                      <textarea
+                        value={embed.description}
+                        onChange={(e) => updateEmbed(embed.id, 'description', e.target.value)}
+                        placeholder="Embed description..."
+                        className={`w-full h-20 p-3 rounded-lg border resize-none text-sm transition-colors ${
+                          isDarkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+                        }`}
+                      />
+                      
+                      {embed.isExpanded && (
+                        <div className="space-y-3 pt-3 border-t border-gray-600 dark:border-gray-500">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Color:</span>
+                            <input
+                              type="color"
+                              value={embed.color}
+                              onChange={(e) => updateEmbed(embed.id, 'color', e.target.value)}
+                              className="w-8 h-8 rounded border-0 cursor-pointer"
+                            />
+                          </div>
+                          
                           <input
                             type="text"
-                            placeholder="Author name"
                             value={embed.author}
                             onChange={(e) => updateEmbed(embed.id, 'author', e.target.value)}
-                            className={`px-3 py-2 rounded border text-sm ${
+                            placeholder="Author name..."
+                            className={`w-full px-3 py-2 rounded-lg border text-sm transition-colors ${
                               isDarkMode 
-                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
                             }`}
                           />
+                          
                           <input
-                            type="text"
-                            placeholder="Author URL"
-                            value={embed.authorUrl}
-                            onChange={(e) => updateEmbed(embed.id, 'authorUrl', e.target.value)}
-                            className={`px-3 py-2 rounded border text-sm ${
-                              isDarkMode 
-                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                            }`}
-                          />
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="Author Icon URL"
-                          value={embed.authorIconUrl}
-                          onChange={(e) => updateEmbed(embed.id, 'authorIconUrl', e.target.value)}
-                          className={`w-full px-3 py-2 rounded border text-sm ${
-                            isDarkMode 
-                              ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                          }`}
-                        />
-
-                        {/* Body Section */}
-                        <div className="border-t pt-3">
-                          <h5 className={`font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                            Body
-                          </h5>
-                          <input
-                            type="text"
-                            placeholder="Title"
-                            value={embed.title}
-                            onChange={(e) => updateEmbed(embed.id, 'title', e.target.value)}
-                            className={`w-full px-3 py-2 rounded border text-sm mb-3 ${
-                              isDarkMode 
-                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                            }`}
-                          />
-                          <textarea
-                            placeholder="Description"
-                            value={embed.description}
-                            onChange={(e) => updateEmbed(embed.id, 'description', e.target.value)}
-                            className={`w-full h-20 px-3 py-2 rounded border text-sm resize-none ${
-                              isDarkMode 
-                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                            }`}
-                          />
-                        </div>
-
-                        {/* Image and Color */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <input
-                            type="text"
-                            placeholder="Image URL"
+                            type="url"
                             value={embed.imageUrl}
                             onChange={(e) => updateEmbed(embed.id, 'imageUrl', e.target.value)}
-                            className={`px-3 py-2 rounded border text-sm ${
+                            placeholder="Image URL..."
+                            className={`w-full px-3 py-2 rounded-lg border text-sm transition-colors ${
                               isDarkMode 
-                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500' 
+                                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
                             }`}
                           />
-                          <input
-                            type="color"
-                            value={embed.color}
-                            onChange={(e) => updateEmbed(embed.id, 'color', e.target.value)}
-                            className="w-full h-10 rounded border cursor-pointer"
-                          />
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -436,85 +405,59 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ guildId, isOpen, 
 
           {/* Right Panel - Preview */}
           <div className="w-1/2 p-6 overflow-y-auto">
-            <h3 className={`font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Preview
-            </h3>
-            
-            <div className={`rounded-lg p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
-              {/* Bot Info */}
-              <div className="flex items-center gap-3 mb-4">
-                <img 
-                  src="/syro-icon.png" 
-                  alt="Syro Bot" 
-                  className="w-10 h-10 rounded-full"
-                />
-                <div>
-                  <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Syro Bot
-                  </p>
-                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    Now
-                  </p>
-                </div>
-              </div>
-
-              {/* Content */}
+            <h3 className={`font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Preview</h3>
+            <div className={`p-4 rounded-xl border ${
+              isDarkMode ? 'bg-gray-800/50 border-gray-600' : 'bg-gray-50 border-gray-200'
+            }`}>
+              {/* Message Preview */}
               {content && (
-                <div className={`mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {content.split('\n').map((line, index) => (
-                    <p key={index} className="mb-1">
-                      {line}
-                    </p>
-                  ))}
+                <div className={`mb-4 p-3 rounded-lg ${
+                  isDarkMode ? 'bg-gray-700' : 'bg-white'
+                }`}>
+                  <p className={`whitespace-pre-wrap ${isDarkMode ? 'text-gray-300' : 'text-gray-900'}`}>
+                    {content}
+                  </p>
                 </div>
               )}
-
-              {/* Embeds */}
-              {embeds.filter(embed => embed.title || embed.description).map((embed) => (
+              
+              {/* Embeds Preview */}
+              {embeds.filter(embed => embed.title || embed.description).map((embed, index) => (
                 <div key={embed.id} className="mb-4">
                   <div 
-                    className="rounded-lg p-4 border-l-4"
+                    className="rounded-lg overflow-hidden border-l-4"
                     style={{ borderLeftColor: embed.color }}
                   >
-                    {/* Author */}
-                    {embed.author && (
-                      <div className="flex items-center gap-2 mb-2">
-                        {embed.authorIconUrl && (
-                          <img 
-                            src={embed.authorIconUrl} 
-                            alt="Author" 
-                            className="w-5 h-5 rounded-full"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        )}
-                        <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {embed.author}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Title */}
-                    {embed.title && (
-                      <h4 className={`font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {embed.title}
-                      </h4>
-                    )}
-
-                    {/* Description */}
-                    {embed.description && (
-                      <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        {embed.description}
-                      </p>
-                    )}
-
-                    {/* Image */}
+                    <div className={`p-3 ${isDarkMode ? 'bg-gray-700' : 'bg-white'}`}>
+                      {embed.title && (
+                        <h4 className={`font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          {embed.title}
+                        </h4>
+                      )}
+                      {embed.description && (
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {embed.description}
+                        </p>
+                      )}
+                      {embed.author && (
+                        <div className="flex items-center gap-2 mt-2">
+                          {embed.authorIconUrl && (
+                            <img 
+                              src={embed.authorIconUrl} 
+                              alt="Author" 
+                              className="w-4 h-4 rounded"
+                            />
+                          )}
+                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {embed.author}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     {embed.imageUrl && (
                       <img 
                         src={embed.imageUrl} 
                         alt="Embed" 
-                        className="w-full rounded mt-3 max-h-48 object-cover"
+                        className="w-full max-h-48 object-cover"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                         }}

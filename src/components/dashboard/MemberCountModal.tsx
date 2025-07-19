@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Users, X, AlertCircle, FolderOpen } from 'lucide-react';
+import { Users, FolderOpen } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { API_CONFIG } from '../../config/apiConfig';
 const API_BASE_URL = API_CONFIG.BASE_URL;
@@ -54,7 +54,6 @@ const MemberCountModal: React.FC<MemberCountModalProps> = ({ guildId, isOpen, on
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [guildInfo, setGuildInfo] = useState<GuildInfo | null>(null);
-  const [guildInfoLoading, setGuildInfoLoading] = useState(false);
 
   // Load categories and guild info when modal opens
   useEffect(() => {
@@ -67,7 +66,7 @@ const MemberCountModal: React.FC<MemberCountModalProps> = ({ guildId, isOpen, on
   const loadGuildInfo = async () => {
     if (!guildId) return;
     
-    setGuildInfoLoading(true);
+    setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/member-count/${guildId}/info`);
       const data = await response.json();
@@ -78,7 +77,7 @@ const MemberCountModal: React.FC<MemberCountModalProps> = ({ guildId, isOpen, on
     } catch (error) {
       console.error('Error loading guild info:', error);
     } finally {
-      setGuildInfoLoading(false);
+      setLoading(false);
     }
   };
 
@@ -143,129 +142,59 @@ const MemberCountModal: React.FC<MemberCountModalProps> = ({ guildId, isOpen, on
     }
   };
 
-  // Get member count for display
-  const getMemberCount = () => {
-    if (guildInfoLoading) return 'Loading...';
-    if (guildInfo) return guildInfo.memberCount.toString();
-    return '0';
-  };
-
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className={`w-[90vw] max-w-[600px] rounded-2xl transition-colors duration-300 ${
-        isDarkMode ? 'bg-[#181c24] border border-gray-700' : 'bg-white border border-gray-200'
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className={`relative rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border-2 ${
+        isDarkMode 
+          ? 'bg-gradient-to-br from-[#181c24] via-[#101010] to-[#23272f] border-[#23272f]' 
+          : 'bg-gradient-to-br from-white via-green-50 to-green-100 border-green-100'
       }`}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 text-white">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-              isDarkMode ? 'bg-green-500/20' : 'bg-green-100'
-            }`}>
-              <Users className={`w-5 h-5 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+              <Users className="w-6 h-6" />
             </div>
             <div>
-              <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                Create Member Count Channel
-              </h2>
-              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Create a voice channel that shows real-time member count
-              </p>
+              <h3 className="text-xl font-bold">Member Count</h3>
+              <p className="text-green-100 text-sm">Create real-time member count channel</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className={`p-2 rounded-lg transition-colors ${
-              isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-            }`}
-          >
-            <X className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
-          </button>
         </div>
-
+        
         {/* Content */}
         <div className="p-6">
+          <p className={`text-sm leading-relaxed mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            Create a voice channel that automatically updates its name to show the current member count. 
+            Users can see the channel but cannot join it. The count updates in real-time as members join or leave.
+          </p>
+          
           {/* Server Info */}
           {guildInfo && (
-            <div className={`p-4 rounded-lg mb-6 ${
-              isDarkMode ? 'bg-gray-800 border border-gray-600' : 'bg-gray-50 border border-gray-300'
+            <div className={`p-4 rounded-xl mb-6 ${
+              isDarkMode ? 'bg-gray-800/50 border border-gray-600' : 'bg-gray-50 border border-gray-200'
             }`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <h4 className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     {guildInfo.name}
-                  </h3>
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Server ID: {guildInfo.id}
+                  </h4>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {guildInfo.memberCount} members
                   </p>
                 </div>
-                <div className="text-right">
-                  <div className={`text-2xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
-                    {guildInfo.memberCount}
-                  </div>
-                  <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    members
-                  </div>
+                <div className={`text-2xl font-bold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                  {guildInfo.memberCount}
                 </div>
               </div>
-              {guildInfo.memberCountChannels > 0 && (
-                <div className={`mt-2 text-xs ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
-                  ⚠️ This server already has {guildInfo.memberCountChannels} member count channel{guildInfo.memberCountChannels > 1 ? 's' : ''}
-                </div>
-              )}
             </div>
           )}
 
-          {/* Info Section */}
-          <div className={`p-4 rounded-lg mb-6 ${
-            isDarkMode ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200'
-          }`}>
-            <div className="flex items-start gap-3">
-              <AlertCircle className={`w-5 h-5 mt-0.5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
-              <div>
-                <h3 className={`font-semibold mb-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
-                  How it works
-                </h3>
-                <p className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>
-                  This will create a voice channel that automatically updates its name to show the current member count. 
-                  Users can see the channel but cannot join it. The count updates in real-time as members join or leave.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Display Name */}
-          <div className="mb-6">
-            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>
-              Display Name
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="ᴀʟʟ ᴍᴇᴍʙᴇʀs"
-                className={`flex-1 px-3 py-2 rounded-lg border text-sm ${
-                  isDarkMode 
-                    ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                }`}
-              />
-              <div className={`px-3 py-2 rounded-lg text-sm font-mono ${
-                isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'
-              }`}>
-                : {getMemberCount()}
-              </div>
-            </div>
-            <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              This is the text that will appear before the member count. You can use special characters like ᴀʟʟ ᴍᴇᴍʙᴇʀs.
-            </p>
-          </div>
-
           {/* Category Selection */}
           <div className="mb-6">
-            <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>
+            <label className={`block text-sm font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>
               Category (Optional)
             </label>
             <div className="flex items-center gap-3">
@@ -273,10 +202,10 @@ const MemberCountModal: React.FC<MemberCountModalProps> = ({ guildId, isOpen, on
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className={`flex-1 px-3 py-2 rounded-lg border text-sm ${
+                className={`flex-1 px-3 py-2 rounded-xl border text-sm transition-colors ${
                   isDarkMode 
-                    ? 'bg-gray-800 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-900'
+                    ? 'bg-gray-800/50 border-gray-600 text-white hover:border-green-500' 
+                    : 'bg-white border-gray-300 text-gray-900 hover:border-green-500'
                 }`}
               >
                 <option value="">No Category</option>
@@ -291,61 +220,41 @@ const MemberCountModal: React.FC<MemberCountModalProps> = ({ guildId, isOpen, on
                 )}
               </select>
             </div>
-            <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               Select a category to organize the member count channel. Leave empty to create it at the root level.
             </p>
           </div>
-
-          {/* Preview */}
-          <div className="mb-6">
-            <h3 className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-700'}`}>
-              Preview
-            </h3>
-            <div className={`p-3 rounded-lg border ${
-              isDarkMode ? 'bg-gray-800 border-gray-600' : 'bg-gray-50 border-gray-300'
-            }`}>
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  isDarkMode ? 'bg-gray-500' : 'bg-gray-400'
-                }`}></div>
-                <span className={`text-sm font-mono ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {displayName || 'ᴀʟʟ ᴍᴇᴍʙᴇʀs'}: {getMemberCount()}
-                </span>
-              </div>
-              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Voice Channel • Users can see but cannot join
-              </p>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 bg-gray-500 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
-            >
-              Cancel
-            </button>
+          
+          {/* Action buttons */}
+          <div className="space-y-3">
             <button
               onClick={handleCreate}
-              disabled={creating || !displayName.trim()}
-              className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
-                creating || !displayName.trim()
-                  ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700 text-white'
+              disabled={creating}
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3 px-4 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center justify-center gap-2">
+                {creating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Users className="w-5 h-5" />
+                    Create Member Count Channel
+                  </>
+                )}
+              </div>
+            </button>
+            <button
+              onClick={onClose}
+              className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 border-2 ${
+                isDarkMode
+                  ? 'border-gray-600 text-gray-300 hover:border-green-500 hover:text-green-400'
+                  : 'border-gray-300 text-gray-600 hover:border-green-500 hover:text-green-600'
               }`}
             >
-              {creating ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Users className="w-4 h-4" />
-                  Create Channel
-                </>
-              )}
+              Cancel
             </button>
           </div>
         </div>
