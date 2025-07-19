@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, Database, AlertTriangle, Shield, Clock, Trash2 } from 'lucide-react';
+import { Database, AlertTriangle, Shield, Clock, Trash2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface DataRetentionModalProps {

@@ -421,7 +421,7 @@ const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ guildId, isOpen, 
               )}
               
               {/* Embeds Preview */}
-              {embeds.filter(embed => embed.title || embed.description).map((embed, index) => (
+              {embeds.filter(embed => embed.title || embed.description).map((embed) => (
                 <div key={embed.id} className="mb-4">
                   <div 
                     className="rounded-lg overflow-hidden border-l-4"
