@@ -13,6 +13,7 @@
 const TextCommand = require('../../templates/TextCommand');
 const logger = require('../../../utils/logger');
 const { EmbedBuilder } = require('discord.js');
+const { generateUserInfoImage } = require('../../../utils/imageGenerator');
 
 /**
  * User Info Command Class
@@ -92,17 +93,92 @@ class UserInfoCommand extends TextCommand {
         targetMember = executor;
       }
 
-      // Create user info embed
-      const userEmbed = this.createEmbed({
-        title: '👤 User Information',
-        description: `Detailed information about **${targetUser.tag}**`,
-        color: targetMember ? targetMember.displayHexColor : '#0099ff',
-        thumbnail: targetUser.displayAvatarURL({ dynamic: true, size: 256 }),
-        fields: this._getUserFields(targetUser, targetMember, guild),
-        footer: { text: `User ID: ${targetUser.id}` }
+      // --- NEW: Generate profile image ---
+      // Avatar URL (force PNG and clean .webp/.gif)
+      let avatarUrl = targetUser.displayAvatarURL({ format: 'png', size: 512 });
+      avatarUrl = avatarUrl.replace('.webp', '.png').replace('.gif', '.png');
+      // Name and tag
+      const username = `${targetUser.username}#${targetUser.discriminator}`;
+      // Display name
+      const displayName = targetMember ? targetMember.displayName : targetUser.username;
+      // Roles and colors
+      let roles = [];
+      let roleColors = [];
+      if (targetMember && targetMember.roles) {
+        const sortedRoles = targetMember.roles.cache
+          .filter(role => role.id !== guild.id)
+          .sort((a, b) => b.position - a.position)
+          .first(5);
+        roles = sortedRoles.map(role => role.name);
+        roleColors = sortedRoles.map(role => role.hexColor || '#00bcd4');
+      }
+      // Dates
+      const createdAt = targetUser.createdAt ? targetUser.createdAt.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+      const joinedAt = targetMember && targetMember.joinedAt ? targetMember.joinedAt.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+      // Badges
+      let badges = [];
+      if (targetUser.flags && typeof targetUser.flags.toArray === 'function') {
+        badges = targetUser.flags.toArray().map(flag => this._getFlagName(flag));
+      }
+      // User ID
+      const userIdStr = targetUser.id;
+      // Guild icon and name
+      const guildIconUrl = guild && typeof guild.iconURL === 'function' ? guild.iconURL({ dynamic: true, size: 128 }) : null;
+      const guildName = guild ? guild.name : '';
+
+      // Key permissions
+      let permissions = [];
+      if (targetMember && targetMember.permissions) {
+        const keyPermissions = [
+          'Administrator',
+          'ManageGuild',
+          'ManageChannels',
+          'ManageMessages',
+          'ManageRoles',
+          'BanMembers',
+          'KickMembers',
+          'ManageNicknames',
+          'MuteMembers',
+          'DeafenMembers',
+          'MoveMembers',
+          'ViewAuditLog'
+        ];
+        const perms = targetMember.permissions.toArray();
+        permissions = keyPermissions.filter(perm => perms.includes(perm));
+      }
+      // Color and nickname
+      const color = targetMember && targetMember.displayHexColor ? targetMember.displayHexColor : '#00bcd4';
+      const nickname = targetMember && targetMember.nickname ? targetMember.nickname : '';
+
+      // Message counters (dummy)
+      const messageCounts = {
+        day1: 12,
+        day7: 54,
+        day14: 120
+      };
+
+      // Generate image
+      const buffer = await generateUserInfoImage({
+        avatarUrl,
+        username,
+        displayName,
+        roles,
+        roleColors,
+        createdAt,
+        joinedAt,
+        badges,
+        userId: userIdStr,
+        guildIconUrl,
+        guildName,
+        permissions,
+        color,
+        nickname,
+        messageCounts
       });
 
-      await this.sendResponse(message, userEmbed);
+      await message.channel.send({
+        files: [{ attachment: buffer, name: 'userinfo.png' }]
+      });
 
       return true;
 
