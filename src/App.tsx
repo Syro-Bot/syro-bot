@@ -296,7 +296,7 @@ const MainLayout: React.FC<{ activeComponent: string; setActiveComponent: (c: st
   // Page mapping for cleaner render logic
   const pageMap: Record<string, React.ReactNode> = {
     dashboard: <Dashboard user={user} guildId={guildId || ''} availableGuilds={availableGuilds} onGuildChange={handleGuildChange} />,
-    autoModeration: <AutoModeration />,
+    autoModeration: <AutoModeration guildId={guildId || ''} />,
     joinRoles: <JoinRoles guildId={guildId || ''} />,
     reactionRoles: <ReactionRoles guildId={guildId || ''} />,
     templates: <Templates />,

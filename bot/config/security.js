@@ -226,7 +226,9 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
       'https://syro-web-rnp.vercel.app',
       'https://syro-ql8b2dqf5-rnp.vercel.app',
       'https://syro-nuancpid8-rnp.vercel.app',
-      'http://localhost:5173'
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:3001'
     ];
 
 const CORS_CONFIG = {

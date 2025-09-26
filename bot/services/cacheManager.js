@@ -26,6 +26,16 @@ const commandCooldowns = new Map();
 // Debouncing for raid detection to prevent multiple triggers
 const raidDetectionDebounce = new Map();
 
+// --- Redis-based config caching for scalable bots ---
+let redis = null;
+try {
+  const Redis = require('ioredis');
+  redis = new Redis(process.env.REDIS_URL || { host: 'localhost', port: 6379 });
+} catch (e) {
+  console.warn('[CACHE] Redis not available, using in-memory cache only.');
+}
+const CONFIG_TTL = 60; // seconds
+
 /**
  * Enhanced Cache Cleanup Utility with Size Limits
  * 
@@ -113,6 +123,49 @@ function setupConfigCacheCleanup() {
   }, CONFIG_CACHE_TTL);
   
   console.log('⚙️ Server config cache cleanup configured');
+}
+
+/**
+ * Get server config with Redis cache (fallback to in-memory)
+ * @param {string} serverId
+ * @returns {Promise<Object>} Server config
+ */
+async function getServerConfigWithCache(serverId) {
+  const cacheKey = `serverConfig:${serverId}`;
+  // Try Redis first
+  if (redis) {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+  }
+  // Fallback: in-memory cache
+  const cached = serverConfigCache.get(serverId);
+  if (cached && (Date.now() - cached.timestamp) < CONFIG_CACHE_TTL) {
+    return cached.config;
+  }
+  // Fetch from MongoDB
+  const ServerConfig = require('../models/ServerConfig');
+  let config = await ServerConfig.findOne({ serverId }).lean();
+  if (!config) {
+    config = await new ServerConfig({ serverId }).save();
+    config = config.toObject();
+  }
+  // Save to Redis
+  if (redis) {
+    await redis.set(cacheKey, JSON.stringify(config), 'EX', CONFIG_TTL);
+  }
+  // Save to in-memory
+  serverConfigCache.set(serverId, { config, timestamp: Date.now() });
+  return config;
+}
+
+/**
+ * Invalidate server config cache in Redis and memory
+ * @param {string} serverId
+ */
+async function invalidateServerConfigCache(serverId) {
+  const cacheKey = `serverConfig:${serverId}`;
+  if (redis) await redis.del(cacheKey);
+  serverConfigCache.delete(serverId);
 }
 
 /**
@@ -233,5 +286,8 @@ module.exports = {
   clearServerConfigCache,
   isOnCooldown,
   setCooldown,
-  debouncedRaidDetection
+  debouncedRaidDetection,
+  // New scalable config cache API:
+  getServerConfigWithCache,
+  invalidateServerConfigCache,
 }; 

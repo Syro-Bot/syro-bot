@@ -16,6 +16,7 @@ const Joi = require('joi');
 const { validateDiscordPermissions, validateBotPresence, validateConditionally } = require('../middleware/auth');
 const { sanitizeAll, sanitizeAutomodRules } = require('../middleware/sanitizer');
 const rateLimit = require('express-rate-limit');
+const { invalidateServerConfigCache } = require('../services/cacheManager');
 
 /**
  * Rate limiter for automod endpoints
@@ -309,5 +310,94 @@ router.delete('/servers/:guildId/automod/rules/:ruleId', async (req, res) => {
     });
   }
 });
+
+/**
+ * GET /servers/:guildId/automod/excluded-roles
+ *
+ * Retrieves the excluded roles for automoderation for a specific Discord server.
+ *
+ * @param {string} guildId - Discord server ID
+ * @returns {Object} JSON response with excludedRoles array
+ *
+ * @example
+ * GET /servers/123456789/automod/excluded-roles
+ * Response: { success: true, excludedRoles: [ ... ] }
+ */
+router.get('/servers/:guildId/automod/excluded-roles',
+  validateConditionally('admin'),
+  async (req, res) => {
+    try {
+      const { guildId } = req.params;
+      console.log(`[AUTOMOD][GET][excluded-roles] GuildId: ${guildId}`);
+      let serverConfig = await ServerConfig.findOne({ serverId: guildId });
+      if (!serverConfig) {
+        console.log(`[AUTOMOD][GET][excluded-roles] No config found, creating default for guild: ${guildId}`);
+        serverConfig = new ServerConfig({ serverId: guildId, excludedRoles: [] });
+        await serverConfig.save();
+      }
+      console.log(`[AUTOMOD][GET][excluded-roles] Found config:`, !!serverConfig, `ExcludedRoles:`, Array.isArray(serverConfig.excludedRoles) ? serverConfig.excludedRoles.length : 'none');
+      res.json({
+        success: true,
+        excludedRoles: serverConfig.excludedRoles || []
+      });
+    } catch (error) {
+      console.error('[AUTOMOD][GET][excluded-roles] Error:', error);
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  }
+);
+
+/**
+ * PUT /servers/:guildId/automod/excluded-roles
+ *
+ * Updates the excluded roles for automoderation for a specific Discord server.
+ *
+ * @param {string} guildId - Discord server ID
+ * @param {Array} excludedRoles - Array of role objects to exclude
+ * @returns {Object} JSON response with success message
+ *
+ * @example
+ * PUT /servers/123456789/automod/excluded-roles
+ * Body: { excludedRoles: [ { id, name, color, position } ] }
+ * Response: { success: true, message: 'Excluded roles updated successfully' }
+ */
+router.put('/servers/:guildId/automod/excluded-roles',
+  sanitizeAll(),
+  validateConditionally('admin'),
+  async (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const { excludedRoles } = req.body;
+      console.log(`[AUTOMOD][PUT][excluded-roles] GuildId: ${guildId}`);
+      console.log(`[AUTOMOD][PUT][excluded-roles] Payload:`, excludedRoles);
+      if (!Array.isArray(excludedRoles)) {
+        console.warn('[AUTOMOD][PUT][excluded-roles] excludedRoles is not an array');
+        return res.status(400).json({ success: false, error: 'excludedRoles must be an array' });
+      }
+      // Basic validation for each role
+      for (const role of excludedRoles) {
+        if (!role.id || !role.name || !role.color || typeof role.position !== 'number') {
+          console.warn('[AUTOMOD][PUT][excluded-roles] Invalid role:', role);
+          return res.status(400).json({ success: false, error: 'Each role must have id, name, color, and position' });
+        }
+      }
+      let serverConfig = await ServerConfig.findOne({ serverId: guildId });
+      if (!serverConfig) {
+        console.log(`[AUTOMOD][PUT][excluded-roles] No config found, creating default for guild: ${guildId}`);
+        serverConfig = new ServerConfig({ serverId: guildId });
+      }
+      serverConfig.excludedRoles = excludedRoles;
+      serverConfig.updatedAt = new Date();
+      await serverConfig.save();
+      // Invalidate config cache for this guild so next automod event uses latest config
+      await invalidateServerConfigCache(guildId);
+      console.log(`[AUTOMOD][PUT][excluded-roles] Saved excludedRoles (${excludedRoles.length}) for guild: ${guildId}`);
+      res.json({ success: true, message: 'Excluded roles updated successfully' });
+    } catch (error) {
+      console.error('[AUTOMOD][PUT][excluded-roles] Error:', error);
+      res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  }
+);
 
 module.exports = router; 

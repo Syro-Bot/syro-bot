@@ -3,6 +3,9 @@ export interface Feature {
   tag: string;
   gradient: string;
   description: string;
+  priority?: 'critical' | 'high' | 'medium' | 'low';
+  maxRules?: number;
+  validation?: Record<string, { min: number; max: number }>;
 }
 
 import type { LucideIcon } from 'lucide-react';

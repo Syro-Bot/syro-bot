@@ -143,6 +143,41 @@ client.on('roleDelete', (role) => {
   roleHandler.handleRoleDelete(role);
 });
 
+// Reaction events for reaction roles
+client.on('messageReactionAdd', async (reaction, user) => {
+  try {
+    // Handle partial reactions
+    if (reaction.partial) {
+      await reaction.fetch();
+    }
+    
+    console.log(`👍 EVENT: messageReactionAdd - ${user.tag} reacted with ${reaction.emoji} in ${reaction.message.guild?.name || 'DM'}`);
+    
+    // Handle reaction role assignment
+    const reactionRoleService = require('./services/reactionRoleService');
+    await reactionRoleService.handleReactionAdd(reaction, user);
+  } catch (error) {
+    console.error('Error handling reaction add:', error);
+  }
+});
+
+client.on('messageReactionRemove', async (reaction, user) => {
+  try {
+    // Handle partial reactions
+    if (reaction.partial) {
+      await reaction.fetch();
+    }
+    
+    console.log(`👎 EVENT: messageReactionRemove - ${user.tag} removed reaction ${reaction.emoji} in ${reaction.message.guild?.name || 'DM'}`);
+    
+    // Handle reaction role removal
+    const reactionRoleService = require('./services/reactionRoleService');
+    await reactionRoleService.handleReactionRemove(reaction, user);
+  } catch (error) {
+    console.error('Error handling reaction remove:', error);
+  }
+});
+
 /**
  * Database Connection
  * Connects to MongoDB to store and retrieve server configurations

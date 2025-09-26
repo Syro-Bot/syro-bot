@@ -7,6 +7,7 @@ interface RoleSelectorButtonProps {
   setAssignedRoles: (roles: any[] | ((prev: any[]) => any[])) => void;
   isDarkMode: boolean;
   color?: "blue" | "green" | "purple";
+  showAssignedRolesInline?: boolean;
 }
 
 // Cache global para roles por servidor
@@ -17,7 +18,8 @@ const RoleSelectorButton: React.FC<RoleSelectorButtonProps> = ({
   assignedRoles, 
   setAssignedRoles, 
   isDarkMode,
-  color = "blue"
+  color = "blue",
+  showAssignedRolesInline = true
 }) => {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [roleSearch, setRoleSearch] = useState("");
@@ -129,8 +131,8 @@ const RoleSelectorButton: React.FC<RoleSelectorButtonProps> = ({
         <Plus size={20} />
       </button>
       
-      {/* Mostrar roles asignados al lado del botón + */}
-      {assignedRoles.length > 0 && (
+      {/* Mostrar roles asignados al lado del botón + solo si showAssignedRolesInline es true */}
+      {showAssignedRolesInline && assignedRoles.length > 0 && (
         <div className="ml-12 flex flex-wrap gap-2 max-w-64 items-center">
           {assignedRoles.slice(0, 3).map(r => (
             <div

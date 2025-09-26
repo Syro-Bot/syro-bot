@@ -101,29 +101,16 @@ function createApp(discordClient) {
       }
     }));
 
-    // Request logging middleware
-    app.use((req, res, next) => {
-      logger.info('Incoming request', {
-        method: req.method,
-        url: req.url,
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        timestamp: new Date().toISOString()
-      });
-      next();
-    });
-
-    // Global error handler
+    // Error handling middleware
     app.use((err, req, res, next) => {
-      logger.errorWithContext(err, {
+      logger.errorWithContext(err, { 
+        context: 'Express error handler',
         url: req.url,
         method: req.method,
-        body: req.body,
-        ip: req.ip,
-        userAgent: req.get('User-Agent')
+        ip: req.ip
       });
       
-      res.status(500).json({
+      res.status(err.status || 500).json({
         success: false,
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'

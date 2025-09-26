@@ -8,16 +8,30 @@ const cacheManager = require('./cacheManager');
 const { getCustomEmoji } = require('../utils/permissionValidator');
 const LogManager = require('../utils/logManager');
 const { handleError } = require('../utils/errorHandler');
+const { getServerConfigWithCache } = require('./cacheManager');
 
 /**
  * Handle spam detection for messages
+ * Always fetches the latest config using Redis/in-memory cache for scalability.
  * @param {Message} message - Discord message object
- * @param {Object} config - Server configuration
  */
-async function handleSpamDetection(message, config) {
+async function handleSpamDetection(message) {
+  // Always get the latest config (cached in Redis, fallback to memory)
+  const config = await getServerConfigWithCache(message.guild.id);
   if (!config || !config.automodRules?.Spam || config.automodRules.Spam.length === 0) {
     console.log(`ℹ️ No spam rules configured for ${message.guild.name}`);
     return;
+  }
+
+  // Exclusion logic: skip automod if user has any excluded role
+  if (Array.isArray(config.excludedRoles) && config.excludedRoles.length > 0 && message.member) {
+    const userRoleIds = new Set(message.member.roles.cache.map(r => r.id));
+    const excludedRoleIds = new Set(config.excludedRoles.map(r => r.id));
+    const isExcluded = [...excludedRoleIds].some(roleId => userRoleIds.has(roleId));
+    if (isExcluded) {
+      console.log(`🛡️ [EXCLUDED] User ${message.author.tag} has an excluded role. Skipping spam automod.`);
+      return;
+    }
   }
 
   const rule = config.automodRules.Spam[0];

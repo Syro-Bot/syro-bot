@@ -199,7 +199,31 @@ const serverConfigSchema = new mongoose.Schema({
         required: true
       }
     }]
-  }
+  },
+
+  /**
+   * Excluded Roles for Automoderation
+   * Users with these roles will be ignored by all automod rules
+   */
+  excludedRoles: [{
+    id: {
+      type: String,
+      required: true
+    },
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    color: {
+      type: String,
+      required: true
+    },
+    position: {
+      type: Number,
+      required: true
+    }
+  }]
 }, { 
   timestamps: true, // Adds createdAt and updatedAt fields
   collection: 'server_configs' // Explicit collection name

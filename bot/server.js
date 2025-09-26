@@ -24,7 +24,6 @@ const logger = require('./utils/logger');
 
 // Import modular configuration
 const { initializeApp, setupGracefulShutdown } = require('./config/app');
-const { cacheManager, rateLimiter } = require('./config/redis');
 
 /**
  * Discord Client Configuration
@@ -49,42 +48,102 @@ async function startServer() {
     // Initialize Express application with database connection
     const app = await initializeApp(client);
     
-    // Add cache and rate limiting middleware
-    app.use(async (req, res, next) => {
-      // Add cache manager to request object
-      req.cache = cacheManager;
-      req.rateLimiter = rateLimiter;
-      next();
-    });
+    // Make Discord client available to routes
+    app.locals.discordClient = client;
     
-    // Import and register route modules
+    // Import and register route modules - Only import existing ones
     const healthRoutes = require('./routes/health');
     const uploadRoutes = require('./routes/upload');
-    const automodRoutes = require('./routes/automod');
     const channelsRoutes = require('./routes/channels');
-    const nukeRoutes = require('./routes/nuke');
-    const announcementRoutes = require('./routes/announcement');
-    const globalAnnouncementRoutes = require('./routes/global-announcement');
-    const announcementConfigRoutes = require('./routes/announcement-config');
-    const memberCountRoutes = require('./routes/member-count');
-    const dataRetentionRoutes = require('./routes/data-retention');
-    const authRoutes = require('./routes/auth'); // <-- Agrego rutas de autenticación
-    const devDummyRoutes = require('./routes/dev-dummy'); // <-- Agrego rutas dummy para desarrollo
+    const authRoutes = require('./routes/auth');
     
-    // Register API routes
+    // Register basic API routes first
     app.use('/api', healthRoutes);
     app.use('/api', uploadRoutes);
-    app.use('/api', automodRoutes);
     app.use('/api/channels', channelsRoutes);
-    app.use('/api/nuke', nukeRoutes);
-    app.use('/api/announcement', announcementRoutes);
-    app.use('/api/global-announcement', globalAnnouncementRoutes);
-    app.use('/api/announcement-config', announcementConfigRoutes);
-    app.use('/api/member-count', memberCountRoutes);
-    app.use('/api/guild', dataRetentionRoutes);
-    app.use('/', authRoutes); // <-- Registro rutas de auth en la raíz para exponer /callback
-    app.use('/api', authRoutes); // <-- También registro rutas de auth bajo /api para compatibilidad con el frontend
-    app.use('/api', devDummyRoutes); // <-- Registro rutas reales bajo /api
+    app.use('/', authRoutes); // Auth routes in root for OAuth callback
+    app.use('/api', authRoutes); // Auth routes under /api for frontend compatibility
+    
+    // Try to import optional routes (only if they exist and don't have errors)
+    try {
+      const automodRoutes = require('./routes/automod');
+      app.use('/api', automodRoutes);
+      logger.info('✅ Automod routes loaded successfully');
+    } catch (error) {
+      logger.warn('⚠️ Automod routes not loaded:', error.message);
+    }
+    
+    try {
+      const guildsRoutes = require('./routes/guilds');
+      app.use('/api/guilds', guildsRoutes);
+      logger.info('✅ Guilds routes loaded successfully');
+    } catch (error) {
+      logger.warn('⚠️ Guilds routes not loaded:', error.message);
+    }
+    
+    try {
+      const reactionRoleRoutes = require('./routes/reaction-roles');
+      app.use('/api/reaction-roles', reactionRoleRoutes);
+      logger.info('✅ Reaction role routes loaded successfully');
+    } catch (error) {
+      logger.warn('⚠️ Reaction role routes not loaded:', error.message);
+    }
+    
+    try {
+      const nukeRoutes = require('./routes/nuke');
+      app.use('/api/nuke', nukeRoutes);
+      logger.info('✅ Nuke routes loaded successfully');
+    } catch (error) {
+      logger.warn('⚠️ Nuke routes not loaded:', error.message);
+    }
+    
+    try {
+      const announcementRoutes = require('./routes/announcement');
+      app.use('/api/announcement', announcementRoutes);
+      logger.info('✅ Announcement routes loaded successfully');
+    } catch (error) {
+      logger.warn('⚠️ Announcement routes not loaded:', error.message);
+    }
+    
+    try {
+      const globalAnnouncementRoutes = require('./routes/global-announcement');
+      app.use('/api/global-announcement', globalAnnouncementRoutes);
+      logger.info('✅ Global announcement routes loaded successfully');
+    } catch (error) {
+      logger.warn('⚠️ Global announcement routes not loaded:', error.message);
+    }
+    
+    try {
+      const announcementConfigRoutes = require('./routes/announcement-config');
+      app.use('/api/announcement-config', announcementConfigRoutes);
+      logger.info('✅ Announcement config routes loaded successfully');
+    } catch (error) {
+      logger.warn('⚠️ Announcement config routes not loaded:', error.message);
+    }
+    
+    try {
+      const memberCountRoutes = require('./routes/member-count');
+      app.use('/api/member-count', memberCountRoutes);
+      logger.info('✅ Member count routes loaded successfully');
+    } catch (error) {
+      logger.warn('⚠️ Member count routes not loaded:', error.message);
+    }
+    
+    try {
+      const dataRetentionRoutes = require('./routes/data-retention');
+      app.use('/api/guild', dataRetentionRoutes);
+      logger.info('✅ Data retention routes loaded successfully');
+    } catch (error) {
+      logger.warn('⚠️ Data retention routes not loaded:', error.message);
+    }
+    
+    try {
+      const devDummyRoutes = require('./routes/dev-dummy');
+      app.use('/api', devDummyRoutes);
+      logger.info('✅ Dev dummy routes loaded successfully');
+    } catch (error) {
+      logger.warn('⚠️ Dev dummy routes not loaded:', error.message);
+    }
     
     // Legacy routes (to be migrated to modules)
     registerLegacyRoutes(app);
@@ -94,8 +153,7 @@ async function startServer() {
     const server = app.listen(PORT, () => {
       logger.info(`🚀 API Server running on port ${PORT}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`⚡ Redis caching enabled`);
-      logger.info(`🛡️ Advanced rate limiting enabled`);
+      logger.info(`⚡ Server ready to handle requests`);
     });
     
     // Setup graceful shutdown
@@ -160,10 +218,32 @@ function registerLegacyRoutes(app) {
         sessionInfo
       });
     } catch (error) {
-      res.status(500).json({ success: false, error: error.message });
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
     }
   });
-  
+
+  // Health check endpoint
+  app.get('/api/health', (req, res) => {
+    res.json({
+      success: true,
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+
+  // Test endpoint for debugging
+  app.get('/api/test', (req, res) => {
+    res.json({
+      success: true,
+      message: 'API is working!',
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Bot invite endpoint
   app.get('/api/bot-invite/:guildId', (req, res) => {
     try {
@@ -189,7 +269,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ success: false, error: error.message });
     }
   });
-  
+
   // Permission check endpoint
   app.get('/api/permissions/:guildId', 
     validateBotPresence(),
@@ -249,7 +329,7 @@ function registerLegacyRoutes(app) {
       });
     }
   });
-  
+
   // Join statistics endpoint
   app.get('/api/stats/joins', async (req, res) => {
     try {
@@ -326,7 +406,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ success: false, error: error.message });
     }
   });
-  
+
   // Guilds endpoint
   app.get('/api/guilds', (req, res) => {
     try {
@@ -343,7 +423,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ success: false, error: error.message });
     }
   });
-  
+
   // Channels endpoint
   app.get('/api/channels', (req, res) => {
     try {
@@ -370,7 +450,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ success: false, error: error.message });
     }
   });
-  
+
   // Roles endpoint
   app.get('/api/roles/:guildId', (req, res) => {
     try {
@@ -393,7 +473,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ success: false, error: error.message });
     }
   });
-  
+
   // Welcome configuration endpoints
   app.post('/api/welcome-config', async (req, res) => {
     try {
@@ -477,7 +557,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ success: false, error: 'Error saving configuration' });
     }
   });
-  
+
   app.get('/api/welcome-config/:channelId', async (req, res) => {
     try {
       const { channelId } = req.params;
@@ -508,7 +588,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ success: false, error: 'Internal server error' });
     }
   });
-  
+
   // Channel creation endpoint
   app.post('/api/channels', async (req, res) => {
     try {
@@ -550,7 +630,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ success: false, error: error.message });
     }
   });
-  
+
   // Template routes
   app.post('/api/templates', sanitizeAll(), sanitizeUrls(['discord.com', 'discord.new']), async (req, res) => {
     try {
@@ -584,7 +664,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ error: 'Internal server error' });
     }
   });
-  
+
   app.post('/api/templates/pending', sanitizeAll(), async (req, res) => {
     try {
       const { userId } = req.body;
@@ -602,7 +682,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ error: 'Internal server error' });
     }
   });
-  
+
   app.get('/api/templates/approved', sanitizeAll(), async (req, res) => {
     try {
       const approvedTemplates = await Template.find({ status: 'approved' })
@@ -614,7 +694,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ error: 'Internal server error' });
     }
   });
-  
+
   app.post('/api/templates/:id/approve', sanitizeAll(), async (req, res) => {
     try {
       const { userId, username } = req.body;
@@ -639,13 +719,13 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ error: 'Internal server error' });
     }
   });
-  
+
   app.post('/api/templates/:id/reject', sanitizeAll(), async (req, res) => {
     try {
       const { userId, username } = req.body;
       
       if (userId !== '590275518599921701') {
-        return res.status(403).json({ error: 'Access denied' });
+        return res.status(404).json({ error: 'Template not found' });
       }
 
       const template = await Template.findById(req.params.id);
@@ -655,7 +735,7 @@ function registerLegacyRoutes(app) {
 
       template.status = 'rejected';
       template.reviewedBy = { userId, username };
-      template.reviewedAt = new Date();
+      template.rejectedAt = new Date();
       await template.save();
 
       res.json({ message: 'Template rejected', template });
@@ -664,7 +744,7 @@ function registerLegacyRoutes(app) {
       res.status(500).json({ error: 'Internal server error' });
     }
   });
-  
+
   // Join roles configuration endpoints
   app.get('/api/join-roles/:guildId', async (req, res) => {
     try {
@@ -696,7 +776,7 @@ function registerLegacyRoutes(app) {
       });
     }
   });
-  
+
   app.put('/api/join-roles/:guildId', async (req, res) => {
     try {
       const { guildId } = req.params;
@@ -725,7 +805,7 @@ function registerLegacyRoutes(app) {
       });
     }
   });
-  
+
   // Logs endpoints
   app.get('/api/logs/:guildId', async (req, res) => {
     try {
@@ -751,7 +831,7 @@ function registerLegacyRoutes(app) {
       });
     }
   });
-  
+
   app.get('/api/logs/:guildId/:type', async (req, res) => {
     try {
       const { guildId, type } = req.params;
@@ -771,36 +851,10 @@ function registerLegacyRoutes(app) {
       });
     }
   });
-
-  // Ruta de test para setear varias cookies de prueba
-  app.get('/test-cookie', (req, res) => {
-    res.cookie('testcookie_default', '123', {
-      httpOnly: true,
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000
-    });
-    res.cookie('testcookie_lax', '456', {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000
-    });
-    res.cookie('testcookie_none', '789', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000
-    });
-    res.send('Multiple test cookies set');
-  });
 }
 
 // Start the server
 startServer().catch(error => {
-  logger.errorWithContext(error, { context: 'Server startup failure' });
+  logger.errorWithContext(error, { context: 'Server startup failed' });
   process.exit(1);
-});
-
-// Export for testing
-module.exports = { client }; 
+}); 
